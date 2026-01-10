@@ -1,17 +1,17 @@
 [
   {
     "move": 1,
-    "text": "Here we go. (さあ、始まりました。)",
+    "text": "さあ、始まりました。",
     "senteWin": 50
   },
   {
     "move": 2,
-    "text": "Black has chosen the rook pawn opening. (先手、飛車先の歩を突きました。)",
+    "text": "先手、飛車先の歩を突きました。",
     "senteWin": 53
   },
   {
     "move": 3,
-    "text": "This is a typical opening. (オーソドックスな出だしですね。)",
+    "text": "オーソドックスな出だしですね。",
     "senteWin": 55
   },
   {
@@ -21,7 +21,7 @@
   },
   {
     "move": 5,
-    "text": "A typical opening. (よくある形ですね。)",
+    "text": "よくある形ですね。",
     "senteWin": 56
   }
 ]
