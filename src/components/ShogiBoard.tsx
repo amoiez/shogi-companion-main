@@ -51,17 +51,21 @@ interface BoardCellProps {
   onDragStart: (source: DragSource) => void;
   onDragEnd: () => void;
   onDrop: (row: number, col: number) => void;
+  canDrag: boolean;
 }
 
-const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop }: BoardCellProps) => {
+const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop, canDrag }: BoardCellProps) => {
   const isDraggingThis = dragSource?.type === 'board' && 
     dragSource?.row === row && 
     dragSource?.col === col;
 
   const isValidDropTarget = dragSource !== null && !isDraggingThis;
+  
+  // Can only drag my own pieces when it's my turn
+  const canDragThis = canDrag && cell.piece && !cell.isOpponent;
 
   const handleDragStart = (e: React.DragEvent) => {
-    if (!cell.piece) {
+    if (!cell.piece || !canDragThis) {
       e.preventDefault();
       return;
     }
@@ -100,13 +104,13 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop 
         border border-amber-950/60
         flex items-center justify-center
         transition-all duration-150
-        cursor-pointer
+        ${canDragThis ? 'cursor-grab' : 'cursor-default'}
         relative
         ${isValidDropTarget ? 'bg-amber-400/30 hover:bg-amber-400/50' : 'hover:bg-amber-400/20'}
         ${isDraggingThis ? 'bg-amber-300/50' : ''}
         ${isPromotionZone && !cell.piece ? 'bg-amber-600/5' : ''}
       `}
-      draggable={!!cell.piece}
+      draggable={!!canDragThis}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
       onDragOver={handleDragOver}
@@ -127,19 +131,28 @@ interface ShogiBoardProps {
   onDragStart: (source: DragSource) => void;
   onDragEnd: () => void;
   onDrop: (row: number, col: number) => void;
+  isMyTurn?: boolean;
 }
 
-const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop }: ShogiBoardProps) => {
+const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTurn = true }: ShogiBoardProps) => {
   return (
     <div className="flex flex-col items-center">
+      {/* Turn indicator */}
+      {!isMyTurn && (
+        <div className="mb-2 px-3 py-1 bg-amber-100/80 rounded-full text-sm text-amber-800 font-medium">
+          相手の番です
+        </div>
+      )}
+      
       {/* Board container with realistic wood texture and strong shadow */}
       <div 
-        className="
+        className={`
           rounded-lg p-3 board-wood-texture
           shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]
           border-[6px] border-amber-900/40
           ring-1 ring-amber-950/20
-        "
+          ${!isMyTurn ? 'opacity-90' : ''}
+        `}
       >
         {/* Inner board with wood grain */}
         <div className="board-inner-wood rounded p-1">
@@ -162,6 +175,7 @@ const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop }: Shogi
                   onDragStart={onDragStart}
                   onDragEnd={onDragEnd}
                   onDrop={onDrop}
+                  canDrag={isMyTurn}
                 />
               ))
             )}

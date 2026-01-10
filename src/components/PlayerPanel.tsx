@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { User } from "lucide-react";
 import { DragSource } from '@/hooks/useGameState';
 
@@ -10,6 +11,9 @@ interface PlayerPanelProps {
   onDragStart: (source: DragSource) => void;
   onDragEnd: () => void;
   onDrop: (row: number, col: number) => void;
+  videoStream?: MediaStream | null;
+  isMyTurn?: boolean;
+  canDrag?: boolean;
 }
 
 interface HandPieceProps {
@@ -19,14 +23,19 @@ interface HandPieceProps {
   dragSource: DragSource | null;
   onDragStart: (source: DragSource) => void;
   onDragEnd: () => void;
+  canDrag?: boolean;
 }
 
-const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd }: HandPieceProps) => {
+const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd, canDrag = true }: HandPieceProps) => {
   const isDragging = dragSource?.type === 'hand' && 
     dragSource?.handIndex === index && 
     dragSource?.isOpponent === isOpponent;
 
   const handleDragStart = (e: React.DragEvent) => {
+    if (!canDrag) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.effectAllowed = 'move';
     onDragStart({
       type: 'hand',
@@ -40,11 +49,11 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
     <div
       className={`
         w-9 h-10 md:w-10 md:h-11 flex items-center justify-center
-        cursor-grab active:cursor-grabbing
+        ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default opacity-70'}
         ${isDragging ? 'opacity-50' : ''}
         ${isOpponent ? 'rotate-180' : ''}
       `}
-      draggable
+      draggable={canDrag}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
     >
@@ -77,8 +86,20 @@ const PlayerPanel = ({
   hand, 
   dragSource, 
   onDragStart, 
-  onDragEnd 
+  onDragEnd,
+  videoStream,
+  isMyTurn = true,
+  canDrag = true,
 }: PlayerPanelProps) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Set up video stream
+  useEffect(() => {
+    if (videoRef.current && videoStream) {
+      videoRef.current.srcObject = videoStream;
+    }
+  }, [videoStream]);
+
   return (
     <div className="flex flex-col items-center gap-4 p-4">
       {/* Time label */}
@@ -87,25 +108,35 @@ const PlayerPanel = ({
       </div>
       
       {/* Digital clock display with beveled effect */}
-      <div className="timer-display rounded-xl px-6 py-3 shadow-2xl">
+      <div className={`timer-display rounded-xl px-6 py-3 shadow-2xl ${!isOpponent && isMyTurn ? 'ring-2 ring-amber-400' : ''}`}>
         <span className="shogi-timer text-timer-foreground">
           {time}
         </span>
       </div>
       
-      {/* Video feed placeholder with tablet/picture frame effect */}
+      {/* Video feed with tablet/picture frame effect */}
       <div 
         className={`
           w-full aspect-[4/3] max-w-[200px] rounded-2xl 
           video-frame-metallic
           bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center
-          shadow-2xl
+          shadow-2xl overflow-hidden
         `}
       >
-        <div className="flex flex-col items-center gap-2 text-gray-400">
-          <User className="w-16 h-16" strokeWidth={1.5} />
-          <span className="text-sm font-medium">ビデオ通話</span>
-        </div>
+        {videoStream ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted={!isOpponent} // Mute local stream to avoid echo
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-gray-400">
+            <User className="w-16 h-16" strokeWidth={1.5} />
+            <span className="text-sm font-medium">ビデオ通話</span>
+          </div>
+        )}
       </div>
 
       {/* Komadai (Piece Stand) */}
@@ -136,6 +167,7 @@ const PlayerPanel = ({
                   dragSource={dragSource}
                   onDragStart={onDragStart}
                   onDragEnd={onDragEnd}
+                  canDrag={canDrag && !isOpponent}
                 />
               ))}
             </div>

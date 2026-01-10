@@ -274,7 +274,32 @@ export const useGameState = () => {
     });
 
     setDragSource(null);
+    
+    // Return the new state for multiplayer sync
+    return true;
   }, [dragSource]);
+
+  // Set state directly (for receiving multiplayer updates)
+  const setGameState = useCallback((state: {
+    board: CellData[][];
+    senteHand: string[];
+    goteHand: string[];
+    moveCount: number;
+  }) => {
+    setBoard(state.board);
+    setSenteHand(state.senteHand);
+    setGoteHand(state.goteHand);
+    setMoveCount(state.moveCount);
+    updateGameState(state.moveCount);
+  }, []);
+
+  // Get current state for syncing
+  const getGameState = useCallback(() => ({
+    board,
+    senteHand,
+    goteHand,
+    moveCount,
+  }), [board, senteHand, goteHand, moveCount]);
 
   const handleDropOnHand = useCallback((isOpponentHand: boolean) => {
     // Optional: Allow dropping pieces back to hand (not standard Shogi but free-style)
@@ -293,6 +318,8 @@ export const useGameState = () => {
     handleDragStart,
     handleDragEnd,
     handleDrop,
+    setGameState,
+    getGameState,
   };
 };
 

@@ -1,14 +1,18 @@
+import { useEffect, useCallback } from "react";
 import SituationBar from "@/components/SituationBar";
 import PlayerPanel from "@/components/PlayerPanel";
 import ShogiBoard from "@/components/ShogiBoard";
 import AIAssistant from "@/components/AIAssistant";
+import ConnectionPanel from "@/components/ConnectionPanel";
 import { useGameState } from "@/hooks/useGameState";
+import { useMultiplayer } from "@/hooks/useMultiplayer";
 
 const Index = () => {
   const {
     board,
     senteHand,
     goteHand,
+    moveCount,
     aiMessage,
     sentePercent,
     gotePercent,
@@ -16,12 +20,96 @@ const Index = () => {
     handleDragStart,
     handleDragEnd,
     handleDrop,
+    setGameState,
+    getGameState,
   } = useGameState();
+
+  const {
+    gameId,
+    role,
+    connectionStatus,
+    errorMessage,
+    hostGame,
+    joinGame,
+    disconnect,
+    sendMove,
+    onReceiveState,
+    localStream,
+    remoteStream,
+    isMyTurn,
+    currentTurn,
+  } = useMultiplayer();
+
+  // Register callback for receiving game state updates
+  useEffect(() => {
+    onReceiveState((state) => {
+      setGameState({
+        board: state.board,
+        senteHand: state.senteHand,
+        goteHand: state.goteHand,
+        moveCount: state.moveCount,
+      });
+    });
+  }, [onReceiveState, setGameState]);
+
+  // Wrap handleDrop to also send move to peer
+  const handleDropWithSync = useCallback((row: number, col: number) => {
+    handleDrop(row, col);
+    
+    // After the drop, send the new state to peer
+    // We need to get the state after the update, so use a timeout
+    setTimeout(() => {
+      if (connectionStatus === 'connected') {
+        const state = getGameState();
+        sendMove({
+          board: state.board,
+          senteHand: state.senteHand,
+          goteHand: state.goteHand,
+          moveCount: state.moveCount,
+          currentTurn: currentTurn === 'sente' ? 'gote' : 'sente', // Toggle turn
+        });
+      }
+    }, 50);
+  }, [handleDrop, connectionStatus, getGameState, sendMove, currentTurn]);
+
+  // Determine which stream goes where based on role
+  const opponentStream = role === 'host' ? remoteStream : (role === 'guest' ? remoteStream : null);
+  const selfStream = role ? localStream : null;
 
   return (
     <div className="min-h-screen flex flex-col overflow-hidden tatami-background">
       {/* Top Header - Situation Assessment Bar */}
       <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} />
+      
+      {/* Connection Panel - Show when not connected */}
+      {connectionStatus !== 'connected' && (
+        <div className="absolute top-20 right-4 z-30">
+          <ConnectionPanel
+            gameId={gameId}
+            role={role}
+            connectionStatus={connectionStatus}
+            errorMessage={errorMessage}
+            onHost={hostGame}
+            onJoin={joinGame}
+            onDisconnect={disconnect}
+          />
+        </div>
+      )}
+
+      {/* Connected Status Badge */}
+      {connectionStatus === 'connected' && (
+        <div className="absolute top-20 right-4 z-30">
+          <ConnectionPanel
+            gameId={gameId}
+            role={role}
+            connectionStatus={connectionStatus}
+            errorMessage={errorMessage}
+            onHost={hostGame}
+            onJoin={joinGame}
+            onDisconnect={disconnect}
+          />
+        </div>
+      )}
       
       {/* Main Game Area - 3 Column Layout */}
       <div className="flex-1 flex items-center justify-center px-4 py-6 relative">
@@ -37,7 +125,10 @@ const Index = () => {
               dragSource={dragSource}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
-              onDrop={handleDrop}
+              onDrop={handleDropWithSync}
+              videoStream={opponentStream}
+              isMyTurn={currentTurn === 'gote'}
+              canDrag={false}
             />
           </div>
           
@@ -48,7 +139,8 @@ const Index = () => {
               dragSource={dragSource}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
-              onDrop={handleDrop}
+              onDrop={handleDropWithSync}
+              isMyTurn={isMyTurn}
             />
           </div>
           
@@ -62,7 +154,10 @@ const Index = () => {
               dragSource={dragSource}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
-              onDrop={handleDrop}
+              onDrop={handleDropWithSync}
+              videoStream={selfStream}
+              isMyTurn={currentTurn === 'sente'}
+              canDrag={isMyTurn}
             />
           </div>
         </div>
