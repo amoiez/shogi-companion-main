@@ -21,6 +21,8 @@ export interface GameState {
   goteHand: string[];
   moveCount: number;
   currentTurn: 'sente' | 'gote';
+  senteTime: number;
+  goteTime: number;
 }
 
 export interface GameMessage {

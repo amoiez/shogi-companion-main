@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import demoScript from '@/data/demoScript.json';
 
 export type PieceType = string | null;
@@ -122,6 +122,56 @@ export const useGameState = () => {
   const [sentePercent, setSentePercent] = useState(50);
   const [gotePercent, setGotePercent] = useState(50);
   const [dragSource, setDragSource] = useState<DragSource | null>(null);
+  
+  // Timer state (in seconds) - 10 minutes each
+  const [senteTime, setSenteTime] = useState(600);
+  const [goteTime, setGoteTime] = useState(600);
+  const [currentTurn, setCurrentTurn] = useState<'sente' | 'gote'>('sente');
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Format time as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (isTimerRunning && moveCount > 0) {
+      timerRef.current = setInterval(() => {
+        if (currentTurn === 'sente') {
+          setSenteTime(prev => {
+            if (prev <= 0) return 0;
+            return prev - 1;
+          });
+        } else {
+          setGoteTime(prev => {
+            if (prev <= 0) return 0;
+            return prev - 1;
+          });
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [isTimerRunning, currentTurn, moveCount]);
+
+  // Start timer on first move
+  const startTimer = useCallback(() => {
+    setIsTimerRunning(true);
+  }, []);
+
+  // Switch turn (and timer)
+  const switchTurn = useCallback(() => {
+    setCurrentTurn(prev => prev === 'sente' ? 'gote' : 'sente');
+  }, []);
 
   // Get base piece for promotion (unpromoted version)
   const getBasePiece = (piece: string): string => {
@@ -270,14 +320,23 @@ export const useGameState = () => {
     setMoveCount(prev => {
       const newCount = prev + 1;
       updateGameState(newCount);
+      
+      // Start timer on first move
+      if (newCount === 1) {
+        startTimer();
+      }
+      
       return newCount;
     });
+
+    // Switch turn after move
+    switchTurn();
 
     setDragSource(null);
     
     // Return the new state for multiplayer sync
     return true;
-  }, [dragSource]);
+  }, [dragSource, startTimer, switchTurn]);
 
   // Set state directly (for receiving multiplayer updates)
   const setGameState = useCallback((state: {
@@ -285,11 +344,31 @@ export const useGameState = () => {
     senteHand: string[];
     goteHand: string[];
     moveCount: number;
+    senteTime?: number;
+    goteTime?: number;
+    currentTurn?: 'sente' | 'gote';
   }) => {
     setBoard(state.board);
     setSenteHand(state.senteHand);
     setGoteHand(state.goteHand);
     setMoveCount(state.moveCount);
+    
+    // Sync timer if provided
+    if (state.senteTime !== undefined) {
+      setSenteTime(state.senteTime);
+    }
+    if (state.goteTime !== undefined) {
+      setGoteTime(state.goteTime);
+    }
+    if (state.currentTurn !== undefined) {
+      setCurrentTurn(state.currentTurn);
+    }
+    
+    // Start timer if game has started
+    if (state.moveCount > 0) {
+      setIsTimerRunning(true);
+    }
+    
     updateGameState(state.moveCount);
   }, []);
 
@@ -299,7 +378,10 @@ export const useGameState = () => {
     senteHand,
     goteHand,
     moveCount,
-  }), [board, senteHand, goteHand, moveCount]);
+    senteTime,
+    goteTime,
+    currentTurn,
+  }), [board, senteHand, goteHand, moveCount, senteTime, goteTime, currentTurn]);
 
   const handleDropOnHand = useCallback((isOpponentHand: boolean) => {
     // Optional: Allow dropping pieces back to hand (not standard Shogi but free-style)
@@ -320,6 +402,12 @@ export const useGameState = () => {
     handleDrop,
     setGameState,
     getGameState,
+    // Timer exports
+    senteTime,
+    goteTime,
+    senteTimeFormatted: formatTime(senteTime),
+    goteTimeFormatted: formatTime(goteTime),
+    currentTurn,
   };
 };
 

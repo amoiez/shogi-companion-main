@@ -22,6 +22,11 @@ const Index = () => {
     handleDrop,
     setGameState,
     getGameState,
+    senteTime,
+    goteTime,
+    senteTimeFormatted,
+    goteTimeFormatted,
+    currentTurn: gameCurrentTurn,
   } = useGameState();
 
   const {
@@ -48,6 +53,9 @@ const Index = () => {
         senteHand: state.senteHand,
         goteHand: state.goteHand,
         moveCount: state.moveCount,
+        senteTime: state.senteTime,
+        goteTime: state.goteTime,
+        currentTurn: state.currentTurn,
       });
     });
   }, [onReceiveState, setGameState]);
@@ -66,11 +74,13 @@ const Index = () => {
           senteHand: state.senteHand,
           goteHand: state.goteHand,
           moveCount: state.moveCount,
-          currentTurn: currentTurn === 'sente' ? 'gote' : 'sente', // Toggle turn
+          senteTime: state.senteTime,
+          goteTime: state.goteTime,
+          currentTurn: state.currentTurn === 'sente' ? 'gote' : 'sente', // Toggle turn
         });
       }
     }, 50);
-  }, [handleDrop, connectionStatus, getGameState, sendMove, currentTurn]);
+  }, [handleDrop, connectionStatus, getGameState, sendMove]);
 
   // Determine which stream goes where based on role
   const opponentStream = role === 'host' ? remoteStream : (role === 'guest' ? remoteStream : null);
@@ -81,35 +91,18 @@ const Index = () => {
       {/* Top Header - Situation Assessment Bar */}
       <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} />
       
-      {/* Connection Panel - Show when not connected */}
-      {connectionStatus !== 'connected' && (
-        <div className="absolute top-20 right-4 z-30">
-          <ConnectionPanel
-            gameId={gameId}
-            role={role}
-            connectionStatus={connectionStatus}
-            errorMessage={errorMessage}
-            onHost={hostGame}
-            onJoin={joinGame}
-            onDisconnect={disconnect}
-          />
-        </div>
-      )}
-
-      {/* Connected Status Badge */}
-      {connectionStatus === 'connected' && (
-        <div className="absolute top-20 right-4 z-30">
-          <ConnectionPanel
-            gameId={gameId}
-            role={role}
-            connectionStatus={connectionStatus}
-            errorMessage={errorMessage}
-            onHost={hostGame}
-            onJoin={joinGame}
-            onDisconnect={disconnect}
-          />
-        </div>
-      )}
+      {/* Connection Panel - Fixed top-right */}
+      <div className="fixed top-32 right-8 z-50">
+        <ConnectionPanel
+          gameId={gameId}
+          role={role}
+          connectionStatus={connectionStatus}
+          errorMessage={errorMessage}
+          onHost={hostGame}
+          onJoin={joinGame}
+          onDisconnect={disconnect}
+        />
+      </div>
       
       {/* Main Game Area - 3 Column Layout */}
       <div className="flex-1 flex items-center justify-center px-4 py-6 relative">
@@ -119,7 +112,7 @@ const Index = () => {
           <div className="flex-shrink-0">
             <PlayerPanel 
               label="残り" 
-              time="09:37" 
+              time={goteTimeFormatted}
               isOpponent={true}
               hand={goteHand}
               dragSource={dragSource}
@@ -127,7 +120,7 @@ const Index = () => {
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
               videoStream={opponentStream}
-              isMyTurn={currentTurn === 'gote'}
+              isMyTurn={gameCurrentTurn === 'gote'}
               canDrag={false}
             />
           </div>
@@ -148,7 +141,7 @@ const Index = () => {
           <div className="flex-shrink-0">
             <PlayerPanel 
               label="残り" 
-              time="09:35" 
+              time={senteTimeFormatted}
               isOpponent={false}
               hand={senteHand}
               dragSource={dragSource}
@@ -156,7 +149,7 @@ const Index = () => {
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
               videoStream={selfStream}
-              isMyTurn={currentTurn === 'sente'}
+              isMyTurn={gameCurrentTurn === 'sente'}
               canDrag={isMyTurn}
             />
           </div>

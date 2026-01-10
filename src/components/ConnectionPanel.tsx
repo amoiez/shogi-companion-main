@@ -41,7 +41,7 @@ const ConnectionPanel = ({
   // If connected, show minimal status
   if (connectionStatus === 'connected') {
     return (
-      <div className="glassmorphism rounded-xl px-4 py-2 flex items-center gap-3">
+      <div className="bg-white/95 backdrop-blur-sm rounded-xl px-4 py-2 flex items-center gap-3 shadow-xl border border-green-200">
         <div className="flex items-center gap-2 text-green-600">
           <Wifi className="w-4 h-4" />
           <span className="text-sm font-medium">接続中</span>
@@ -62,7 +62,7 @@ const ConnectionPanel = ({
   // If hosting and waiting for guest
   if (role === 'host' && connectionStatus === 'disconnected' && gameId) {
     return (
-      <div className="glassmorphism rounded-xl p-4 max-w-sm">
+      <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 max-w-sm shadow-xl border border-amber-200">
         <div className="text-center mb-3">
           <h3 className="font-bold text-lg">ゲームを作成しました</h3>
           <p className="text-sm text-muted-foreground">このIDを相手に伝えてください</p>
@@ -102,7 +102,7 @@ const ConnectionPanel = ({
 
   // Default: Show host/join options
   return (
-    <div className="glassmorphism rounded-xl p-4 max-w-md">
+    <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 max-w-md shadow-xl border border-amber-200">
       <h3 className="font-bold text-lg text-center mb-4">オンライン対戦</h3>
       
       {errorMessage && (

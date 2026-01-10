@@ -102,14 +102,17 @@ const PlayerPanel = ({
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
-      {/* Time label */}
-      <div className="text-lg font-medium text-muted-foreground drop-shadow-sm">
-        {label}
+      {/* Time label with turn indicator */}
+      <div className={`text-lg font-medium drop-shadow-sm ${isMyTurn ? 'text-amber-600' : 'text-muted-foreground'}`}>
+        {label} {isMyTurn && <span className="text-xs">(考え中)</span>}
       </div>
       
-      {/* Digital clock display with beveled effect */}
-      <div className={`timer-display rounded-xl px-6 py-3 shadow-2xl ${!isOpponent && isMyTurn ? 'ring-2 ring-amber-400' : ''}`}>
-        <span className="shogi-timer text-timer-foreground">
+      {/* Digital clock display with beveled effect - highlight active turn */}
+      <div className={`
+        timer-display rounded-xl px-6 py-3 shadow-2xl transition-all duration-300
+        ${isMyTurn ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent timer-active' : 'opacity-75'}
+      `}>
+        <span className={`shogi-timer ${isMyTurn ? 'text-amber-400' : 'text-timer-foreground'}`}>
           {time}
         </span>
       </div>
