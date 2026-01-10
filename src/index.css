@@ -1,0 +1,337 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&display=swap');
+
+/* Tablet Shogi Demo - Warm, accessible design for elderly users */
+
+@layer base {
+  :root {
+    /* Warm wood-inspired palette */
+    --background: 36 47% 88%;
+    --foreground: 30 30% 15%;
+
+    --card: 36 40% 92%;
+    --card-foreground: 30 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 30% 15%;
+
+    /* Sente (Black/先手) - Warm blue */
+    --primary: 210 65% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Gote (White/後手) - Warm red */
+    --secondary: 0 60% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Shogi board gold */
+    --board: 40 70% 66%;
+    --board-foreground: 30 30% 10%;
+
+    /* Piece colors */
+    --piece-sente: 30 30% 15%;
+    --piece-gote: 30 30% 15%;
+
+    --muted: 36 20% 80%;
+    --muted-foreground: 30 20% 40%;
+
+    --accent: 45 80% 55%;
+    --accent-foreground: 30 30% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 30 25% 70%;
+    --input: 30 25% 70%;
+    --ring: 210 65% 45%;
+
+    --radius: 0.75rem;
+
+    /* AI Assistant bubble */
+    --bubble: 0 0% 100%;
+    --bubble-foreground: 30 30% 15%;
+
+    /* Timer displays */
+    --timer-bg: 30 30% 10%;
+    --timer-foreground: 45 90% 60%;
+
+    /* Progress bar colors */
+    --progress-sente: 210 65% 50%;
+    --progress-gote: 0 55% 55%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 30 20% 12%;
+    --foreground: 36 40% 92%;
+
+    --card: 30 20% 16%;
+    --card-foreground: 36 40% 92%;
+
+    --popover: 30 20% 16%;
+    --popover-foreground: 36 40% 92%;
+
+    --primary: 210 65% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 55% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --board: 40 60% 50%;
+    --board-foreground: 0 0% 100%;
+
+    --muted: 30 15% 25%;
+    --muted-foreground: 30 15% 65%;
+
+    --accent: 45 70% 50%;
+    --accent-foreground: 30 30% 10%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 30 15% 30%;
+    --input: 30 15% 30%;
+    --ring: 210 65% 55%;
+
+    --bubble: 30 20% 20%;
+    --bubble-foreground: 36 40% 92%;
+
+    --timer-bg: 30 30% 8%;
+    --timer-foreground: 45 90% 60%;
+
+    --progress-sente: 210 65% 55%;
+    --progress-gote: 0 55% 55%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Noto Serif JP', serif;
+  }
+
+  /* Large, legible fonts for elderly users */
+  .shogi-title {
+    @apply text-2xl font-semibold tracking-wide;
+  }
+
+  .shogi-timer {
+    font-family: 'Consolas', 'Monaco', monospace;
+    @apply text-4xl font-bold tracking-wider;
+  }
+
+  .shogi-piece {
+    font-family: 'Noto Serif JP', serif;
+    @apply text-xl font-bold;
+  }
+
+  .speech-bubble {
+    @apply relative bg-bubble text-bubble-foreground rounded-2xl px-6 py-4 shadow-lg;
+  }
+
+  .speech-bubble::before {
+    content: '';
+    @apply absolute -left-4 bottom-4 w-0 h-0;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    border-right: 16px solid hsl(var(--bubble));
+  }
+
+  /* Glassmorphism speech bubble for AI Assistant */
+  .speech-bubble-glass {
+    @apply relative rounded-2xl px-6 py-4;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  .speech-bubble-glass::before {
+    content: '';
+    @apply absolute -left-4 bottom-4 w-0 h-0;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    border-right: 16px solid rgba(255, 255, 255, 0.75);
+  }
+
+  /* Glassmorphism base class */
+  .glassmorphism {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  /* Tatami mat texture background */
+  .tatami-background {
+    background: 
+      radial-gradient(ellipse at center, rgba(230, 207, 163, 0.9) 0%, rgba(180, 160, 120, 0.95) 100%),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(139, 119, 80, 0.1) 2px,
+        rgba(139, 119, 80, 0.1) 4px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 20px,
+        rgba(139, 119, 80, 0.05) 20px,
+        rgba(139, 119, 80, 0.05) 40px
+      );
+    background-color: #d4c4a8;
+  }
+
+  /* Realistic wood texture for board */
+  .board-wood-texture {
+    background: 
+      linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        transparent 50%, 
+        rgba(0, 0, 0, 0.05) 100%
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 3px,
+        rgba(139, 90, 43, 0.08) 3px,
+        rgba(139, 90, 43, 0.08) 6px
+      ),
+      linear-gradient(180deg, 
+        #e6cfa3 0%, 
+        #d4bc8a 30%, 
+        #c9a86d 70%, 
+        #e0c590 100%
+      );
+  }
+
+  .board-inner-wood {
+    background: 
+      repeating-linear-gradient(
+        95deg,
+        transparent 0px,
+        transparent 8px,
+        rgba(139, 90, 43, 0.04) 8px,
+        rgba(139, 90, 43, 0.04) 16px
+      ),
+      linear-gradient(to bottom, 
+        #e8d4a8 0%, 
+        #dcc896 50%, 
+        #d4be88 100%
+      );
+  }
+
+  /* Shogi piece with 3D beveled wooden tile effect */
+  .shogi-wedge-piece {
+    background: linear-gradient(
+      180deg,
+      #f5e6c8 0%,
+      #e8d4a8 20%,
+      #dcc090 50%,
+      #c9a870 80%,
+      #b89860 100%
+    );
+    box-shadow: 
+      inset 0 2px 4px rgba(255, 255, 255, 0.5),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+      0 3px 6px rgba(0, 0, 0, 0.3),
+      0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .shogi-piece-text {
+    font-family: 'Noto Serif JP', serif;
+    color: #2d1810;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+  }
+
+  /* Timer display with beveled effect */
+  .timer-display {
+    background: linear-gradient(
+      180deg,
+      #1a1a1a 0%,
+      #2d2d2d 10%,
+      #1f1f1f 90%,
+      #0d0d0d 100%
+    );
+    border: 3px solid #3a3a3a;
+    box-shadow: 
+      inset 0 2px 4px rgba(0, 0, 0, 0.8),
+      inset 0 -1px 2px rgba(255, 255, 255, 0.1),
+      0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Metallic video frame effect */
+  .video-frame-metallic {
+    border: 6px solid transparent;
+    background: 
+      linear-gradient(#1a1a1a, #1a1a1a) padding-box,
+      linear-gradient(
+        145deg,
+        #5a5a5a 0%,
+        #3d3d3d 25%,
+        #2a2a2a 50%,
+        #3d3d3d 75%,
+        #5a5a5a 100%
+      ) border-box;
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      inset 0 1px 2px rgba(255, 255, 255, 0.1),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Komadai (Piece Stand) wood texture */
+  .komadai-wood {
+    background: 
+      linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.08) 0%, 
+        transparent 50%, 
+        rgba(0, 0, 0, 0.05) 100%
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(139, 90, 43, 0.06) 2px,
+        rgba(139, 90, 43, 0.06) 4px
+      ),
+      linear-gradient(180deg, 
+        #d4bc8a 0%, 
+        #c9a86d 50%, 
+        #bfa060 100%
+      );
+    box-shadow: 
+      inset 0 2px 4px rgba(255, 255, 255, 0.2),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.1),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+}
