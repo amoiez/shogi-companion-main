@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import SituationBar from "@/components/SituationBar";
 import PlayerPanel from "@/components/PlayerPanel";
 import ShogiBoard from "@/components/ShogiBoard";
@@ -7,7 +7,20 @@ import ConnectionPanel from "@/components/ConnectionPanel";
 import { useGameState } from "@/hooks/useGameState";
 import { useMultiplayer } from "@/hooks/useMultiplayer";
 
+// Selected source interface for tap-to-move
+interface SelectedSource {
+  type: 'board' | 'hand';
+  row?: number;
+  col?: number;
+  handIndex?: number;
+  piece: string;
+  isOpponent: boolean;
+}
+
 const Index = () => {
+  // Tap-to-move selected state (shared between board and komadai)
+  const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(null);
+  
   const {
     board,
     senteHand,
@@ -128,6 +141,8 @@ const Index = () => {
               videoStream={opponentStream}
               isMyTurn={gameCurrentTurn === 'gote'}
               canDrag={isMyTurn && role === 'guest'}
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
             />
           </div>
           
@@ -141,6 +156,8 @@ const Index = () => {
               onDrop={handleDropWithSync}
               isMyTurn={isMyTurn}
               isGotePlayer={role === 'guest'}
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
             />
           </div>
           
@@ -158,6 +175,8 @@ const Index = () => {
               videoStream={selfStream}
               isMyTurn={gameCurrentTurn === 'sente'}
               canDrag={isMyTurn && role !== 'guest'}
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
             />
           </div>
         </div>

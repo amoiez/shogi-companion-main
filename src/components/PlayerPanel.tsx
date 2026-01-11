@@ -2,6 +2,16 @@ import { useEffect, useRef } from "react";
 import { User } from "lucide-react";
 import { DragSource } from '@/hooks/useGameState';
 
+// Selected source interface for tap-to-move
+interface SelectedSource {
+  type: 'board' | 'hand';
+  row?: number;
+  col?: number;
+  handIndex?: number;
+  piece: string;
+  isOpponent: boolean;
+}
+
 interface PlayerPanelProps {
   label: string;
   time: string;
@@ -14,6 +24,9 @@ interface PlayerPanelProps {
   videoStream?: MediaStream | null;
   isMyTurn?: boolean;
   canDrag?: boolean;
+  // Tap-to-move support
+  selectedSource?: SelectedSource | null;
+  onSelectSource?: (source: SelectedSource | null) => void;
 }
 
 interface HandPieceProps {
@@ -24,9 +37,11 @@ interface HandPieceProps {
   onDragStart: (source: DragSource) => void;
   onDragEnd: () => void;
   canDrag?: boolean;
+  isSelected?: boolean;
+  onPieceClick?: () => void;
 }
 
-const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd, canDrag = true }: HandPieceProps) => {
+const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd, canDrag = true, isSelected = false, onPieceClick }: HandPieceProps) => {
   const isDragging = dragSource?.type === 'hand' && 
     dragSource?.handIndex === index && 
     dragSource?.isOpponent === isOpponent;
@@ -52,10 +67,13 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
         ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default opacity-70'}
         ${isDragging ? 'opacity-50' : ''}
         ${isOpponent ? 'rotate-180' : ''}
+        ${isSelected ? 'ring-2 ring-yellow-500 rounded-md shadow-lg scale-110' : ''}
+        transition-all duration-150
       `}
       draggable={canDrag}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
+      onClick={onPieceClick}
     >
       <div className="relative w-full h-full">
         <div 
@@ -90,6 +108,8 @@ const PlayerPanel = ({
   videoStream,
   isMyTurn = true,
   canDrag = true,
+  selectedSource,
+  onSelectSource,
 }: PlayerPanelProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -99,6 +119,33 @@ const PlayerPanel = ({
       videoRef.current.srcObject = videoStream;
     }
   }, [videoStream]);
+
+  // Handle hand piece click for tap-to-move
+  const handleHandPieceClick = (piece: string, index: number) => {
+    if (!canDrag || isOpponent) return;
+    
+    console.log('[Tap] Hand piece clicked:', { piece, index, isOpponent });
+    
+    // Check if this piece is already selected
+    const isAlreadySelected = selectedSource?.type === 'hand' && 
+      selectedSource?.handIndex === index && 
+      selectedSource?.isOpponent === isOpponent;
+    
+    if (isAlreadySelected) {
+      // Deselect
+      console.log('[Tap] Deselecting hand piece');
+      onSelectSource?.(null);
+    } else {
+      // Select this hand piece
+      console.log('[Tap] Selecting hand piece:', piece);
+      onSelectSource?.({
+        type: 'hand',
+        handIndex: index,
+        piece,
+        isOpponent,
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
@@ -161,18 +208,26 @@ const PlayerPanel = ({
             </div>
           ) : (
             <div className="flex flex-wrap gap-1 justify-center">
-              {hand.map((piece, index) => (
-                <HandPiece
-                  key={`${piece}-${index}`}
-                  piece={piece}
-                  index={index}
-                  isOpponent={isOpponent}
-                  dragSource={dragSource}
-                  onDragStart={onDragStart}
-                  onDragEnd={onDragEnd}
-                  canDrag={canDrag && !isOpponent}
-                />
-              ))}
+              {hand.map((piece, index) => {
+                const isThisSelected = selectedSource?.type === 'hand' && 
+                  selectedSource?.handIndex === index && 
+                  selectedSource?.isOpponent === isOpponent;
+                
+                return (
+                  <HandPiece
+                    key={`${piece}-${index}`}
+                    piece={piece}
+                    index={index}
+                    isOpponent={isOpponent}
+                    dragSource={dragSource}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
+                    canDrag={canDrag && !isOpponent}
+                    isSelected={isThisSelected}
+                    onPieceClick={() => handleHandPieceClick(piece, index)}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

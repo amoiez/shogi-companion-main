@@ -1,4 +1,15 @@
+import { useState } from 'react';
 import { DragSource, CellData } from '@/hooks/useGameState';
+
+// Selected cell state for tap-to-move
+interface SelectedSource {
+  type: 'board' | 'hand';
+  row?: number;
+  col?: number;
+  handIndex?: number;
+  piece: string;
+  isOpponent: boolean;
+}
 
 interface ShogiPieceProps {
   piece: string | null;
@@ -53,14 +64,21 @@ interface BoardCellProps {
   onDrop: (row: number, col: number) => void;
   canDrag: boolean;
   isGotePlayer: boolean; // True if current player is Gote (guest)
+  selectedSource: SelectedSource | null;
+  onCellClick: (row: number, col: number, cell: CellData) => void;
 }
 
-const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop, canDrag, isGotePlayer }: BoardCellProps) => {
+const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop, canDrag, isGotePlayer, selectedSource, onCellClick }: BoardCellProps) => {
   const isDraggingThis = dragSource?.type === 'board' && 
     dragSource?.row === row && 
     dragSource?.col === col;
 
-  const isValidDropTarget = dragSource !== null && !isDraggingThis;
+  // Check if this cell is the selected source (for tap-to-move)
+  const isSelected = selectedSource?.type === 'board' && 
+    selectedSource?.row === row && 
+    selectedSource?.col === col;
+
+  const isValidDropTarget = (dragSource !== null || selectedSource !== null) && !isDraggingThis && !isSelected;
   
   // Can only drag my own pieces when it's my turn
   // For Sente (host): drag pieces where isOpponent === false
@@ -101,6 +119,11 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   // Determine if this is in a promotion zone (for visual hint)
   const isPromotionZone = row <= 2 || row >= 6;
 
+  // Handle click/tap for mobile support
+  const handleClick = () => {
+    onCellClick(row, col, cell);
+  };
+
   return (
     <div 
       className={`
@@ -108,17 +131,19 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
         border border-amber-950/60
         flex items-center justify-center
         transition-all duration-150
-        ${canDragThis ? 'cursor-grab' : 'cursor-default'}
+        ${canDragThis ? 'cursor-grab' : 'cursor-pointer'}
         relative
-        ${isValidDropTarget ? 'bg-amber-400/30 hover:bg-amber-400/50' : 'hover:bg-amber-400/20'}
+        ${isSelected ? 'bg-yellow-300/70 ring-2 ring-yellow-500 shadow-lg' : ''}
+        ${isValidDropTarget && !isSelected ? 'bg-amber-400/30 hover:bg-amber-400/50' : 'hover:bg-amber-400/20'}
         ${isDraggingThis ? 'bg-amber-300/50' : ''}
-        ${isPromotionZone && !cell.piece ? 'bg-amber-600/5' : ''}
+        ${isPromotionZone && !cell.piece && !isSelected ? 'bg-amber-600/5' : ''}
       `}
       draggable={!!canDragThis}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onClick={handleClick}
     >
       <ShogiPiece 
         piece={cell.piece} 
@@ -137,9 +162,98 @@ interface ShogiBoardProps {
   onDrop: (row: number, col: number) => void;
   isMyTurn?: boolean;
   isGotePlayer?: boolean; // True if current player is Gote (guest)
+  // Tap-to-move support: expose selected state for Komadai integration
+  selectedSource?: SelectedSource | null;
+  onSelectSource?: (source: SelectedSource | null) => void;
 }
 
-const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTurn = true, isGotePlayer = false }: ShogiBoardProps) => {
+const ShogiBoard = ({ 
+  board, 
+  dragSource, 
+  onDragStart, 
+  onDragEnd, 
+  onDrop, 
+  isMyTurn = true, 
+  isGotePlayer = false,
+  selectedSource: externalSelectedSource,
+  onSelectSource: externalOnSelectSource,
+}: ShogiBoardProps) => {
+  // Internal selected state (used if no external state provided)
+  const [internalSelectedSource, setInternalSelectedSource] = useState<SelectedSource | null>(null);
+  
+  // Use external state if provided, otherwise use internal
+  const selectedSource = externalSelectedSource !== undefined ? externalSelectedSource : internalSelectedSource;
+  const setSelectedSource = externalOnSelectSource || setInternalSelectedSource;
+
+  // Handle cell click for tap-to-move
+  const handleCellClick = (row: number, col: number, cell: CellData) => {
+    // Determine if this cell has my piece
+    const isMyPiece = isGotePlayer ? cell.isOpponent : !cell.isOpponent;
+    const hasPiece = cell.piece !== null;
+    
+    console.log('[Tap] Cell clicked:', { row, col, piece: cell.piece, isMyPiece, isMyTurn, selectedSource });
+    
+    // If it's not my turn, do nothing
+    if (!isMyTurn) {
+      console.log('[Tap] Not my turn, ignoring click');
+      return;
+    }
+    
+    // CASE 1: No piece selected yet
+    if (!selectedSource) {
+      // If clicking on my own piece, select it
+      if (hasPiece && isMyPiece) {
+        console.log('[Tap] Selecting piece:', cell.piece);
+        setSelectedSource({
+          type: 'board',
+          row,
+          col,
+          piece: cell.piece!,
+          isOpponent: cell.isOpponent,
+        });
+      }
+      return;
+    }
+    
+    // CASE 2: A piece is already selected
+    const isSameCell = selectedSource.type === 'board' && 
+      selectedSource.row === row && 
+      selectedSource.col === col;
+    
+    // If clicking the same cell, deselect (cancel)
+    if (isSameCell) {
+      console.log('[Tap] Deselecting (same cell)');
+      setSelectedSource(null);
+      return;
+    }
+    
+    // If clicking on another of my pieces, switch selection
+    if (hasPiece && isMyPiece) {
+      console.log('[Tap] Switching selection to:', cell.piece);
+      setSelectedSource({
+        type: 'board',
+        row,
+        col,
+        piece: cell.piece!,
+        isOpponent: cell.isOpponent,
+      });
+      return;
+    }
+    
+    // Otherwise, try to move to this cell (empty or opponent piece)
+    console.log('[Tap] Moving to destination:', { row, col });
+    
+    // First, set the drag source so handleDrop knows what piece to move
+    onDragStart(selectedSource as DragSource);
+    
+    // Execute the move
+    onDrop(row, col);
+    
+    // Clear selection
+    setSelectedSource(null);
+    onDragEnd();
+  };
+
   return (
     <div className="flex flex-col items-center max-w-full max-h-[75vh]">
       {/* Turn indicator */}
@@ -183,6 +297,8 @@ const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTur
                   onDrop={onDrop}
                   canDrag={isMyTurn}
                   isGotePlayer={isGotePlayer}
+                  selectedSource={selectedSource}
+                  onCellClick={handleCellClick}
                 />
               ))
             )}
