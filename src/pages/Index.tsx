@@ -95,7 +95,7 @@ const Index = () => {
   const selfStream = role ? localStream : null;
 
   return (
-    <div className="min-h-screen flex flex-col overflow-hidden tatami-background">
+    <div className="h-screen flex flex-col overflow-hidden tatami-background">
       {/* Top Header - Situation Assessment Bar */}
       <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} />
       
@@ -111,11 +111,11 @@ const Index = () => {
       />
       
       {/* Main Game Area - 3 Column Layout */}
-      <div className="flex-1 flex items-center justify-center px-4 py-6 relative">
-        <div className="flex items-stretch justify-center gap-6 md:gap-10 lg:gap-16 w-full max-w-7xl">
+      <div className="flex-1 flex items-center justify-center px-4 py-2 relative overflow-hidden">
+        <div className="flex items-center justify-center gap-4 md:gap-8 lg:gap-12 w-full max-w-7xl h-full">
           
           {/* Left Column - Opponent (Gote/後手) */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 self-center">
             <PlayerPanel 
               label="残り" 
               time={goteTimeFormatted}
@@ -132,7 +132,7 @@ const Index = () => {
           </div>
           
           {/* Center Column - Shogi Board */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 self-center">
             <ShogiBoard 
               board={board}
               dragSource={dragSource}
@@ -145,7 +145,7 @@ const Index = () => {
           </div>
           
           {/* Right Column - Player (Sente/先手) */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 self-center">
             <PlayerPanel 
               label="残り" 
               time={senteTimeFormatted}

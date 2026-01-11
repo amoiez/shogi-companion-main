@@ -104,7 +104,7 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   return (
     <div 
       className={`
-        w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14
+        w-[clamp(2rem,7vmin,3.5rem)] h-[clamp(2rem,7vmin,3.5rem)]
         border border-amber-950/60
         flex items-center justify-center
         transition-all duration-150
@@ -141,7 +141,7 @@ interface ShogiBoardProps {
 
 const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTurn = true, isGotePlayer = false }: ShogiBoardProps) => {
   return (
-    <div className="flex flex-col items-center max-w-full">
+    <div className="flex flex-col items-center max-w-full max-h-[75vh]">
       {/* Turn indicator */}
       {!isMyTurn && (
         <div className="mb-2 px-3 py-1 bg-amber-100/80 rounded-full text-sm text-amber-800 font-medium">
@@ -156,7 +156,7 @@ const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTur
           shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]
           border-4 md:border-[6px] border-amber-900/40
           ring-1 ring-amber-950/20
-          max-w-full max-h-[80vh]
+          max-h-[70vh] w-auto aspect-square
           ${!isMyTurn ? 'opacity-90' : ''}
         `}
       >
@@ -195,7 +195,7 @@ const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTur
         {['9', '8', '7', '6', '5', '4', '3', '2', '1'].map((num) => (
           <div 
             key={num} 
-            className="w-10 md:w-12 lg:w-14 text-center text-sm text-muted-foreground font-medium"
+            className="w-[clamp(2rem,7vmin,3.5rem)] text-center text-xs md:text-sm text-muted-foreground font-medium"
           >
             {num}
           </div>
