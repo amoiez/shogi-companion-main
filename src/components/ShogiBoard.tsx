@@ -52,9 +52,10 @@ interface BoardCellProps {
   onDragEnd: () => void;
   onDrop: (row: number, col: number) => void;
   canDrag: boolean;
+  isGotePlayer: boolean; // True if current player is Gote (guest)
 }
 
-const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop, canDrag }: BoardCellProps) => {
+const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop, canDrag, isGotePlayer }: BoardCellProps) => {
   const isDraggingThis = dragSource?.type === 'board' && 
     dragSource?.row === row && 
     dragSource?.col === col;
@@ -62,7 +63,10 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   const isValidDropTarget = dragSource !== null && !isDraggingThis;
   
   // Can only drag my own pieces when it's my turn
-  const canDragThis = canDrag && cell.piece && !cell.isOpponent;
+  // For Sente (host): drag pieces where isOpponent === false
+  // For Gote (guest): drag pieces where isOpponent === true
+  const isMyPiece = isGotePlayer ? cell.isOpponent : !cell.isOpponent;
+  const canDragThis = canDrag && cell.piece && isMyPiece;
 
   const handleDragStart = (e: React.DragEvent) => {
     if (!cell.piece || !canDragThis) {
@@ -132,9 +136,10 @@ interface ShogiBoardProps {
   onDragEnd: () => void;
   onDrop: (row: number, col: number) => void;
   isMyTurn?: boolean;
+  isGotePlayer?: boolean; // True if current player is Gote (guest)
 }
 
-const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTurn = true }: ShogiBoardProps) => {
+const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTurn = true, isGotePlayer = false }: ShogiBoardProps) => {
   return (
     <div className="flex flex-col items-center max-w-full">
       {/* Turn indicator */}
@@ -177,6 +182,7 @@ const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTur
                   onDragEnd={onDragEnd}
                   onDrop={onDrop}
                   canDrag={isMyTurn}
+                  isGotePlayer={isGotePlayer}
                 />
               ))
             )}

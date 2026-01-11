@@ -111,20 +111,16 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     dataConnectionRef.current = conn;
     
     conn.on('open', () => {
-      console.log('Data connection established');
+      console.log('Data connection established with peer:', conn.peer);
       setConnectionStatus('connected');
     });
     
     conn.on('data', (data) => {
       const message = data as GameMessage;
-      console.log('Received message:', message.type);
+      console.log('Received message:', message.type, message.gameState?.currentTurn);
       
-      if (message.type === 'MOVE' && message.gameState) {
-        setCurrentTurn(message.gameState.currentTurn);
-        if (receiveCallbackRef.current) {
-          receiveCallbackRef.current(message.gameState);
-        }
-      } else if (message.type === 'SYNC' && message.gameState) {
+      if ((message.type === 'MOVE' || message.type === 'SYNC') && message.gameState) {
+        console.log('Updating local state from peer. New turn:', message.gameState.currentTurn);
         setCurrentTurn(message.gameState.currentTurn);
         if (receiveCallbackRef.current) {
           receiveCallbackRef.current(message.gameState);
@@ -135,6 +131,7 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     conn.on('close', () => {
       console.log('Data connection closed');
       setConnectionStatus('disconnected');
+      dataConnectionRef.current = null;
     });
     
     conn.on('error', (err) => {
@@ -277,8 +274,11 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         type: 'MOVE',
         gameState,
       };
+      console.log('Sending move to peer. Turn:', gameState.currentTurn);
       dataConnectionRef.current.send(message);
       setCurrentTurn(gameState.currentTurn);
+    } else {
+      console.warn('Cannot send move: data connection not open');
     }
   }, []);
 

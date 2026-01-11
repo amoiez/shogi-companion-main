@@ -62,25 +62,35 @@ const Index = () => {
 
   // Wrap handleDrop to also send move to peer
   const handleDropWithSync = useCallback((row: number, col: number) => {
+    // Don't allow moves when not connected but in multiplayer mode, or when not your turn
+    if (role && !isMyTurn) {
+      console.log('Not your turn!');
+      return;
+    }
+    
     handleDrop(row, col);
     
     // After the drop, send the new state to peer
-    // We need to get the state after the update, so use a timeout
-    setTimeout(() => {
-      if (connectionStatus === 'connected') {
-        const state = getGameState();
-        sendMove({
-          board: state.board,
-          senteHand: state.senteHand,
-          goteHand: state.goteHand,
-          moveCount: state.moveCount,
-          senteTime: state.senteTime,
-          goteTime: state.goteTime,
-          currentTurn: state.currentTurn === 'sente' ? 'gote' : 'sente', // Toggle turn
-        });
-      }
-    }, 50);
-  }, [handleDrop, connectionStatus, getGameState, sendMove]);
+    // Use requestAnimationFrame + setTimeout to ensure state has updated
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (connectionStatus === 'connected') {
+          const state = getGameState();
+          // The turn has already been switched by handleDrop, so send current state
+          sendMove({
+            board: state.board,
+            senteHand: state.senteHand,
+            goteHand: state.goteHand,
+            moveCount: state.moveCount,
+            senteTime: state.senteTime,
+            goteTime: state.goteTime,
+            currentTurn: state.currentTurn,
+          });
+          console.log('Move sent to peer:', state.currentTurn);
+        }
+      }, 100);
+    });
+  }, [handleDrop, connectionStatus, getGameState, sendMove, role, isMyTurn]);
 
   // Determine which stream goes where based on role
   const opponentStream = role === 'host' ? remoteStream : (role === 'guest' ? remoteStream : null);
@@ -119,7 +129,7 @@ const Index = () => {
               onDrop={handleDropWithSync}
               videoStream={opponentStream}
               isMyTurn={gameCurrentTurn === 'gote'}
-              canDrag={false}
+              canDrag={isMyTurn && role === 'guest'}
             />
           </div>
           
@@ -132,6 +142,7 @@ const Index = () => {
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
               isMyTurn={isMyTurn}
+              isGotePlayer={role === 'guest'}
             />
           </div>
           
@@ -148,7 +159,7 @@ const Index = () => {
               onDrop={handleDropWithSync}
               videoStream={selfStream}
               isMyTurn={gameCurrentTurn === 'sente'}
-              canDrag={isMyTurn}
+              canDrag={isMyTurn && role !== 'guest'}
             />
           </div>
         </div>
