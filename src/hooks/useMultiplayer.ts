@@ -71,6 +71,7 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
   
   // Cleanup function
   const cleanup = useCallback(() => {
+    console.log('[Multiplayer] Cleaning up connections...');
     if (mediaConnectionRef.current) {
       mediaConnectionRef.current.close();
       mediaConnectionRef.current = null;
@@ -93,77 +94,110 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
   // Get user media (camera/mic)
   const setupMedia = useCallback(async (): Promise<MediaStream | null> => {
     try {
+      console.log('[Multiplayer] Requesting camera/mic access...');
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: true, 
         audio: true 
       });
+      console.log('[Multiplayer] Got local media stream');
       setLocalStream(stream);
       return stream;
     } catch (err) {
-      console.error('Failed to get user media:', err);
+      console.error('[Multiplayer] Failed to get user media:', err);
       setErrorMessage('カメラ/マイクへのアクセスが拒否されました');
       return null;
     }
   }, []);
 
-  // Handle incoming data
-  const setupDataConnection = useCallback((conn: DataConnection) => {
+  // ============================================================
+  // CRITICAL: Data Listener Setup
+  // This function MUST be called after the connection is established
+  // ============================================================
+  const setupDataListener = useCallback((conn: DataConnection) => {
+    console.log('[DATA] Setting up data listener on connection:', conn.peer);
+    
+    // Store the connection reference
     dataConnectionRef.current = conn;
     
-    conn.on('open', () => {
-      console.log('Data connection established with peer:', conn.peer);
-      setConnectionStatus('connected');
-    });
-    
+    // Listen for incoming data
     conn.on('data', (data) => {
-      const message = data as GameMessage;
-      console.log('Received message:', message.type, message.gameState?.currentTurn);
+      console.log('[DATA] ========================================');
+      console.log('[DATA] Received data from peer:', JSON.stringify(data, null, 2));
+      console.log('[DATA] ========================================');
       
-      if ((message.type === 'MOVE' || message.type === 'SYNC') && message.gameState) {
-        console.log('Updating local state from peer. New turn:', message.gameState.currentTurn);
+      const message = data as GameMessage;
+      
+      if (message.type === 'MOVE' && message.gameState) {
+        console.log('[DATA] Processing MOVE - New turn:', message.gameState.currentTurn);
+        console.log('[DATA] Board state received, moveCount:', message.gameState.moveCount);
+        
+        // Update local turn state
+        setCurrentTurn(message.gameState.currentTurn);
+        
+        // Call the registered callback to update game state
+        if (receiveCallbackRef.current) {
+          console.log('[DATA] Calling receiveCallback to update local game state');
+          receiveCallbackRef.current(message.gameState);
+        } else {
+          console.warn('[DATA] No receiveCallback registered!');
+        }
+      } else if (message.type === 'SYNC' && message.gameState) {
+        console.log('[DATA] Processing SYNC - Turn:', message.gameState.currentTurn);
         setCurrentTurn(message.gameState.currentTurn);
         if (receiveCallbackRef.current) {
           receiveCallbackRef.current(message.gameState);
         }
+      } else if (message.type === 'READY') {
+        console.log('[DATA] Peer is ready');
       }
     });
     
     conn.on('close', () => {
-      console.log('Data connection closed');
+      console.log('[DATA] Data connection CLOSED');
       setConnectionStatus('disconnected');
       dataConnectionRef.current = null;
     });
     
     conn.on('error', (err) => {
-      console.error('Data connection error:', err);
-      setErrorMessage('接続エラーが発生しました');
+      console.error('[DATA] Data connection ERROR:', err);
+      setErrorMessage('データ接続エラーが発生しました');
     });
   }, []);
 
-  // Handle incoming media call
+  // ============================================================
+  // Handle incoming media call (Video/Audio)
+  // ============================================================
   const setupMediaConnection = useCallback((call: MediaConnection, stream: MediaStream) => {
+    console.log('[MEDIA] Setting up media connection');
     mediaConnectionRef.current = call;
     
     call.on('stream', (remoteMediaStream) => {
-      console.log('Received remote stream');
+      console.log('[MEDIA] Received remote video/audio stream');
       setRemoteStream(remoteMediaStream);
     });
     
     call.on('close', () => {
-      console.log('Media connection closed');
+      console.log('[MEDIA] Media connection closed');
       setRemoteStream(null);
+    });
+    
+    call.on('error', (err) => {
+      console.error('[MEDIA] Media connection error:', err);
     });
     
     call.answer(stream);
   }, []);
 
-  // Host a new game
+  // ============================================================
+  // HOST: Create a new game and wait for guest
+  // ============================================================
   const hostGame = useCallback(async () => {
     cleanup();
     setConnectionStatus('connecting');
     setErrorMessage(null);
     
     const newGameId = generateGameId();
+    console.log('[HOST] Creating game with ID:', newGameId);
     setGameId(newGameId);
     setRole('host');
     setCurrentTurn('sente'); // Host is Sente (Black)
@@ -178,24 +212,42 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     peerRef.current = peer;
     
     peer.on('open', (id) => {
-      console.log('Host peer opened with ID:', id);
+      console.log('[HOST] Peer opened with ID:', id);
+      console.log('[HOST] Waiting for guest to connect...');
       setConnectionStatus('disconnected'); // Waiting for guest
     });
     
+    // CRITICAL: Listen for incoming DATA connections from guest
     peer.on('connection', (conn) => {
-      console.log('Guest connected');
-      setupDataConnection(conn);
+      console.log('[HOST] ========================================');
+      console.log('[HOST] Guest DATA connection received!');
+      console.log('[HOST] Guest peer ID:', conn.peer);
+      console.log('[HOST] ========================================');
+      
+      // Wait for the connection to open, then set up listener
+      conn.on('open', () => {
+        console.log('[HOST] Data connection is now OPEN');
+        setupDataListener(conn);
+        setConnectionStatus('connected');
+        
+        // Send a READY message to confirm connection
+        conn.send({ type: 'READY' });
+        console.log('[HOST] Sent READY message to guest');
+      });
     });
     
+    // Listen for incoming MEDIA calls from guest
     peer.on('call', (call) => {
-      console.log('Incoming call from guest');
+      console.log('[HOST] Incoming VIDEO call from guest');
       if (stream) {
         setupMediaConnection(call, stream);
+      } else {
+        console.warn('[HOST] No local stream to answer with');
       }
     });
     
     peer.on('error', (err) => {
-      console.error('Peer error:', err);
+      console.error('[HOST] Peer error:', err);
       if (err.type === 'unavailable-id') {
         setErrorMessage('このゲームIDは既に使用されています');
       } else {
@@ -203,15 +255,22 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       }
       setConnectionStatus('error');
     });
-  }, [cleanup, setupMedia, setupDataConnection, setupMediaConnection]);
+    
+    peer.on('disconnected', () => {
+      console.log('[HOST] Peer disconnected from server');
+    });
+  }, [cleanup, setupMedia, setupDataListener, setupMediaConnection]);
 
-  // Join an existing game
+  // ============================================================
+  // GUEST: Join an existing game
+  // ============================================================
   const joinGame = useCallback(async (targetGameId: string) => {
     cleanup();
     setConnectionStatus('connecting');
     setErrorMessage(null);
     
     const formattedId = targetGameId.toUpperCase().trim();
+    console.log('[GUEST] Joining game:', formattedId);
     setGameId(formattedId);
     setRole('guest');
     setCurrentTurn('sente'); // Game starts with Sente's turn (but guest is Gote)
@@ -221,33 +280,63 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     
     // Create peer with a random ID for the guest
     const guestId = `${formattedId}-GUEST-${Math.random().toString(36).substring(7)}`;
+    console.log('[GUEST] Creating peer with ID:', guestId);
+    
     const peer = new Peer(guestId, {
       debug: 2,
     });
     peerRef.current = peer;
     
     peer.on('open', () => {
-      console.log('Guest peer opened, connecting to host:', formattedId);
+      console.log('[GUEST] Peer opened, now connecting to host:', formattedId);
       
-      // Connect data channel
-      const conn = peer.connect(formattedId, { reliable: true });
-      setupDataConnection(conn);
+      // ============================================================
+      // CRITICAL: Connect DATA channel to host
+      // ============================================================
+      console.log('[GUEST] Initiating DATA connection to host...');
+      const conn = peer.connect(formattedId, { 
+        reliable: true,
+        serialization: 'json'
+      });
       
-      // Connect media channel
+      conn.on('open', () => {
+        console.log('[GUEST] ========================================');
+        console.log('[GUEST] DATA connection to host is now OPEN!');
+        console.log('[GUEST] ========================================');
+        
+        // Set up the data listener AFTER connection is open
+        setupDataListener(conn);
+        setConnectionStatus('connected');
+      });
+      
+      conn.on('error', (err) => {
+        console.error('[GUEST] Data connection error:', err);
+        setErrorMessage('ホストへの接続に失敗しました');
+      });
+      
+      // ============================================================
+      // Connect MEDIA channel to host (separate from data)
+      // ============================================================
       if (stream) {
+        console.log('[GUEST] Initiating VIDEO call to host...');
         const call = peer.call(formattedId, stream);
         if (call) {
           call.on('stream', (remoteMediaStream) => {
-            console.log('Received host stream');
+            console.log('[GUEST] Received host VIDEO stream');
             setRemoteStream(remoteMediaStream);
           });
+          call.on('error', (err) => {
+            console.error('[GUEST] Media call error:', err);
+          });
           mediaConnectionRef.current = call;
+        } else {
+          console.warn('[GUEST] Failed to create media call');
         }
       }
     });
     
     peer.on('error', (err) => {
-      console.error('Peer error:', err);
+      console.error('[GUEST] Peer error:', err);
       if (err.type === 'peer-unavailable') {
         setErrorMessage('ゲームが見つかりません。IDを確認してください');
       } else {
@@ -255,10 +344,17 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       }
       setConnectionStatus('error');
     });
-  }, [cleanup, setupMedia, setupDataConnection]);
+    
+    peer.on('disconnected', () => {
+      console.log('[GUEST] Peer disconnected from server');
+    });
+  }, [cleanup, setupMedia, setupDataListener]);
 
+  // ============================================================
   // Disconnect from game
+  // ============================================================
   const disconnect = useCallback(() => {
+    console.log('[Multiplayer] Disconnecting...');
     cleanup();
     setGameId(null);
     setRole(null);
@@ -267,23 +363,39 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     setCurrentTurn('sente');
   }, [cleanup]);
 
-  // Send move to peer
+  // ============================================================
+  // SEND MOVE: Send game state to peer
+  // ============================================================
   const sendMove = useCallback((gameState: GameState) => {
-    if (dataConnectionRef.current && dataConnectionRef.current.open) {
+    const conn = dataConnectionRef.current;
+    
+    if (conn && conn.open) {
       const message: GameMessage = {
         type: 'MOVE',
         gameState,
       };
-      console.log('Sending move to peer. Turn:', gameState.currentTurn);
-      dataConnectionRef.current.send(message);
+      
+      console.log('[SEND] ========================================');
+      console.log('[SEND] Sending MOVE to peer');
+      console.log('[SEND] Turn:', gameState.currentTurn);
+      console.log('[SEND] Move count:', gameState.moveCount);
+      console.log('[SEND] Connection open:', conn.open);
+      console.log('[SEND] ========================================');
+      
+      conn.send(message);
       setCurrentTurn(gameState.currentTurn);
     } else {
-      console.warn('Cannot send move: data connection not open');
+      console.error('[SEND] ========================================');
+      console.error('[SEND] CANNOT SEND - Connection not open!');
+      console.error('[SEND] Connection ref:', conn);
+      console.error('[SEND] Is open:', conn?.open);
+      console.error('[SEND] ========================================');
     }
   }, []);
 
   // Register callback for receiving state
   const onReceiveState = useCallback((callback: (state: GameState) => void) => {
+    console.log('[Multiplayer] Registering receive state callback');
     receiveCallbackRef.current = callback;
   }, []);
 
