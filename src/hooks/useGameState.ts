@@ -22,6 +22,11 @@ export interface DragSource {
   isOpponent: boolean;
 }
 
+// Module-level ref to store dragSource synchronously (for tap-to-move support)
+// This allows handleDrop to access the source immediately after onDragStart,
+// before React's async state update completes
+let dragSourceRef: DragSource | null = null;
+
 interface ScriptEntry {
   move: number;
   text: string | null;
@@ -258,17 +263,21 @@ export const useGameState = () => {
   };
 
   const handleDragStart = useCallback((source: DragSource) => {
+    dragSourceRef = source; // Set ref synchronously for tap-to-move
     setDragSource(source);
   }, []);
 
   const handleDragEnd = useCallback(() => {
+    dragSourceRef = null; // Clear ref synchronously
     setDragSource(null);
   }, []);
 
   const handleDrop = useCallback((targetRow: number, targetCol: number): GameState | null => {
-    if (!dragSource) return null;
+    // Use ref first (for synchronous tap-to-move), fallback to state (for drag-and-drop)
+    const source = dragSourceRef || dragSource;
+    if (!source) return null;
 
-    const { type, row: sourceRow, col: sourceCol, handIndex, piece, isOpponent: sourceIsOpponent } = dragSource;
+    const { type, row: sourceRow, col: sourceCol, handIndex, piece, isOpponent: sourceIsOpponent } = source;
 
     // Prevent dropping on the same square
     if (type === 'board' && sourceRow === targetRow && sourceCol === targetCol) {
@@ -358,6 +367,8 @@ export const useGameState = () => {
     // Trigger AI updates
     updateGameState(newMoveCount);
     
+    // Clear both ref and state
+    dragSourceRef = null;
     setDragSource(null);
     
     // Return the calculated new state for immediate use
