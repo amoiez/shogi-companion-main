@@ -136,7 +136,7 @@ interface ShogiBoardProps {
 
 const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTurn = true }: ShogiBoardProps) => {
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center max-w-full">
       {/* Turn indicator */}
       {!isMyTurn && (
         <div className="mb-2 px-3 py-1 bg-amber-100/80 rounded-full text-sm text-amber-800 font-medium">
@@ -147,10 +147,11 @@ const ShogiBoard = ({ board, dragSource, onDragStart, onDragEnd, onDrop, isMyTur
       {/* Board container with realistic wood texture and strong shadow */}
       <div 
         className={`
-          rounded-lg p-3 board-wood-texture
+          rounded-lg p-2 md:p-3 board-wood-texture
           shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]
-          border-[6px] border-amber-900/40
+          border-4 md:border-[6px] border-amber-900/40
           ring-1 ring-amber-950/20
+          max-w-full max-h-[80vh]
           ${!isMyTurn ? 'opacity-90' : ''}
         `}
       >

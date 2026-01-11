@@ -91,8 +91,8 @@ const Index = () => {
       {/* Top Header - Situation Assessment Bar */}
       <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} />
       
-      {/* Connection Panel - Fixed top-right */}
-      <div className="fixed top-32 right-8 z-50">
+      {/* Connection Panel - Responsive: bottom-right on mobile, top-right on desktop */}
+      <div className="fixed bottom-4 right-4 z-50 md:bottom-auto md:top-32 md:right-8">
         <ConnectionPanel
           gameId={gameId}
           role={role}
