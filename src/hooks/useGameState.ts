@@ -265,78 +265,115 @@ export const useGameState = () => {
     setDragSource(null);
   }, []);
 
-  const handleDrop = useCallback((targetRow: number, targetCol: number) => {
-    if (!dragSource) return;
+  const handleDrop = useCallback((targetRow: number, targetCol: number): GameState | null => {
+    if (!dragSource) return null;
 
     const { type, row: sourceRow, col: sourceCol, handIndex, piece, isOpponent: sourceIsOpponent } = dragSource;
 
     // Prevent dropping on the same square
     if (type === 'board' && sourceRow === targetRow && sourceCol === targetCol) {
       setDragSource(null);
-      return;
+      return null;
     }
 
-    setBoard(prevBoard => {
-      const newBoard = prevBoard.map(row => row.map(cell => ({ ...cell })));
-      const targetCell = newBoard[targetRow][targetCol];
+    // ============================================================
+    // Calculate the new state SYNCHRONOUSLY before any setState calls
+    // ============================================================
+    
+    // Calculate new board
+    const newBoard = board.map(row => row.map(cell => ({ ...cell })));
+    const targetCell = newBoard[targetRow][targetCol];
+    
+    // Calculate new hands
+    let newSenteHand = [...senteHand];
+    let newGoteHand = [...goteHand];
 
-      // Handle capture
-      if (targetCell.piece) {
-        const capturedPiece = getBasePiece(targetCell.piece); // Demote when captured
-        
-        // Flip ownership - captured piece goes to the capturing player's hand
-        if (sourceIsOpponent) {
-          // Opponent captured player's piece
-          setGoteHand(prev => [...prev, capturedPiece]);
-        } else {
-          // Player captured opponent's piece
-          setSenteHand(prev => [...prev, capturedPiece]);
-        }
+    // Handle capture
+    if (targetCell.piece) {
+      const capturedPiece = getBasePiece(targetCell.piece); // Demote when captured
+      
+      // Flip ownership - captured piece goes to the capturing player's hand
+      if (sourceIsOpponent) {
+        // Opponent captured player's piece
+        newGoteHand = [...newGoteHand, capturedPiece];
+      } else {
+        // Player captured opponent's piece
+        newSenteHand = [...newSenteHand, capturedPiece];
       }
+    }
 
-      // Clear source location
-      if (type === 'board' && sourceRow !== undefined && sourceCol !== undefined) {
-        newBoard[sourceRow][sourceCol] = { piece: null, isOpponent: false };
-      } else if (type === 'hand' && handIndex !== undefined) {
-        // Remove from hand
-        if (sourceIsOpponent) {
-          setGoteHand(prev => prev.filter((_, i) => i !== handIndex));
-        } else {
-          setSenteHand(prev => prev.filter((_, i) => i !== handIndex));
-        }
+    // Clear source location
+    if (type === 'board' && sourceRow !== undefined && sourceCol !== undefined) {
+      newBoard[sourceRow][sourceCol] = { piece: null, isOpponent: false };
+    } else if (type === 'hand' && handIndex !== undefined) {
+      // Remove from hand
+      if (sourceIsOpponent) {
+        newGoteHand = newGoteHand.filter((_, i) => i !== handIndex);
+      } else {
+        newSenteHand = newSenteHand.filter((_, i) => i !== handIndex);
       }
+    }
 
-      // Place piece at target (with possible promotion)
-      const finalPiece = maybePromote(piece, targetRow, sourceIsOpponent);
-      newBoard[targetRow][targetCol] = { 
-        piece: finalPiece, 
-        isOpponent: sourceIsOpponent 
-      };
+    // Place piece at target (with possible promotion)
+    const finalPiece = maybePromote(piece, targetRow, sourceIsOpponent);
+    newBoard[targetRow][targetCol] = { 
+      piece: finalPiece, 
+      isOpponent: sourceIsOpponent 
+    };
 
-      return newBoard;
+    // Calculate new turn and move count
+    const newMoveCount = moveCount + 1;
+    const newTurn: 'sente' | 'gote' = currentTurn === 'sente' ? 'gote' : 'sente';
+
+    // Construct the complete new state object
+    const nextState: GameState = {
+      board: newBoard,
+      senteHand: newSenteHand,
+      goteHand: newGoteHand,
+      moveCount: newMoveCount,
+      currentTurn: newTurn,
+      senteTime: senteTime,
+      goteTime: goteTime,
+    };
+
+    console.log('[GameState] Calculated next state:', {
+      moveCount: nextState.moveCount,
+      currentTurn: nextState.currentTurn,
     });
 
-    // Update move count and trigger AI updates
-    setMoveCount(prev => {
-      const newCount = prev + 1;
-      updateGameState(newCount);
-      
-      // Start timer on first move
-      if (newCount === 1) {
-        startTimer();
-      }
-      
-      return newCount;
-    });
-
-    // Switch turn after move
-    switchTurn();
-
+    // ============================================================
+    // Now apply the state changes to React
+    // ============================================================
+    setBoard(newBoard);
+    setSenteHand(newSenteHand);
+    setGoteHand(newGoteHand);
+    setMoveCount(newMoveCount);
+    setCurrentTurn(newTurn);
+    
+    // Start timer on first move
+    if (newMoveCount === 1) {
+      startTimer();
+    }
+    
+    // Trigger AI updates
+    updateGameState(newMoveCount);
+    
     setDragSource(null);
     
-    // Return the new state for multiplayer sync
-    return true;
-  }, [dragSource, startTimer, switchTurn]);
+    // Return the calculated new state for immediate use
+    return nextState;
+  }, [dragSource, board, senteHand, goteHand, moveCount, currentTurn, senteTime, goteTime, startTimer]);
+
+  // Define GameState interface for return type
+  interface GameState {
+    board: CellData[][];
+    senteHand: string[];
+    goteHand: string[];
+    moveCount: number;
+    currentTurn: 'sente' | 'gote';
+    senteTime: number;
+    goteTime: number;
+  }
 
   // Set state directly (for receiving multiplayer updates)
   const setGameState = useCallback((state: {

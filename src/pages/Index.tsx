@@ -64,33 +64,31 @@ const Index = () => {
   const handleDropWithSync = useCallback((row: number, col: number) => {
     // Don't allow moves when not connected but in multiplayer mode, or when not your turn
     if (role && !isMyTurn) {
-      console.log('Not your turn!');
+      console.log('[Sync] Not your turn!');
       return;
     }
     
-    handleDrop(row, col);
+    // handleDrop now returns the calculated new state synchronously
+    const nextState = handleDrop(row, col);
     
-    // After the drop, send the new state to peer
-    // Use requestAnimationFrame + setTimeout to ensure state has updated
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        if (connectionStatus === 'connected') {
-          const state = getGameState();
-          // The turn has already been switched by handleDrop, so send current state
-          sendMove({
-            board: state.board,
-            senteHand: state.senteHand,
-            goteHand: state.goteHand,
-            moveCount: state.moveCount,
-            senteTime: state.senteTime,
-            goteTime: state.goteTime,
-            currentTurn: state.currentTurn,
-          });
-          console.log('Move sent to peer:', state.currentTurn);
-        }
-      }, 100);
-    });
-  }, [handleDrop, connectionStatus, getGameState, sendMove, role, isMyTurn]);
+    // If no state returned, the drop was invalid
+    if (!nextState) {
+      console.log('[Sync] Drop cancelled or invalid');
+      return;
+    }
+    
+    console.log('[Sync] ========================================');
+    console.log('[Sync] Move executed locally');
+    console.log('[Sync] Next state - moveCount:', nextState.moveCount);
+    console.log('[Sync] Next state - currentTurn:', nextState.currentTurn);
+    console.log('[Sync] ========================================');
+    
+    // Send the calculated next state IMMEDIATELY (no waiting for React)
+    if (connectionStatus === 'connected') {
+      console.log('[Sync] Sending nextState to peer...');
+      sendMove(nextState);
+    }
+  }, [handleDrop, connectionStatus, sendMove, role, isMyTurn]);
 
   // Determine which stream goes where based on role
   const opponentStream = role === 'host' ? remoteStream : (role === 'guest' ? remoteStream : null);
