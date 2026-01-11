@@ -91,18 +91,16 @@ const Index = () => {
       {/* Top Header - Situation Assessment Bar */}
       <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} />
       
-      {/* Connection Panel - Responsive: bottom-right on mobile, top-right on desktop */}
-      <div className="fixed bottom-4 right-4 z-50 md:bottom-auto md:top-32 md:right-8">
-        <ConnectionPanel
-          gameId={gameId}
-          role={role}
-          connectionStatus={connectionStatus}
-          errorMessage={errorMessage}
-          onHost={hostGame}
-          onJoin={joinGame}
-          onDisconnect={disconnect}
-        />
-      </div>
+      {/* Connection Panel - Lobby Modal or Status Badge (handles its own positioning) */}
+      <ConnectionPanel
+        gameId={gameId}
+        role={role}
+        connectionStatus={connectionStatus}
+        errorMessage={errorMessage}
+        onHost={hostGame}
+        onJoin={joinGame}
+        onDisconnect={disconnect}
+      />
       
       {/* Main Game Area - 3 Column Layout */}
       <div className="flex-1 flex items-center justify-center px-4 py-6 relative">

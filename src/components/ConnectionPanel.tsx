@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { Copy, Check, Wifi, Loader2, X } from 'lucide-react';
 import { ConnectionStatus, PlayerRole } from '@/hooks/useMultiplayer';
 
 interface ConnectionPanelProps {
@@ -23,6 +23,7 @@ const ConnectionPanel = ({
 }: ConnectionPanelProps) => {
   const [joinId, setJoinId] = useState('');
   const [copied, setCopied] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   const handleCopyId = async () => {
     if (gameId) {
@@ -38,133 +39,173 @@ const ConnectionPanel = ({
     }
   };
 
-  // If connected, show minimal status
+  // ========== CONNECTED STATE: Show small status badge ==========
   if (connectionStatus === 'connected') {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 flex items-center gap-2 shadow-xl border border-green-200 xl:px-4 xl:gap-3 xl:bg-white">
-        <div className="flex items-center gap-2 text-green-600">
-          <Wifi className="w-4 h-4" />
-          <span className="text-sm font-medium">接続中</span>
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {role === 'host' ? '先手 (ホスト)' : '後手 (ゲスト)'}
+      <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold flex items-center gap-2">
+        <Wifi className="w-4 h-4" />
+        <span>接続中</span>
+        <span className="text-green-100 text-xs">
+          ({role === 'host' ? '先手' : '後手'})
         </span>
         <button
           onClick={onDisconnect}
-          className="text-xs text-red-500 hover:text-red-600 underline"
+          className="ml-1 hover:bg-green-600 rounded-full p-1 transition-colors"
+          title="切断"
         >
-          切断
+          <X className="w-3 h-3" />
         </button>
       </div>
     );
   }
 
-  // If hosting and waiting for guest
-  if (role === 'host' && connectionStatus === 'disconnected' && gameId) {
+  // ========== HOSTING STATE: Waiting for guest - show modal with game ID ==========
+  if (role === 'host' && gameId) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 w-64 shadow-xl border border-amber-200 xl:p-4 xl:w-80 xl:bg-white">
-        <div className="text-center mb-3">
-          <h3 className="font-bold text-lg">ゲームを作成しました</h3>
-          <p className="text-sm text-muted-foreground">このIDを相手に伝えてください</p>
-        </div>
-        
-        <div className="flex items-center gap-2 bg-amber-100/50 rounded-lg px-4 py-3 mb-3">
-          <code className="flex-1 text-xl font-bold text-center tracking-wider">
-            {gameId}
-          </code>
-          <button
-            onClick={handleCopyId}
-            className="p-2 hover:bg-amber-200/50 rounded-lg transition-colors"
-            title="コピー"
-          >
-            {copied ? (
-              <Check className="w-5 h-5 text-green-600" />
-            ) : (
-              <Copy className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-        
-        <div className="flex items-center justify-center gap-2 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-sm">相手の接続を待っています...</span>
-        </div>
-        
-        <button
-          onClick={onDisconnect}
-          className="mt-3 w-full text-sm text-red-500 hover:text-red-600"
-        >
-          キャンセル
-        </button>
-      </div>
-    );
-  }
-
-  // Default: Show host/join options
-  return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 w-64 shadow-xl border border-amber-200 xl:p-4 xl:w-80 xl:bg-white">
-      <h3 className="font-bold text-lg text-center mb-4">オンライン対戦</h3>
-      
-      {errorMessage && (
-        <div className="bg-red-100 border border-red-300 text-red-700 rounded-lg px-3 py-2 mb-4 text-sm">
-          {errorMessage}
-        </div>
-      )}
-      
-      <div className="space-y-4">
-        {/* Host Option */}
-        <div className="border border-amber-300/50 rounded-lg p-3">
-          <h4 className="font-medium mb-2">新しいゲームを作成</h4>
-          <p className="text-xs text-muted-foreground mb-3">
-            あなたが先手（黒）になります
-          </p>
-          <button
-            onClick={onHost}
-            disabled={connectionStatus === 'connecting'}
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {connectionStatus === 'connecting' ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                接続中...
-              </>
-            ) : (
-              'ゲームを作成'
-            )}
-          </button>
-        </div>
-        
-        {/* Join Option */}
-        <div className="border border-amber-300/50 rounded-lg p-3">
-          <h4 className="font-medium mb-2">ゲームに参加</h4>
-          <p className="text-xs text-muted-foreground mb-3">
-            あなたが後手（白）になります
-          </p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={joinId}
-              onChange={(e) => setJoinId(e.target.value.toUpperCase())}
-              placeholder="SHOGI-XXXX"
-              className="flex-1 px-3 py-2 rounded-lg border border-amber-300/50 bg-white/50 text-center font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-500"
-              disabled={connectionStatus === 'connecting'}
-            />
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full mx-4">
+          <div className="text-center mb-4">
+            <h3 className="font-bold text-xl mb-2">ゲームを作成しました</h3>
+            <p className="text-muted-foreground">このIDを相手に伝えてください</p>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-amber-100 rounded-lg px-4 py-4 mb-4">
+            <code className="flex-1 text-2xl font-bold text-center tracking-widest text-amber-900">
+              {gameId}
+            </code>
             <button
-              onClick={handleJoin}
-              disabled={!joinId.trim() || connectionStatus === 'connecting'}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleCopyId}
+              className="p-2 hover:bg-amber-200 rounded-lg transition-colors"
+              title="コピー"
             >
-              参加
+              {copied ? (
+                <Check className="w-6 h-6 text-green-600" />
+              ) : (
+                <Copy className="w-6 h-6 text-amber-700" />
+              )}
             </button>
           </div>
+          
+          <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>相手の接続を待っています...</span>
+          </div>
+          
+          <button
+            onClick={onDisconnect}
+            className="w-full py-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+          >
+            キャンセル
+          </button>
         </div>
       </div>
-      
-      {/* Single Player Option */}
-      <div className="mt-4 pt-4 border-t border-amber-300/30 text-center">
-        <p className="text-xs text-muted-foreground">
-          または、接続せずに一人で練習できます
-        </p>
+    );
+  }
+
+  // ========== DISMISSED STATE: Show small "Connect" button ==========
+  if (dismissed) {
+    return (
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={() => setDismissed(false)}
+          className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold flex items-center gap-2 transition-colors"
+        >
+          <Wifi className="w-4 h-4" />
+          <span>オンライン対戦</span>
+        </button>
+      </div>
+    );
+  }
+
+  // ========== DEFAULT STATE: Full screen lobby modal ==========
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full mx-4 relative">
+        {/* Close button */}
+        <button
+          onClick={() => setDismissed(true)}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          title="閉じる"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        
+        <h3 className="font-bold text-xl text-center mb-6">オンライン対戦</h3>
+        
+        {errorMessage && (
+          <div className="bg-red-100 border border-red-300 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
+            {errorMessage}
+          </div>
+        )}
+        
+        <div className="space-y-4">
+          {/* Host Option */}
+          <div className="border border-amber-200 rounded-lg p-4 bg-amber-50/50">
+            <h4 className="font-semibold mb-1">新しいゲームを作成</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              あなたが先手（黒）になります
+            </p>
+            <button
+              onClick={onHost}
+              disabled={connectionStatus === 'connecting'}
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {connectionStatus === 'connecting' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  接続中...
+                </>
+              ) : (
+                'ゲームを作成'
+              )}
+            </button>
+          </div>
+          
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-sm text-muted-foreground">または</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          
+          {/* Join Option */}
+          <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50">
+            <h4 className="font-semibold mb-1">ゲームに参加</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              あなたが後手（白）になります
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={joinId}
+                onChange={(e) => setJoinId(e.target.value.toUpperCase())}
+                placeholder="SHOGI-XXXX"
+                className="flex-1 px-4 py-3 rounded-lg border border-blue-200 bg-white text-center font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={connectionStatus === 'connecting'}
+              />
+              <button
+                onClick={handleJoin}
+                disabled={!joinId.trim() || connectionStatus === 'connecting'}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                参加
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Single Player Hint */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            接続せずに一人で練習する場合は、
+            <button
+              onClick={() => setDismissed(true)}
+              className="text-amber-600 hover:text-amber-700 underline ml-1"
+            >
+              このダイアログを閉じてください
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
