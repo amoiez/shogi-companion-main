@@ -4,10 +4,10 @@ interface AIAssistantProps {
 
 const AIAssistant = ({ message }: AIAssistantProps) => {
   return (
-    <div className="absolute bottom-4 left-[12%] lg:left-[15%] flex items-center gap-3 z-20">
-      {/* Avatar with frame effect - LARGE size */}
+    <div className="absolute bottom-6 left-[8%] md:left-[10%] lg:left-[12%] flex items-center gap-2 z-20 mr-10">
+      {/* Avatar with frame effect - prominent size */}
       <div className="relative flex-shrink-0">
-        <div className="w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 rounded-full overflow-hidden border-4 border-amber-700/60 shadow-2xl bg-bubble ring-2 ring-amber-900/30">
+        <div className="w-28 h-28 md:w-32 md:h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden border-4 border-amber-700/60 shadow-2xl bg-bubble ring-2 ring-amber-900/30">
           <img 
             src="/ai-assistant.png" 
             alt="AIアシスタント" 
@@ -18,10 +18,10 @@ const AIAssistant = ({ message }: AIAssistantProps) => {
         <div className="absolute inset-0 rounded-full bg-amber-400/30 blur-xl -z-10" />
       </div>
       
-      {/* Speech bubble with glassmorphism - centered next to face */}
+      {/* Speech bubble with glassmorphism - vertically centered with face */}
       {message && (
-        <div className="speech-bubble-glass max-w-[160px] md:max-w-[200px] lg:max-w-[220px] animate-fade-in">
-          <p className="text-sm md:text-base font-medium leading-snug drop-shadow-sm">
+        <div className="speech-bubble-glass max-w-[150px] md:max-w-[180px] lg:max-w-[200px] animate-fade-in">
+          <p className="text-xs md:text-sm lg:text-base font-medium leading-snug drop-shadow-sm">
             {message}
           </p>
         </div>

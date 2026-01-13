@@ -124,7 +124,7 @@ const Index = () => {
       />
       
       {/* Main Game Area - TV Broadcast 3-Column Layout */}
-      <div className="flex-1 flex flex-row items-center justify-center h-full w-full gap-4 lg:gap-6 xl:gap-8 px-4 pb-16 pt-2 relative overflow-hidden">
+      <div className="flex-1 flex flex-row items-center justify-center h-full w-full gap-4 lg:gap-6 xl:gap-8 px-4 pb-16 pt-2 ml-0 relative overflow-hidden">
         
         {/* Left Column - Gote/Opponent: Timer → Video → Hand (centered) */}
         <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-2">
