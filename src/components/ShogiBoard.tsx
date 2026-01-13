@@ -23,14 +23,14 @@ const ShogiPiece = ({ piece, isOpponent, isDragging }: ShogiPieceProps) => {
   return (
     <div 
       className={`
-        w-full h-full flex items-center justify-center
+        w-[90%] h-[90%] flex items-center justify-center
         shogi-piece text-board-foreground
         ${isOpponent ? 'rotate-180' : ''}
         ${isDragging ? 'opacity-50' : ''}
         transition-opacity
       `}
     >
-      <div className="relative w-[85%] h-[90%]">
+      <div className="relative w-full h-full">
         {/* Piece background - Shogi wedge/pentagon shape with 3D bevel */}
         <div 
           className="absolute inset-0 shogi-wedge-piece"
@@ -46,7 +46,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging }: ShogiPieceProps) => {
             }}
           />
         </div>
-        <span className="absolute inset-0 flex items-center justify-center z-10 text-lg md:text-xl font-bold shogi-piece-text drop-shadow-sm">
+        <span className="absolute inset-0 flex items-center justify-center z-10 text-[clamp(0.875rem,2vmin,1.5rem)] font-bold shogi-piece-text drop-shadow-sm">
           {piece}
         </span>
       </div>
@@ -127,7 +127,7 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   return (
     <div 
       className={`
-        w-[clamp(2rem,7vmin,3.5rem)] h-[clamp(2rem,7vmin,3.5rem)]
+        w-full h-full
         border border-amber-950/60
         flex items-center justify-center
         transition-all duration-150
@@ -255,30 +255,31 @@ const ShogiBoard = ({
   };
 
   return (
-    <div className="flex flex-col items-center max-w-full max-h-[75vh]">
+    <div className="flex flex-col items-center w-full h-full">
       {/* Turn indicator */}
       {!isMyTurn && (
-        <div className="mb-2 px-3 py-1 bg-amber-100/80 rounded-full text-sm text-amber-800 font-medium">
+        <div className="mb-3 px-4 py-2 bg-amber-100/80 rounded-full text-base text-amber-800 font-medium">
           相手の番です
         </div>
       )}
       
-      {/* Board container with realistic wood texture and strong shadow */}
+      {/* Board container with realistic wood texture and strong shadow - LARGER */}
       <div 
         className={`
-          rounded-lg p-2 md:p-3 board-wood-texture
+          rounded-xl p-2 board-wood-texture
           shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]
-          border-4 md:border-[6px] border-amber-900/40
+          border-[6px] lg:border-[8px] border-amber-900/40
           ring-1 ring-amber-950/20
-          max-h-[70vh] w-auto aspect-square
+          h-full max-h-[80vh] aspect-square
+          flex flex-col
           ${!isMyTurn ? 'opacity-90' : ''}
         `}
       >
-        {/* Inner board with wood grain */}
-        <div className="board-inner-wood rounded p-1">
-          {/* 9x9 Grid */}
+        {/* Inner board with wood grain - no extra padding */}
+        <div className="board-inner-wood rounded-sm flex-1 w-full overflow-hidden">
+          {/* 9x9 Grid - stretch to fill entire board */}
           <div 
-            className="grid gap-0 board-grid"
+            className="grid gap-0 board-grid w-full h-full"
             style={{ 
               gridTemplateColumns: 'repeat(9, 1fr)',
               gridTemplateRows: 'repeat(9, 1fr)',
@@ -304,18 +305,6 @@ const ShogiBoard = ({
             )}
           </div>
         </div>
-      </div>
-      
-      {/* Column markers */}
-      <div className="flex justify-center mt-2 gap-0">
-        {['9', '8', '7', '6', '5', '4', '3', '2', '1'].map((num) => (
-          <div 
-            key={num} 
-            className="w-[clamp(2rem,7vmin,3.5rem)] text-center text-xs md:text-sm text-muted-foreground font-medium"
-          >
-            {num}
-          </div>
-        ))}
       </div>
     </div>
   );

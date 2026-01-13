@@ -123,73 +123,67 @@ const Index = () => {
         onDisconnect={disconnect}
       />
       
-      {/* Main Game Area - 3 Column Layout */}
-      <div className="flex-1 flex items-center justify-center px-4 py-2 relative overflow-hidden">
-        <div className="flex items-center justify-center gap-4 md:gap-8 lg:gap-12 w-full max-w-7xl h-full">
-          
-          {/* Left Column - Opponent (Gote/後手) */}
-          <div className="flex-shrink-0 self-center">
-            <PlayerPanel 
-              label="残り" 
-              time={goteTimeFormatted}
-              isOpponent={true}
-              hand={goteHand}
-              dragSource={dragSource}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDrop={handleDropWithSync}
-              videoStream={opponentStream}
-              isMyTurn={gameCurrentTurn === 'gote'}
-              canDrag={isMyTurn && role === 'guest'}
-              selectedSource={selectedSource}
-              onSelectSource={setSelectedSource}
-            />
-          </div>
-          
-          {/* Center Column - Shogi Board */}
-          <div className="flex-shrink-0 self-center">
-            <ShogiBoard 
-              board={board}
-              dragSource={dragSource}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDrop={handleDropWithSync}
-              isMyTurn={isMyTurn}
-              isGotePlayer={role === 'guest'}
-              selectedSource={selectedSource}
-              onSelectSource={setSelectedSource}
-            />
-          </div>
-          
-          {/* Right Column - Player (Sente/先手) */}
-          <div className="flex-shrink-0 self-center">
-            <PlayerPanel 
-              label="残り" 
-              time={senteTimeFormatted}
-              isOpponent={false}
-              hand={senteHand}
-              dragSource={dragSource}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDrop={handleDropWithSync}
-              videoStream={selfStream}
-              isMyTurn={gameCurrentTurn === 'sente'}
-              canDrag={isMyTurn && role !== 'guest'}
-              selectedSource={selectedSource}
-              onSelectSource={setSelectedSource}
-            />
-          </div>
+      {/* Main Game Area - TV Broadcast 3-Column Layout */}
+      <div className="flex-1 flex flex-row items-center justify-center h-full w-full gap-4 lg:gap-6 xl:gap-8 px-4 pb-16 pt-2 relative overflow-hidden">
+        
+        {/* Left Column - Gote/Opponent: Timer → Video → Hand (centered) */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-2">
+          <PlayerPanel 
+            label="後手" 
+            time={goteTimeFormatted}
+            isOpponent={true}
+            hand={goteHand}
+            dragSource={dragSource}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDrop={handleDropWithSync}
+            videoStream={opponentStream}
+            isMyTurn={gameCurrentTurn === 'gote'}
+            canDrag={isMyTurn && role === 'guest'}
+            selectedSource={selectedSource}
+            onSelectSource={setSelectedSource}
+            fullColumn={true}
+            rotateHand={true}
+          />
+        </div>
+        
+        {/* Center Column - The Board (BIGGEST element) */}
+        <div className="flex-shrink-0 flex items-center justify-center h-full">
+          <ShogiBoard 
+            board={board}
+            dragSource={dragSource}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDrop={handleDropWithSync}
+            isMyTurn={isMyTurn}
+            isGotePlayer={role === 'guest'}
+            selectedSource={selectedSource}
+            onSelectSource={setSelectedSource}
+          />
+        </div>
+        
+        {/* Right Column - Sente/Me: Timer → Video → Hand (centered) */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-2">
+          <PlayerPanel 
+            label="先手" 
+            time={senteTimeFormatted}
+            isOpponent={false}
+            hand={senteHand}
+            dragSource={dragSource}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDrop={handleDropWithSync}
+            videoStream={selfStream}
+            isMyTurn={gameCurrentTurn === 'sente'}
+            canDrag={isMyTurn && role !== 'guest'}
+            selectedSource={selectedSource}
+            onSelectSource={setSelectedSource}
+            fullColumn={true}
+          />
         </div>
         
         {/* AI Assistant Overlay */}
         <AIAssistant message={aiMessage} />
-      </div>
-      
-      {/* Bottom description text */}
-      <div className="text-center pb-4 px-6">
-        <p className="text-muted-foreground text-lg">
-          相手と会話を楽しみながら将棋を指せます。AIコンパニオンが応援してくれる言葉を投げかけてくれます。
-        </p>
       </div>
     </div>
   );

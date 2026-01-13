@@ -5,10 +5,11 @@ interface SituationBarProps {
 
 const SituationBar = ({ gotePercent, sentePercent }: SituationBarProps) => {
   return (
-    <div className="w-full px-6 py-3 glassmorphism border-b border-white/20">
-      <h2 className="text-center shogi-title mb-3 text-foreground drop-shadow-sm">形勢判断</h2>
-      
-      <div className="relative w-full h-10 rounded-lg overflow-hidden flex shadow-inner ring-1 ring-black/10">
+    <div className="w-full px-4 py-2 glassmorphism border-b border-white/20">
+      <div className="max-w-[600px] mx-auto mb-2">
+        <h2 className="text-center shogi-title mb-2 text-foreground drop-shadow-sm text-sm">形勢判断</h2>
+        
+        <div className="relative w-full h-10 rounded-lg overflow-hidden flex shadow-inner ring-1 ring-black/10">
         {/* Gote (後手) - Left side - Red */}
         <div 
           className="h-full bg-progress-gote flex items-center justify-start pl-4 transition-all duration-500"
@@ -31,6 +32,7 @@ const SituationBar = ({ gotePercent, sentePercent }: SituationBarProps) => {
             先手 {sentePercent}%
           </span>
         </div>
+      </div>
       </div>
     </div>
   );
