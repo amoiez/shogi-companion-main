@@ -49,19 +49,19 @@ interface ShogiPieceProps {
 
 const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: ShogiPieceProps) => {
   if (!piece) return null;
-  
+
   // Piece rotation logic:
   // - Opponent pieces (isOpponent=true) are normally rotated 180° so they face down
   // - When board is rotated for Gote view, we flip the logic:
   //   - My pieces (now isOpponent=true from Gote view) should face up (rotate-180 to counter board rotation)
   //   - Opponent pieces (isOpponent=false from Gote view) should face down (no rotation, board already flipped them)
   const shouldRotate = rotateBoard ? !isOpponent : isOpponent;
-  
+
   // Get the piece image path
   const imagePath = getPieceImagePath(piece, isOpponent);
-  
+
   return (
-    <div 
+    <div
       className={`
         w-full h-full flex items-center justify-center
         shogi-piece text-board-foreground
@@ -70,26 +70,31 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
         transition-opacity
       `}
       style={{
-        padding: '12% 6% 4% 6%',
+        padding: '8%',
+        boxSizing: 'border-box',
       }}
     >
       {imagePath ? (
-        <img 
-          src={imagePath} 
+        <img
+          src={imagePath}
           alt={piece}
-          className="w-full h-full object-contain drop-shadow-lg"
+          className="max-w-full max-h-full object-contain drop-shadow-lg"
+          style={{
+            width: '85%',
+            height: '85%',
+          }}
           draggable={false}
         />
       ) : (
         /* Fallback to text rendering if no image found */
         <div className="relative w-full h-full">
-          <div 
+          <div
             className="absolute inset-0 shogi-wedge-piece"
             style={{
               clipPath: 'polygon(50% 0%, 95% 15%, 100% 100%, 0% 100%, 5% 15%)',
             }}
           >
-            <div 
+            <div
               className="absolute top-0 left-0 right-0 h-[30%] bg-gradient-to-b from-amber-50/80 to-transparent"
               style={{
                 clipPath: 'polygon(50% 0%, 95% 15%, 90% 30%, 10% 30%, 5% 15%)',
@@ -122,18 +127,18 @@ interface BoardCellProps {
 }
 
 const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop, canDrag, isGotePlayer, selectedSource, onCellClick, isLegalMove, rotateBoard = false }: BoardCellProps) => {
-  const isDraggingThis = dragSource?.type === 'board' && 
-    dragSource?.row === row && 
+  const isDraggingThis = dragSource?.type === 'board' &&
+    dragSource?.row === row &&
     dragSource?.col === col;
 
   // Check if this cell is the selected source (for tap-to-move)
-  const isSelected = selectedSource?.type === 'board' && 
-    selectedSource?.row === row && 
+  const isSelected = selectedSource?.type === 'board' &&
+    selectedSource?.row === row &&
     selectedSource?.col === col;
 
   // Only show as valid drop target if it's a legal move
   const isValidDropTarget = isLegalMove && !isDraggingThis && !isSelected;
-  
+
   // Can only drag my own pieces when it's my turn
   // For Sente (host): drag pieces where isOpponent === false
   // For Gote (guest): drag pieces where isOpponent === true
@@ -145,7 +150,7 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
       e.preventDefault();
       return;
     }
-    
+
     e.dataTransfer.effectAllowed = 'move';
     onDragStart({
       type: 'board',
@@ -179,7 +184,7 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   };
 
   return (
-    <div 
+    <div
       className={`
         w-full h-full
         flex items-center justify-center
@@ -198,8 +203,8 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
       onDrop={handleDrop}
       onClick={handleClick}
     >
-      <ShogiPiece 
-        piece={cell.piece} 
+      <ShogiPiece
+        piece={cell.piece}
         isOpponent={cell.isOpponent}
         isDragging={isDraggingThis}
         rotateBoard={rotateBoard}
@@ -223,13 +228,13 @@ interface ShogiBoardProps {
   rotateBoard?: boolean;
 }
 
-const ShogiBoard = ({ 
-  board, 
-  dragSource, 
-  onDragStart, 
-  onDragEnd, 
-  onDrop, 
-  isMyTurn = true, 
+const ShogiBoard = ({
+  board,
+  dragSource,
+  onDragStart,
+  onDragEnd,
+  onDrop,
+  isMyTurn = true,
   isGotePlayer = false,
   selectedSource: externalSelectedSource,
   onSelectSource: externalOnSelectSource,
@@ -237,7 +242,7 @@ const ShogiBoard = ({
 }: ShogiBoardProps) => {
   // Internal selected state (used if no external state provided)
   const [internalSelectedSource, setInternalSelectedSource] = useState<SelectedSource | null>(null);
-  
+
   // Use external state if provided, otherwise use internal
   const selectedSource = externalSelectedSource !== undefined ? externalSelectedSource : internalSelectedSource;
   const setSelectedSource = externalOnSelectSource || setInternalSelectedSource;
@@ -246,15 +251,15 @@ const ShogiBoard = ({
   const legalMoves = useMemo(() => {
     const source = dragSource || selectedSource;
     if (!source) return new Set<string>();
-    
+
     let moves: { row: number; col: number }[] = [];
-    
+
     if (source.type === 'board' && source.row !== undefined && source.col !== undefined) {
       moves = getLegalMoves(board, source.row, source.col, source.piece, source.isOpponent);
     } else if (source.type === 'hand') {
       moves = getLegalDrops(board, source.piece, source.isOpponent);
     }
-    
+
     return new Set(moves.map(m => `${m.row}-${m.col}`));
   }, [board, dragSource, selectedSource]);
 
@@ -263,15 +268,15 @@ const ShogiBoard = ({
     // Determine if this cell has my piece
     const isMyPiece = isGotePlayer ? cell.isOpponent : !cell.isOpponent;
     const hasPiece = cell.piece !== null;
-    
+
     console.log('[Tap] Cell clicked:', { row, col, piece: cell.piece, isMyPiece, isMyTurn, selectedSource });
-    
+
     // If it's not my turn, do nothing
     if (!isMyTurn) {
       console.log('[Tap] Not my turn, ignoring click');
       return;
     }
-    
+
     // CASE 1: No piece selected yet
     if (!selectedSource) {
       // If clicking on my own piece, select it
@@ -287,19 +292,19 @@ const ShogiBoard = ({
       }
       return;
     }
-    
+
     // CASE 2: A piece is already selected
-    const isSameCell = selectedSource.type === 'board' && 
-      selectedSource.row === row && 
+    const isSameCell = selectedSource.type === 'board' &&
+      selectedSource.row === row &&
       selectedSource.col === col;
-    
+
     // If clicking the same cell, deselect (cancel)
     if (isSameCell) {
       console.log('[Tap] Deselecting (same cell)');
       setSelectedSource(null);
       return;
     }
-    
+
     // If clicking on another of my pieces, switch selection
     if (hasPiece && isMyPiece) {
       console.log('[Tap] Switching selection to:', cell.piece);
@@ -312,16 +317,16 @@ const ShogiBoard = ({
       });
       return;
     }
-    
+
     // Otherwise, try to move to this cell (empty or opponent piece)
     console.log('[Tap] Moving to destination:', { row, col });
-    
+
     // First, set the drag source so handleDrop knows what piece to move
     onDragStart(selectedSource as DragSource);
-    
+
     // Execute the move
     onDrop(row, col);
-    
+
     // Clear selection
     setSelectedSource(null);
     onDragEnd();
@@ -335,34 +340,34 @@ const ShogiBoard = ({
           相手の番です
         </div>
       )}
-      
-      {/* Board container with SVG background - FILLS SCREEN HEIGHT */}
-      <div 
+
+      {/* Board container - tight border frame around the 9x9 grid */}
+      <div
         className={`
-          relative rounded-xl overflow-hidden
+          relative overflow-hidden
           shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]
-          border-[6px] lg:border-[8px] xl:border-[10px] border-amber-900/40
-          ring-1 ring-amber-950/20
+          border-[3px] border-amber-900/60
           h-full max-h-[88vh] aspect-square
           ${!isMyTurn ? 'opacity-90' : ''}
         `}
         style={{
           backgroundImage: 'url(/board.svg)',
-          backgroundSize: 'cover',
+          backgroundSize: '100% 100%',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundColor: '#d4bc8a',
+          padding: 0,
+          margin: 0,
         }}
       >
-        {/* 9x9 Grid Layer - sits on top of SVG background */}
-        <div 
-          className={`relative w-full h-full grid gap-0 ${rotateBoard ? 'rotate-180' : ''}`}
-          style={{ 
+        {/* 9x9 Grid Layer - fills entire container with zero gap */}
+        <div
+          className={`absolute inset-0 grid gap-0 ${rotateBoard ? 'rotate-180' : ''}`}
+          style={{
             gridTemplateColumns: 'repeat(9, 1fr)',
             gridTemplateRows: 'repeat(9, 1fr)',
           }}
         >
-          {board.map((row, rowIndex) => 
+          {board.map((row, rowIndex) =>
             row.map((cell, colIndex) => (
               <BoardCell
                 key={`${rowIndex}-${colIndex}`}
