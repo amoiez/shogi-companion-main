@@ -34,27 +34,31 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
     }
   }, [voiceEnabled]);
 
-  // Initialize and preload audio elements with AGGRESSIVE PRIMING
+  // Initialize and preload audio elements with ABSOLUTE ORIGIN PATHS
   useEffect(() => {
     if (isInitialized) return;
     
-    // BGM - ABSOLUTE PATH, EXPLICIT LOOP
-    const bgm = new Audio('/sounds/bgm.mp3');
+    const origin = window.location.origin;
+    console.log('AUDIO SYSTEM: Using origin', origin);
+    
+    // BGM - FULL ORIGIN PATH, EXPLICIT LOOP
+    const bgm = new Audio(origin + '/sounds/bgm.mp3');
     bgm.loop = true;
     bgm.volume = 0.3;
     bgm.preload = 'auto';
     bgm.load();
     bgmRef.current = bgm;
+    console.log('BGM: Loaded from', bgm.src);
     
-    // Piece move sound - ABSOLUTE PATH, PRELOAD FOR ZERO LAG
-    const pieceSound = new Audio('/sounds/piece-move.mp3');
+    // Piece move sound - FULL ORIGIN PATH
+    const pieceSound = new Audio(origin + '/sounds/piece-move.mp3');
     pieceSound.volume = 0.6;
     pieceSound.preload = 'auto';
     pieceSound.load();
     pieceMoveRef.current = pieceSound;
+    console.log('PIECE SOUND: Loaded from', pieceSound.src);
     
     setIsInitialized(true);
-    console.log('AUDIO SYSTEM: Initialized with absolute paths');
     
     return () => {
       if (bgmRef.current) {
@@ -103,20 +107,27 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
     }
   }, [isAudioPrimed]);
 
-  // Start BGM (must be called from user interaction)
+  // Start BGM (FORCE PLAY - NO CHECKS)
   const startBgm = useCallback(async () => {
-    if (!bgmEnabled || !bgmRef.current) return;
-    
     // Prime audio engine first
     await primeAudioEngine();
+    
+    // FORCE CREATE NEW BGM IF NEEDED
+    if (!bgmRef.current) {
+      const origin = window.location.origin;
+      bgmRef.current = new Audio(origin + '/sounds/bgm.mp3');
+      bgmRef.current.loop = true;
+      bgmRef.current.volume = 0.3;
+      console.log('BGM: Created new instance from', bgmRef.current.src);
+    }
     
     bgmRef.current.play()
       .then(() => {
         setIsBgmPlaying(true);
-        console.log('BGM: Playing');
+        console.log('BGM: Playing successfully');
       })
-      .catch(e => console.log('BGM: Play blocked', e));
-  }, [bgmEnabled, primeAudioEngine]);
+      .catch(e => console.error('BGM Play Error:', e));
+  }, [primeAudioEngine]);
 
   // Stop BGM
   const stopBgm = useCallback(() => {
@@ -135,34 +146,36 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
     }
   }, [isBgmPlaying, startBgm, stopBgm]);
 
-  // Play piece move sound - MUST WORK EVERY TIME
+  // Play piece move sound - FORCE PLAY WITH NEW INSTANCE EVERY TIME
   const playPieceMove = useCallback(() => {
-    if (!sfxEnabled || !pieceMoveRef.current) {
-      console.log('PIECE SOUND: Disabled or not loaded');
-      return;
-    }
-    
     try {
-      pieceMoveRef.current.currentTime = 0;
-      pieceMoveRef.current.play()
+      const origin = window.location.origin;
+      const sound = new Audio(origin + '/sounds/piece-move.mp3');
+      sound.volume = 0.6;
+      sound.play()
         .then(() => console.log('PIECE SOUND: Played'))
         .catch(e => {
-          console.log('PIECE SOUND: Play failed', e);
+          console.error('PIECE SOUND: Play failed', e);
           // Fallback beep
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.frequency.value = 800;
-          gain.gain.value = 0.2;
-          osc.start();
-          osc.stop(ctx.currentTime + 0.05);
+          try {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 800;
+            gain.gain.value = 0.3;
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+            console.log('PIECE SOUND: Fallback beep played');
+          } catch (beepError) {
+            console.error('PIECE SOUND: Fallback beep failed', beepError);
+          }
         });
     } catch (e) {
-      console.log('PIECE SOUND: Exception', e);
+      console.error('PIECE SOUND: Exception', e);
     }
-  }, [sfxEnabled]);
+  }, []);
 
   // Single beep using Web Audio API
   const playSingleBeep = useCallback((frequency: number = 880, duration: number = 0.15) => {

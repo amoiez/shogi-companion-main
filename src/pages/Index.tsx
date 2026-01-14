@@ -142,12 +142,28 @@ const Index = () => {
     prevGoteTimeRef.current = goteTime;
   }, [goteTime, goteByoyomi, gameCurrentTurn, speakByoyomiWarning, isGameOver]);
   
-  // GLOBAL AUDIO PRIME - triggers on FIRST CLICK ANYWHERE
+  // GLOBAL AUDIO PRIME - FORCE PLAY ON FIRST CLICK ANYWHERE
   const handleFirstInteraction = useCallback(async () => {
     if (!hasInteracted) {
       setHasInteracted(true);
-      console.log('AUDIO: First click detected, priming engine...');
+      console.log('AUDIO: First click detected, force-starting audio...');
+      
+      // FORCE PRIME
       await primeAudioEngine();
+      
+      // FORCE PLAY BGM WITH FRESH INSTANCE
+      try {
+        const origin = window.location.origin;
+        const bgm = new Audio(origin + '/sounds/bgm.mp3');
+        bgm.loop = true;
+        bgm.volume = 0.3;
+        await bgm.play();
+        console.log('AUDIO: BGM force-started successfully');
+      } catch (e) {
+        console.error('AUDIO: BGM force-start failed', e);
+      }
+      
+      // Also call the hook's startBgm
       startBgm();
     }
   }, [hasInteracted, primeAudioEngine, startBgm]);
