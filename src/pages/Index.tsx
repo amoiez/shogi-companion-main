@@ -270,8 +270,8 @@ const Index = () => {
       {/* Main Game Area - TV Broadcast 3-Column Layout for iPad Pro */}
       <div className="flex-1 flex flex-row items-center justify-center h-full w-full gap-6 lg:gap-10 xl:gap-14 px-6 pb-8 pt-2 ml-0 relative overflow-hidden">
         
-        {/* Left Column - Gote/Opponent: Timer → Video → Hand (centered) - LARGER for iPad Pro */}
-        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-3">
+        {/* Left Column - Gote/Opponent: Timer → Video → Hand (centered) - LARGER for iPad Pro - RAISED */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-3 -mt-20 lg:-mt-24">
           <PlayerPanel 
             label="後手" 
             time={goteTimeFormatted}
@@ -307,8 +307,8 @@ const Index = () => {
           />
         </div>
         
-        {/* Right Column - Sente/Me: Timer → Video → Hand (centered) - LARGER for iPad Pro */}
-        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-3">
+        {/* Right Column - Sente/Me: Timer → Video → Hand (centered) - LARGER for iPad Pro - RAISED */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-3 -mt-20 lg:-mt-24">
           <PlayerPanel 
             label="先手" 
             time={senteTimeFormatted}
