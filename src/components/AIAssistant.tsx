@@ -4,24 +4,24 @@ interface AIAssistantProps {
 
 const AIAssistant = ({ message }: AIAssistantProps) => {
   return (
-    <div className="absolute bottom-6 left-[8%] md:left-[10%] lg:left-[12%] flex items-center gap-2 z-20 mr-10">
-      {/* Avatar with frame effect - prominent size */}
+    <div className="absolute bottom-8 left-4 lg:left-6 xl:left-8 flex items-end gap-4 z-20 pointer-events-none">
+      {/* Avatar with frame effect - SIGNIFICANTLY LARGER for iPad Pro */}
       <div className="relative flex-shrink-0">
-        <div className="w-28 h-28 md:w-32 md:h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden border-4 border-amber-700/60 shadow-2xl bg-bubble ring-2 ring-amber-900/30">
+        <div className="w-40 h-40 md:w-52 md:h-52 lg:w-64 lg:h-64 xl:w-72 xl:h-72 rounded-full overflow-hidden border-6 border-amber-700/60 shadow-2xl bg-bubble ring-4 ring-amber-900/30">
           <img 
-            src="/ai-assistant.png" 
+            src="/images/ai-assistant.gif" 
             alt="AIアシスタント" 
             className="w-full h-full object-cover"
           />
         </div>
-        {/* Enhanced glow effect */}
-        <div className="absolute inset-0 rounded-full bg-amber-400/30 blur-xl -z-10" />
+        {/* Enhanced glow effect - larger */}
+        <div className="absolute inset-0 rounded-full bg-amber-400/40 blur-2xl -z-10" />
       </div>
       
-      {/* Speech bubble with glassmorphism - vertically centered with face */}
+      {/* Speech bubble with glassmorphism - LARGER and positioned to not overlap board */}
       {message && (
-        <div className="speech-bubble-glass max-w-[150px] md:max-w-[180px] lg:max-w-[200px] animate-fade-in">
-          <p className="text-xs md:text-sm lg:text-base font-medium leading-snug drop-shadow-sm">
+        <div className="speech-bubble-glass max-w-[200px] md:max-w-[260px] lg:max-w-[320px] xl:max-w-[380px] animate-fade-in mb-8 lg:mb-12">
+          <p className="text-sm md:text-base lg:text-lg xl:text-xl font-medium leading-snug drop-shadow-md p-1">
             {message}
           </p>
         </div>

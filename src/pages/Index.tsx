@@ -1,11 +1,13 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import SituationBar from "@/components/SituationBar";
 import PlayerPanel from "@/components/PlayerPanel";
 import ShogiBoard from "@/components/ShogiBoard";
 import AIAssistant from "@/components/AIAssistant";
 import ConnectionPanel from "@/components/ConnectionPanel";
+import PromotionDialog from "@/components/PromotionDialog";
 import { useGameState } from "@/hooks/useGameState";
 import { useMultiplayer } from "@/hooks/useMultiplayer";
+import { useAudioSystem } from "@/hooks/useAudioSystem";
 
 // Selected source interface for tap-to-move
 interface SelectedSource {
@@ -20,6 +22,8 @@ interface SelectedSource {
 const Index = () => {
   // Tap-to-move selected state (shared between board and komadai)
   const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(null);
+  // Track if user has interacted (for BGM autoplay)
+  const [hasInteracted, setHasInteracted] = useState(false);
   
   const {
     board,
@@ -40,7 +44,113 @@ const Index = () => {
     senteTimeFormatted,
     goteTimeFormatted,
     currentTurn: gameCurrentTurn,
+    pendingPromotion,
+    handlePromotionChoice,
+    cancelPromotion,
+    getLegalMoves,
+    getLegalDrops,
+    senteByoyomi,
+    goteByoyomi,
+    sfen,
+    usiHistory,
+    lastMove,
+    setOnPieceMove,
+    isGameOver,
+    gameOverReason,
+    setOnMainTimeExpired,
+    setOnByoyomiTimeUp,
   } = useGameState();
+  
+  // Audio system
+  const {
+    startBgm,
+    toggleBgm,
+    isBgmPlaying,
+    playPieceMove,
+    speakByoyomiWarning,
+    speakMainTimeExpired,
+    playTimeUp,
+    speakJapanese,
+    primeAudioEngine,
+    isAudioPrimed,
+  } = useAudioSystem();
+  
+  // AI message override for time warnings
+  const [aiWarningMessage, setAiWarningMessage] = useState<string | null>(null);
+  
+  // Track previous byoyomi times for voice countdown
+  const prevSenteTimeRef = useRef(senteTime);
+  const prevGoteTimeRef = useRef(goteTime);
+  
+  // Register piece move sound callback
+  useEffect(() => {
+    setOnPieceMove(playPieceMove);
+  }, [setOnPieceMove, playPieceMove]);
+  
+  // Register main time expired callback
+  useEffect(() => {
+    setOnMainTimeExpired((player) => {
+      speakMainTimeExpired();
+      // AI warning message
+      setAiWarningMessage('あと1分です！落ち着いて考えましょう。');
+      // Clear warning after 5 seconds
+      setTimeout(() => setAiWarningMessage(null), 5000);
+    });
+  }, [setOnMainTimeExpired, speakMainTimeExpired]);
+  
+  // Register byoyomi time up (game over) callback  
+  useEffect(() => {
+    setOnByoyomiTimeUp((player) => {
+      playTimeUp();
+      setAiWarningMessage(player === 'sente' 
+        ? '先手の時間切れです。後手の勝ちです。' 
+        : '後手の時間切れです。先手の勝ちです。');
+    });
+  }, [setOnByoyomiTimeUp, playTimeUp]);
+  
+  // Byoyomi voice warnings - only for the current player
+  useEffect(() => {
+    if (senteByoyomi && gameCurrentTurn === 'sente' && !isGameOver) {
+      // Check if time changed
+      if (prevSenteTimeRef.current !== senteTime) {
+        if (senteTime === 30 || (senteTime <= 10 && senteTime >= 1)) {
+          speakByoyomiWarning(senteTime);
+        }
+        // Low time AI warning
+        if (senteTime === 15) {
+          setAiWarningMessage('時間がありません！素早く指しましょう！');
+          setTimeout(() => setAiWarningMessage(null), 3000);
+        }
+      }
+    }
+    prevSenteTimeRef.current = senteTime;
+  }, [senteTime, senteByoyomi, gameCurrentTurn, speakByoyomiWarning, isGameOver]);
+  
+  useEffect(() => {
+    if (goteByoyomi && gameCurrentTurn === 'gote' && !isGameOver) {
+      if (prevGoteTimeRef.current !== goteTime) {
+        if (goteTime === 30 || (goteTime <= 10 && goteTime >= 1)) {
+          speakByoyomiWarning(goteTime);
+        }
+        // Low time AI warning
+        if (goteTime === 15) {
+          setAiWarningMessage('時間がありません！素早く指しましょう！');
+          setTimeout(() => setAiWarningMessage(null), 3000);
+        }
+      }
+    }
+    prevGoteTimeRef.current = goteTime;
+  }, [goteTime, goteByoyomi, gameCurrentTurn, speakByoyomiWarning, isGameOver]);
+  
+  // GLOBAL AUDIO PRIME - triggers on FIRST CLICK ANYWHERE
+  const handleFirstInteraction = useCallback(async () => {
+    if (!hasInteracted) {
+      setHasInteracted(true);
+      console.log('AUDIO: First click detected, priming engine...');
+      await primeAudioEngine();
+      startBgm();
+    }
+  }, [hasInteracted, primeAudioEngine, startBgm]);
 
   const {
     gameId,
@@ -84,9 +194,9 @@ const Index = () => {
     // handleDrop now returns the calculated new state synchronously
     const nextState = handleDrop(row, col);
     
-    // If no state returned, the drop was invalid
+    // If no state returned, the drop was invalid or waiting for promotion
     if (!nextState) {
-      console.log('[Sync] Drop cancelled or invalid');
+      console.log('[Sync] Drop cancelled, invalid, or waiting for promotion');
       return;
     }
     
@@ -103,14 +213,32 @@ const Index = () => {
     }
   }, [handleDrop, connectionStatus, sendMove, role, isMyTurn]);
 
+  // Handle promotion choice with sync
+  const handlePromotionWithSync = useCallback((shouldPromote: boolean) => {
+    const nextState = handlePromotionChoice(shouldPromote);
+    
+    if (nextState && connectionStatus === 'connected') {
+      sendMove(nextState);
+    }
+  }, [handlePromotionChoice, connectionStatus, sendMove]);
+
   // Determine which stream goes where based on role
   const opponentStream = role === 'host' ? remoteStream : (role === 'guest' ? remoteStream : null);
   const selfStream = role ? localStream : null;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden tatami-background">
+    <div className="h-screen flex flex-col overflow-hidden tatami-background" onClick={handleFirstInteraction}>
       {/* Top Header - Situation Assessment Bar */}
       <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} />
+      
+      {/* BGM Toggle Button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); toggleBgm(); }}
+        className="absolute top-16 right-4 z-30 p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
+        title={isBgmPlaying ? 'BGMを停止' : 'BGMを再生'}
+      >
+        {isBgmPlaying ? '🔊' : '🔇'}
+      </button>
       
       {/* Connection Panel - Lobby Modal or Status Badge (handles its own positioning) */}
       <ConnectionPanel
@@ -123,11 +251,11 @@ const Index = () => {
         onDisconnect={disconnect}
       />
       
-      {/* Main Game Area - TV Broadcast 3-Column Layout */}
-      <div className="flex-1 flex flex-row items-center justify-center h-full w-full gap-4 lg:gap-6 xl:gap-8 px-4 pb-16 pt-2 ml-0 relative overflow-hidden">
+      {/* Main Game Area - TV Broadcast 3-Column Layout for iPad Pro */}
+      <div className="flex-1 flex flex-row items-center justify-center h-full w-full gap-6 lg:gap-10 xl:gap-14 px-6 pb-8 pt-2 ml-0 relative overflow-hidden">
         
-        {/* Left Column - Gote/Opponent: Timer → Video → Hand (centered) */}
-        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-2">
+        {/* Left Column - Gote/Opponent: Timer → Video → Hand (centered) - LARGER for iPad Pro */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-3">
           <PlayerPanel 
             label="後手" 
             time={goteTimeFormatted}
@@ -139,7 +267,7 @@ const Index = () => {
             onDrop={handleDropWithSync}
             videoStream={opponentStream}
             isMyTurn={gameCurrentTurn === 'gote'}
-            canDrag={isMyTurn && role === 'guest'}
+            canDrag={isMyTurn && role === 'guest' && !isGameOver}
             selectedSource={selectedSource}
             onSelectSource={setSelectedSource}
             fullColumn={true}
@@ -147,7 +275,7 @@ const Index = () => {
           />
         </div>
         
-        {/* Center Column - The Board (BIGGEST element) */}
+        {/* Center Column - The Board (BIGGEST element) - rotates for Gote perspective */}
         <div className="flex-shrink-0 flex items-center justify-center h-full">
           <ShogiBoard 
             board={board}
@@ -155,15 +283,16 @@ const Index = () => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onDrop={handleDropWithSync}
-            isMyTurn={isMyTurn}
+            isMyTurn={isMyTurn && !isGameOver}
             isGotePlayer={role === 'guest'}
             selectedSource={selectedSource}
             onSelectSource={setSelectedSource}
+            rotateBoard={role === 'guest'}
           />
         </div>
         
-        {/* Right Column - Sente/Me: Timer → Video → Hand (centered) */}
-        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-2">
+        {/* Right Column - Sente/Me: Timer → Video → Hand (centered) - LARGER for iPad Pro */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-3">
           <PlayerPanel 
             label="先手" 
             time={senteTimeFormatted}
@@ -175,16 +304,43 @@ const Index = () => {
             onDrop={handleDropWithSync}
             videoStream={selfStream}
             isMyTurn={gameCurrentTurn === 'sente'}
-            canDrag={isMyTurn && role !== 'guest'}
+            canDrag={isMyTurn && role !== 'guest' && !isGameOver}
             selectedSource={selectedSource}
             onSelectSource={setSelectedSource}
             fullColumn={true}
           />
         </div>
         
-        {/* AI Assistant Overlay */}
-        <AIAssistant message={aiMessage} />
+        {/* AI Assistant Overlay - shows warning messages priority, then regular AI message */}
+        <AIAssistant message={aiWarningMessage || aiMessage} />
+        
+        {/* Game Over Overlay */}
+        {isGameOver && (
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50">
+            <div className="bg-amber-100 rounded-2xl p-8 shadow-2xl text-center">
+              <h2 className="text-3xl font-bold text-amber-900 mb-4">対局終了</h2>
+              <p className="text-xl text-amber-800 mb-6">{gameOverReason}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
+              >
+                新しい対局を始める
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+      
+      {/* Promotion Dialog */}
+      {pendingPromotion && (
+        <PromotionDialog
+          isOpen={true}
+          piece={pendingPromotion.piece}
+          promotedPiece={pendingPromotion.promotedPiece}
+          onPromote={() => handlePromotionWithSync(true)}
+          onDecline={() => handlePromotionWithSync(false)}
+        />
+      )}
     </div>
   );
 };

@@ -44,9 +44,10 @@ interface HandPieceProps {
   canDrag?: boolean;
   isSelected?: boolean;
   onPieceClick?: () => void;
+  count?: number; // For grouped display
 }
 
-const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd, canDrag = true, isSelected = false, onPieceClick }: HandPieceProps) => {
+const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd, canDrag = true, isSelected = false, onPieceClick, count }: HandPieceProps) => {
   const isDragging = dragSource?.type === 'hand' && 
     dragSource?.handIndex === index && 
     dragSource?.isOpponent === isOpponent;
@@ -68,10 +69,10 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
   return (
     <div
       className={`
-        w-11 h-12 lg:w-12 lg:h-14 flex items-center justify-center
+        relative w-12 h-14 lg:w-14 lg:h-16 xl:w-16 xl:h-18 flex items-center justify-center
         ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default opacity-70'}
         ${isDragging ? 'opacity-50' : ''}
-        ${isSelected ? 'ring-2 ring-yellow-500 rounded-md shadow-lg scale-110' : ''}
+        ${isSelected ? 'ring-3 ring-yellow-500 rounded-md shadow-xl scale-115' : ''}
         transition-all duration-150
       `}
       draggable={canDrag}
@@ -97,6 +98,12 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
           {piece}
         </span>
       </div>
+      {/* Count badge for grouped pieces */}
+      {count && count > 1 && (
+        <div className="absolute -bottom-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md z-20">
+          {count}
+        </div>
+      )}
     </div>
   );
 };
@@ -130,7 +137,8 @@ const PlayerPanel = ({
 
   // Handle hand piece click for tap-to-move
   const handleHandPieceClick = (piece: string, index: number) => {
-    if (!canDrag || isOpponent) return;
+    // canDrag already accounts for whether it's this player's turn and role
+    if (!canDrag) return;
     
     console.log('[Tap] Hand piece clicked:', { piece, index, isOpponent });
     
@@ -155,32 +163,62 @@ const PlayerPanel = ({
     }
   };
 
-  // Full column mode: Timer → Video → Hand stacked vertically (TV Broadcast layout)
+  // Group pieces by type for display (e.g., "Pawn x6")
+  const groupedHandArray = (() => {
+    const groups: Record<string, { piece: string; count: number; index: number }> = {};
+    
+    hand.forEach((piece, index) => {
+      if (groups[piece]) {
+        groups[piece].count++;
+      } else {
+        groups[piece] = { piece, count: 1, index };
+      }
+    });
+    
+    return Object.values(groups);
+  })();
+
+  // Full column mode: Timer → Video → Hand stacked vertically (TV Broadcast layout for iPad Pro)
   if (fullColumn) {
     return (
-      <div className="flex flex-col items-center gap-2 w-40 lg:w-48 xl:w-56">
-        {/* Timer with label */}
-        <div className="flex flex-col items-center gap-1">
-          <div className={`text-sm lg:text-base font-bold drop-shadow-sm ${isMyTurn ? 'text-amber-600' : 'text-muted-foreground'}`}>
-            {label} {isMyTurn && <span className="text-xs">(考え中)</span>}
+      <div className="flex flex-col items-center gap-4 w-52 lg:w-64 xl:w-72">
+        {/* Timer with label - using game-clock.png background */}
+        <div className="flex flex-col items-center gap-2">
+          <div className={`text-base lg:text-lg xl:text-xl font-bold drop-shadow-md ${isMyTurn ? 'text-amber-600' : 'text-muted-foreground'}`}>
+            {label} {isMyTurn && <span className="text-sm lg:text-base">(考え中)</span>}
           </div>
-          <div className={`
-            timer-display rounded-lg px-3 py-1.5 shadow-lg transition-all duration-300
-            ${isMyTurn ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-transparent timer-active' : 'opacity-75'}
-          `}>
-            <span className={`shogi-timer text-lg lg:text-xl ${isMyTurn ? 'text-amber-400' : 'text-timer-foreground'}`}>
-              {time}
-            </span>
+          <div 
+            className={`
+              relative rounded-xl shadow-xl transition-all duration-300
+              w-40 h-20 lg:w-48 lg:h-24 xl:w-56 xl:h-28
+              flex items-center justify-center
+              ${isMyTurn ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-transparent' : 'opacity-80'}
+            `}
+            style={{
+              backgroundImage: 'url(/images/game-clock.png)',
+              backgroundSize: 'contain',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center',
+            }}
+          >
+            {/* Tan mask to cover static digits on clock image */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-[#d4c3a1] px-3 py-1 rounded-md">
+                <span className={`shogi-timer text-xl lg:text-2xl xl:text-3xl font-bold ${isMyTurn ? 'text-amber-400 drop-shadow-lg' : 'text-amber-200'}`}>
+                  {time}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
         
-        {/* Video/Avatar - LARGER (w-48 to w-64) */}
+        {/* Video/Avatar - LARGER for iPad Pro with new character images */}
         <div 
           className={`
-            w-full aspect-[4/3] rounded-xl 
+            w-full aspect-[4/3] rounded-2xl 
             bg-gradient-to-br from-gray-100 to-gray-200
-            border-4 border-gray-300
-            shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.15)]
+            border-4 lg:border-6 border-amber-700/40
+            shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.25)]
             overflow-hidden
           `}
         >
@@ -194,50 +232,51 @@ const PlayerPanel = ({
             />
           ) : (
             <img 
-              src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
-              alt={isOpponent ? '対戦相手' : 'あなた'}
+              src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
+              alt={isOpponent ? '対戦相手' : '中野さん'}
               className="w-full h-full object-cover"
             />
           )}
         </div>
         
-        {/* Captured Pieces (Hand/Komadai) */}
+        {/* Captured Pieces (Hand/Komadai) - LARGER for iPad Pro with grouped display */}
         <div className="w-full">
-          <div className="text-xs lg:text-sm text-muted-foreground text-center mb-1 font-medium">
+          <div className="text-sm lg:text-base xl:text-lg text-muted-foreground text-center mb-2 font-medium">
             {isOpponent ? '後手の持ち駒' : '先手の持ち駒'}
           </div>
           <div 
             className={`
-              min-h-[60px] lg:min-h-[70px] p-2 lg:p-3 rounded-lg
+              min-h-[80px] lg:min-h-[100px] xl:min-h-[120px] p-3 lg:p-4 rounded-xl
               komadai-wood
-              border-2 border-amber-800/40
-              shadow-lg
+              border-3 border-amber-800/50
+              shadow-xl
               ${rotateHand ? 'rotate-180' : ''}
             `}
           >
             {hand.length === 0 ? (
-              <div className={`text-xs lg:text-sm text-amber-700/50 text-center py-2 ${rotateHand ? 'rotate-180' : ''}`}>
+              <div className={`text-sm lg:text-base xl:text-lg text-amber-700/50 text-center py-3 ${rotateHand ? 'rotate-180' : ''}`}>
                 なし
               </div>
             ) : (
-              <div className="flex flex-wrap gap-1 lg:gap-2 justify-center">
-                {hand.map((piece, index) => {
+              <div className="flex flex-wrap gap-2 lg:gap-3 justify-center">
+                {groupedHandArray.map(({ piece, count, index }) => {
                   const isThisSelected = selectedSource?.type === 'hand' && 
-                    selectedSource?.handIndex === index && 
+                    selectedSource?.piece === piece && 
                     selectedSource?.isOpponent === isOpponent;
                   
                   return (
                     <HandPiece
-                      key={`${piece}-${index}`}
+                      key={`${piece}-grouped`}
                       piece={piece}
                       index={index}
                       isOpponent={isOpponent}
                       dragSource={dragSource}
                       onDragStart={onDragStart}
                       onDragEnd={onDragEnd}
-                      canDrag={canDrag && !isOpponent}
+                      canDrag={canDrag}
                       isSelected={isThisSelected}
                       onPieceClick={() => handleHandPieceClick(piece, index)}
+                      count={count}
                     />
                   );
                 })}
@@ -249,7 +288,7 @@ const PlayerPanel = ({
     );
   }
 
-  // Hand-only mode: just show the komadai
+  // Hand-only mode: just show the komadai with grouped pieces
   if (handOnly) {
     return (
       <div className="w-full max-w-[280px] lg:max-w-[320px]">
@@ -271,23 +310,24 @@ const PlayerPanel = ({
             </div>
           ) : (
             <div className="flex flex-wrap gap-2 justify-center">
-              {hand.map((piece, index) => {
+              {groupedHandArray.map(({ piece, count, index }) => {
                 const isThisSelected = selectedSource?.type === 'hand' && 
-                  selectedSource?.handIndex === index && 
+                  selectedSource?.piece === piece && 
                   selectedSource?.isOpponent === isOpponent;
                 
                 return (
                   <HandPiece
-                    key={`${piece}-${index}`}
+                    key={`${piece}-grouped`}
                     piece={piece}
                     index={index}
                     isOpponent={isOpponent}
                     dragSource={dragSource}
                     onDragStart={onDragStart}
                     onDragEnd={onDragEnd}
-                    canDrag={canDrag && !isOpponent}
+                    canDrag={canDrag}
                     isSelected={isThisSelected}
                     onPieceClick={() => handleHandPieceClick(piece, index)}
+                    count={count}
                   />
                 );
               })}
@@ -308,13 +348,26 @@ const PlayerPanel = ({
         </div>
         
         {/* Digital clock display */}
-        <div className={`
-          timer-display rounded-xl px-6 py-3 shadow-2xl transition-all duration-300
-          ${isMyTurn ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent timer-active' : 'opacity-75'}
-        `}>
-          <span className={`shogi-timer ${isMyTurn ? 'text-amber-400' : 'text-timer-foreground'}`}>
-            {time}
-          </span>
+        <div 
+          className={`
+            relative rounded-xl shadow-xl transition-all duration-300
+            w-40 h-20 flex items-center justify-center
+            ${isMyTurn ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent' : 'opacity-75'}
+          `}
+          style={{
+            backgroundImage: 'url(/images/game-clock.png)',
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-[#d4c3a1] px-3 py-1 rounded-md">
+              <span className={`shogi-timer text-xl font-bold ${isMyTurn ? 'text-amber-400' : 'text-amber-200'}`}>
+                {time}
+              </span>
+            </div>
+          </div>
         </div>
         
         {/* Video feed - LARGER for iPad Pro */}
@@ -356,13 +409,26 @@ const PlayerPanel = ({
       </div>
       
       {/* Digital clock display with beveled effect - highlight active turn */}
-      <div className={`
-        timer-display rounded-xl px-6 py-3 shadow-2xl transition-all duration-300
-        ${isMyTurn ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent timer-active' : 'opacity-75'}
-      `}>
-        <span className={`shogi-timer ${isMyTurn ? 'text-amber-400' : 'text-timer-foreground'}`}>
-          {time}
-        </span>
+      <div 
+        className={`
+          relative rounded-xl shadow-xl transition-all duration-300
+          w-40 h-20 flex items-center justify-center
+          ${isMyTurn ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent' : 'opacity-75'}
+        `}
+        style={{
+          backgroundImage: 'url(/images/game-clock.png)',
+          backgroundSize: 'contain',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-[#d4c3a1] px-3 py-1 rounded-md">
+            <span className={`shogi-timer text-xl font-bold ${isMyTurn ? 'text-amber-400' : 'text-amber-200'}`}>
+              {time}
+            </span>
+          </div>
+        </div>
       </div>
       
       {/* Video feed with tablet/picture frame effect - LARGER */}
