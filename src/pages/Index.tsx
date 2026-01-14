@@ -268,31 +268,40 @@ const Index = () => {
       />
       
       {/* Main Game Area - TV Broadcast 3-Column Layout for iPad Pro */}
-      <div className="flex-1 flex flex-row items-center justify-center h-full w-full gap-6 lg:gap-10 xl:gap-14 px-6 pb-8 pt-2 ml-0 relative overflow-hidden">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="min-w-[1280px] h-full flex flex-row items-stretch justify-between px-6 pb-8 pt-2 relative">
         
-        {/* Left Column - Gote/Opponent: Timer → Video → Hand (centered) - LARGER for iPad Pro - RAISED */}
-        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-3 -mt-20 lg:-mt-24">
-          <PlayerPanel 
-            label="後手" 
-            time={goteTimeFormatted}
-            isOpponent={true}
-            hand={goteHand}
-            dragSource={dragSource}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDrop={handleDropWithSync}
-            videoStream={opponentStream}
-            isMyTurn={gameCurrentTurn === 'gote'}
-            canDrag={isMyTurn && role === 'guest' && !isGameOver}
-            selectedSource={selectedSource}
-            onSelectSource={setSelectedSource}
-            fullColumn={true}
-            rotateHand={true}
-          />
+        {/* Left Column - Gote Panel + AI Assistant */}
+        <div className="flex-1 flex flex-col items-center justify-between h-full relative">
+          {/* Gote Player Panel - Pushed to top */}
+          <div className="flex flex-col items-center justify-start pt-4">
+            <PlayerPanel 
+              label="後手" 
+              time={goteTimeFormatted}
+              isOpponent={true}
+              hand={goteHand}
+              dragSource={dragSource}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDrop={handleDropWithSync}
+              videoStream={opponentStream}
+              isMyTurn={gameCurrentTurn === 'gote'}
+              canDrag={isMyTurn && role === 'guest' && !isGameOver}
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
+              fullColumn={true}
+              rotateHand={true}
+            />
+          </div>
+          
+          {/* AI Assistant - Anchored to bottom with clearance */}
+          <div className="mb-8 mr-10">
+            <AIAssistant message={aiWarningMessage || aiMessage} />
+          </div>
         </div>
         
-        {/* Center Column - The Board (BIGGEST element) - rotates for Gote perspective */}
-        <div className="flex-shrink-0 flex items-center justify-center h-full">
+        {/* Center Column - The Board (Fixed Width) */}
+        <div className="flex-shrink-0 w-[700px] flex items-center justify-center h-full">
           <ShogiBoard 
             board={board}
             dragSource={dragSource}
@@ -307,8 +316,8 @@ const Index = () => {
           />
         </div>
         
-        {/* Right Column - Sente/Me: Timer → Video → Hand (centered) - LARGER for iPad Pro - RAISED */}
-        <div className="flex-shrink-0 flex flex-col items-center justify-center h-full gap-3 -mt-20 lg:-mt-24">
+        {/* Right Column - Sente Panel */}
+        <div className="flex-1 flex flex-col items-center justify-start h-full pt-4">
           <PlayerPanel 
             label="先手" 
             time={senteTimeFormatted}
@@ -327,9 +336,6 @@ const Index = () => {
           />
         </div>
         
-        {/* AI Assistant Overlay - shows warning messages priority, then regular AI message */}
-        <AIAssistant message={aiWarningMessage || aiMessage} />
-        
         {/* Game Over Overlay */}
         {isGameOver && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -345,6 +351,7 @@ const Index = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
       
       {/* Promotion Dialog */}
