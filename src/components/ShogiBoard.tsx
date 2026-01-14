@@ -11,6 +11,35 @@ interface SelectedSource {
   isOpponent: boolean;
 }
 
+// Mapping from Japanese piece characters to image filenames
+const PIECE_IMAGE_MAP: Record<string, { sente: string; gote: string }> = {
+  '歩': { sente: 'sente_pawn.png', gote: 'gote_pawn.png' },
+  'と': { sente: 'sente_pawn_promoted.png', gote: 'gote_pawn_promoted.png' },
+  '香': { sente: 'sente_lance.png', gote: 'gote_lance.png' },
+  '杏': { sente: 'sente_lance_promoted.png', gote: 'gote_lance_promoted.png' },
+  '桂': { sente: 'sente_knight.png', gote: 'gote_knight.png' },
+  '圭': { sente: 'sente_knight_promoted.png', gote: 'gote_knight_promoted.png' },
+  '銀': { sente: 'sente_silver.png', gote: 'gote_silver.png' },
+  '全': { sente: 'sente_silver_promoted.png', gote: 'gote_silver_promoted.png' },
+  '金': { sente: 'sente_gold.png', gote: 'gote_gold.png' },
+  '角': { sente: 'sente_bishop.png', gote: 'gote_bishop.png' },
+  '馬': { sente: 'sente_bishop_promoted.png', gote: 'gote_bishop_promoted.png' },
+  '飛': { sente: 'sente_rook.png', gote: 'gote_rook.png' },
+  '龍': { sente: 'sente_rook_promoted.png', gote: 'gote_rook_promoted.png' },
+  '竜': { sente: 'sente_rook_promoted.png', gote: 'gote_rook_promoted.png' },
+  '王': { sente: 'sente_king.png', gote: 'gote_king.png' },
+  '玉': { sente: 'sente_king_jewel.png', gote: 'gote_king_jewel.png' },
+};
+
+// Get piece image path
+const getPieceImagePath = (piece: string, isOpponent: boolean): string | null => {
+  const mapping = PIECE_IMAGE_MAP[piece];
+  if (!mapping) return null;
+  // isOpponent=true means Gote piece, isOpponent=false means Sente piece
+  const filename = isOpponent ? mapping.gote : mapping.sente;
+  return `/pieces/${filename}`;
+};
+
 interface ShogiPieceProps {
   piece: string | null;
   isOpponent: boolean;
@@ -28,36 +57,50 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
   //   - Opponent pieces (isOpponent=false from Gote view) should face down (no rotation, board already flipped them)
   const shouldRotate = rotateBoard ? !isOpponent : isOpponent;
   
+  // Get the piece image path
+  const imagePath = getPieceImagePath(piece, isOpponent);
+  
   return (
     <div 
       className={`
-        w-[90%] h-[90%] flex items-center justify-center
+        w-full h-full flex items-center justify-center
         shogi-piece text-board-foreground
         ${shouldRotate ? 'rotate-180' : ''}
         ${isDragging ? 'opacity-50' : ''}
         transition-opacity
       `}
+      style={{
+        padding: '12% 6% 4% 6%',
+      }}
     >
-      <div className="relative w-full h-full">
-        {/* Piece background - Shogi wedge/pentagon shape with 3D bevel */}
-        <div 
-          className="absolute inset-0 shogi-wedge-piece"
-          style={{
-            clipPath: 'polygon(50% 0%, 95% 15%, 100% 100%, 0% 100%, 5% 15%)',
-          }}
-        >
-          {/* Top highlight for 3D effect */}
+      {imagePath ? (
+        <img 
+          src={imagePath} 
+          alt={piece}
+          className="w-full h-full object-contain drop-shadow-lg"
+          draggable={false}
+        />
+      ) : (
+        /* Fallback to text rendering if no image found */
+        <div className="relative w-full h-full">
           <div 
-            className="absolute top-0 left-0 right-0 h-[30%] bg-gradient-to-b from-amber-50/80 to-transparent"
+            className="absolute inset-0 shogi-wedge-piece"
             style={{
-              clipPath: 'polygon(50% 0%, 95% 15%, 90% 30%, 10% 30%, 5% 15%)',
+              clipPath: 'polygon(50% 0%, 95% 15%, 100% 100%, 0% 100%, 5% 15%)',
             }}
-          />
+          >
+            <div 
+              className="absolute top-0 left-0 right-0 h-[30%] bg-gradient-to-b from-amber-50/80 to-transparent"
+              style={{
+                clipPath: 'polygon(50% 0%, 95% 15%, 90% 30%, 10% 30%, 5% 15%)',
+              }}
+            />
+          </div>
+          <span className="absolute inset-0 flex items-center justify-center z-10 text-[clamp(0.875rem,2vmin,1.5rem)] font-bold shogi-piece-text drop-shadow-sm">
+            {piece}
+          </span>
         </div>
-        <span className="absolute inset-0 flex items-center justify-center z-10 text-[clamp(0.875rem,2vmin,1.5rem)] font-bold shogi-piece-text drop-shadow-sm">
-          {piece}
-        </span>
-      </div>
+      )}
     </div>
   );
 };
@@ -139,7 +182,6 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
     <div 
       className={`
         w-full h-full
-        border border-amber-950/60
         flex items-center justify-center
         transition-all duration-150
         ${canDragThis ? 'cursor-grab' : 'cursor-pointer'}
@@ -294,49 +336,52 @@ const ShogiBoard = ({
         </div>
       )}
       
-      {/* Board container with realistic wood texture and strong shadow - FILLS SCREEN HEIGHT */}
+      {/* Board container with SVG background - FILLS SCREEN HEIGHT */}
       <div 
         className={`
-          rounded-xl p-1 lg:p-2 board-wood-texture
+          relative rounded-xl overflow-hidden
           shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]
           border-[6px] lg:border-[8px] xl:border-[10px] border-amber-900/40
           ring-1 ring-amber-950/20
           h-full max-h-[88vh] aspect-square
-          flex flex-col
           ${!isMyTurn ? 'opacity-90' : ''}
         `}
+        style={{
+          backgroundImage: 'url(/board.svg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: '#d4bc8a',
+        }}
       >
-        {/* Inner board with wood grain - fills entire container */}
-        <div className="board-inner-wood rounded-sm flex-1 w-full h-full overflow-hidden">
-          {/* 9x9 Grid - stretch to fill entire board completely */}
-          <div 
-            className={`grid gap-0 board-grid w-full h-full ${rotateBoard ? 'rotate-180' : ''}`}
-            style={{ 
-              gridTemplateColumns: 'repeat(9, 1fr)',
-              gridTemplateRows: 'repeat(9, 1fr)',
-            }}
-          >
-            {board.map((row, rowIndex) => 
-              row.map((cell, colIndex) => (
-                <BoardCell
-                  key={`${rowIndex}-${colIndex}`}
-                  cell={cell}
-                  row={rowIndex}
-                  col={colIndex}
-                  dragSource={dragSource}
-                  onDragStart={onDragStart}
-                  onDragEnd={onDragEnd}
-                  onDrop={onDrop}
-                  canDrag={isMyTurn}
-                  isGotePlayer={isGotePlayer}
-                  selectedSource={selectedSource}
-                  onCellClick={handleCellClick}
-                  isLegalMove={legalMoves.has(`${rowIndex}-${colIndex}`)}
-                  rotateBoard={rotateBoard}
-                />
-              ))
-            )}
-          </div>
+        {/* 9x9 Grid Layer - sits on top of SVG background */}
+        <div 
+          className={`relative w-full h-full grid gap-0 ${rotateBoard ? 'rotate-180' : ''}`}
+          style={{ 
+            gridTemplateColumns: 'repeat(9, 1fr)',
+            gridTemplateRows: 'repeat(9, 1fr)',
+          }}
+        >
+          {board.map((row, rowIndex) => 
+            row.map((cell, colIndex) => (
+              <BoardCell
+                key={`${rowIndex}-${colIndex}`}
+                cell={cell}
+                row={rowIndex}
+                col={colIndex}
+                dragSource={dragSource}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+                onDrop={onDrop}
+                canDrag={isMyTurn}
+                isGotePlayer={isGotePlayer}
+                selectedSource={selectedSource}
+                onCellClick={handleCellClick}
+                isLegalMove={legalMoves.has(`${rowIndex}-${colIndex}`)}
+                rotateBoard={rotateBoard}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -131,6 +131,8 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Noto Serif JP', serif;
+    overflow: hidden;
+    touch-action: none;
   }
 
   /* Large, legible fonts for elderly users */
@@ -174,7 +176,9 @@
 
   .speech-bubble-glass::before {
     content: '';
-    @apply absolute -left-4 bottom-4 w-0 h-0;
+    @apply absolute -left-4 w-0 h-0;
+    top: 50%;
+    transform: translateY(-50%);
     border-top: 12px solid transparent;
     border-bottom: 12px solid transparent;
     border-right: 16px solid rgba(255, 255, 255, 0.75);

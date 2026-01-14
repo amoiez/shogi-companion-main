@@ -267,57 +267,56 @@ const Index = () => {
         onDisconnect={disconnect}
       />
       
-      {/* Main Game Area - TV Broadcast 3-Column Layout for iPad Pro */}
+      {/* Main Game Area - TV Broadcast 3-Column Layout (Tight Proximity) */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="min-w-[1280px] h-full flex flex-row items-stretch justify-between px-6 pb-8 pt-2 relative">
+        <div className="min-w-[1280px] h-full flex flex-row items-start justify-center gap-x-[40px] xl:gap-x-[80px] px-4 pb-4 pt-2 relative">
         
-        {/* Left Column - Gote Panel + AI Assistant */}
-        <div className="flex-1 flex flex-col items-center justify-between h-full relative">
-          {/* Gote Player Panel - Pushed to top */}
-          <div className="flex flex-col items-center justify-start pt-4">
-            <PlayerPanel 
-              label="後手" 
-              time={goteTimeFormatted}
-              isOpponent={true}
-              hand={goteHand}
-              dragSource={dragSource}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDrop={handleDropWithSync}
-              videoStream={opponentStream}
-              isMyTurn={gameCurrentTurn === 'gote'}
-              canDrag={isMyTurn && role === 'guest' && !isGameOver}
-              selectedSource={selectedSource}
-              onSelectSource={setSelectedSource}
-              fullColumn={true}
-              rotateHand={true}
-            />
-          </div>
-          
-          {/* AI Assistant - Anchored to bottom with clearance */}
-          <div className="mb-8 mr-10">
-            <AIAssistant message={aiWarningMessage || aiMessage} />
-          </div>
-        </div>
-        
-        {/* Center Column - The Board (Fixed Width) */}
-        <div className="flex-shrink-0 w-[700px] flex items-center justify-center h-full">
-          <ShogiBoard 
-            board={board}
+        {/* Left Column - Gote Panel - Top-aligned with board */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
+          <PlayerPanel 
+            label="後手" 
+            time={goteTimeFormatted}
+            isOpponent={true}
+            hand={goteHand}
             dragSource={dragSource}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onDrop={handleDropWithSync}
-            isMyTurn={isMyTurn && !isGameOver}
-            isGotePlayer={role === 'guest'}
+            videoStream={opponentStream}
+            isMyTurn={gameCurrentTurn === 'gote'}
+            canDrag={isMyTurn && role === 'guest' && !isGameOver}
             selectedSource={selectedSource}
             onSelectSource={setSelectedSource}
-            rotateBoard={role === 'guest'}
+            fullColumn={true}
+            rotateHand={true}
           />
         </div>
         
-        {/* Right Column - Sente Panel */}
-        <div className="flex-1 flex flex-col items-center justify-start h-full pt-4">
+        {/* Center Column - The Board (75vh Height, Perfect Square) - Shifted UPWARD */}
+        <div id="board-container" className="flex-shrink-0 flex items-start justify-center pt-[2vh] relative">
+          <div className="h-[75vh] aspect-square">
+            <ShogiBoard 
+              board={board}
+              dragSource={dragSource}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDrop={handleDropWithSync}
+              isMyTurn={isMyTurn && !isGameOver}
+              isGotePlayer={role === 'guest'}
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
+              rotateBoard={role === 'guest'}
+            />
+          </div>
+          
+          {/* AI Assistant - Positioned far LEFT with 60px mandatory board clearance */}
+          <div className="absolute -left-[480px] bottom-[8vh] z-30">
+            <AIAssistant message={aiWarningMessage || aiMessage} />
+          </div>
+        </div>
+        
+        {/* Right Column - Sente Panel - Top-aligned with board */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
           <PlayerPanel 
             label="先手" 
             time={senteTimeFormatted}

@@ -12,6 +12,26 @@ interface SelectedSource {
   isOpponent: boolean;
 }
 
+// Mapping from Japanese piece characters to image filenames (captured pieces are always demoted)
+const HAND_PIECE_IMAGE_MAP: Record<string, { sente: string; gote: string }> = {
+  '歩': { sente: 'sente_pawn.png', gote: 'gote_pawn.png' },
+  '香': { sente: 'sente_lance.png', gote: 'gote_lance.png' },
+  '桂': { sente: 'sente_knight.png', gote: 'gote_knight.png' },
+  '銀': { sente: 'sente_silver.png', gote: 'gote_silver.png' },
+  '金': { sente: 'sente_gold.png', gote: 'gote_gold.png' },
+  '角': { sente: 'sente_bishop.png', gote: 'gote_bishop.png' },
+  '飛': { sente: 'sente_rook.png', gote: 'gote_rook.png' },
+};
+
+// Get hand piece image path
+const getHandPieceImagePath = (piece: string, isOpponent: boolean): string | null => {
+  const mapping = HAND_PIECE_IMAGE_MAP[piece];
+  if (!mapping) return null;
+  // isOpponent=true means Gote piece, isOpponent=false means Sente piece
+  const filename = isOpponent ? mapping.gote : mapping.sente;
+  return `/pieces/${filename}`;
+};
+
 interface PlayerPanelProps {
   label: string;
   time: string;
@@ -66,6 +86,9 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
     });
   };
 
+  // Get the piece image path
+  const imagePath = getHandPieceImagePath(piece, isOpponent);
+
   return (
     <div
       className={`
@@ -73,31 +96,46 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
         ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default opacity-70'}
         ${isDragging ? 'opacity-50' : ''}
         ${isSelected ? 'ring-3 ring-yellow-500 rounded-md shadow-xl scale-115' : ''}
-        transition-all duration-150
+        transition-all duration-150 p-1
       `}
       draggable={canDrag}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
       onClick={onPieceClick}
     >
-      <div className="relative w-full h-full">
-        <div 
-          className="absolute inset-0 shogi-wedge-piece"
+      {imagePath ? (
+        <img 
+          src={imagePath} 
+          alt={piece}
+          className="w-full h-full object-contain drop-shadow-md"
           style={{
-            clipPath: 'polygon(50% 0%, 95% 15%, 100% 100%, 0% 100%, 5% 15%)',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            aspectRatio: '140/148',
           }}
-        >
+          draggable={false}
+        />
+      ) : (
+        /* Fallback to text rendering */
+        <div className="relative w-full h-full">
           <div 
-            className="absolute top-0 left-0 right-0 h-[30%] bg-gradient-to-b from-amber-50/80 to-transparent"
+            className="absolute inset-0 shogi-wedge-piece"
             style={{
-              clipPath: 'polygon(50% 0%, 95% 15%, 90% 30%, 10% 30%, 5% 15%)',
+              clipPath: 'polygon(50% 0%, 95% 15%, 100% 100%, 0% 100%, 5% 15%)',
             }}
-          />
+          >
+            <div 
+              className="absolute top-0 left-0 right-0 h-[30%] bg-gradient-to-b from-amber-50/80 to-transparent"
+              style={{
+                clipPath: 'polygon(50% 0%, 95% 15%, 90% 30%, 10% 30%, 5% 15%)',
+              }}
+            />
+          </div>
+          <span className="absolute inset-0 flex items-center justify-center z-10 text-base md:text-lg font-bold shogi-piece-text drop-shadow-sm">
+            {piece}
+          </span>
         </div>
-        <span className="absolute inset-0 flex items-center justify-center z-10 text-base md:text-lg font-bold shogi-piece-text drop-shadow-sm">
-          {piece}
-        </span>
-      </div>
+      )}
       {/* Count badge for grouped pieces */}
       {count && count > 1 && (
         <div className="absolute -bottom-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md z-20">
@@ -203,7 +241,7 @@ const PlayerPanel = ({
           >
             {/* Tan mask to cover static digits on clock image */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-[#d4c3a1] px-3 py-1 rounded-md">
+              <div className="bg-[#dcc9a5] px-3 py-1 rounded-md">
                 <span className={`shogi-timer text-xl lg:text-2xl xl:text-3xl font-bold ${isMyTurn ? 'text-amber-400 drop-shadow-lg' : 'text-amber-200'}`}>
                   {time}
                 </span>
@@ -362,7 +400,7 @@ const PlayerPanel = ({
           }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-[#d4c3a1] px-3 py-1 rounded-md">
+            <div className="bg-[#dcc9a5] px-3 py-1 rounded-md">
               <span className={`shogi-timer text-xl font-bold ${isMyTurn ? 'text-amber-400' : 'text-amber-200'}`}>
                 {time}
               </span>
@@ -423,7 +461,7 @@ const PlayerPanel = ({
         }}
       >
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-[#d4c3a1] px-3 py-1 rounded-md">
+          <div className="bg-[#dcc9a5] px-3 py-1 rounded-md">
             <span className={`shogi-timer text-xl font-bold ${isMyTurn ? 'text-amber-400' : 'text-amber-200'}`}>
               {time}
             </span>
