@@ -1,35 +1,43 @@
 interface SituationBarProps {
   gotePercent: number;
   sentePercent: number;
+  isFlipped?: boolean; // When Gote's turn, flip the labels
 }
 
-const SituationBar = ({ gotePercent, sentePercent }: SituationBarProps) => {
+const SituationBar = ({ gotePercent, sentePercent, isFlipped = false }: SituationBarProps) => {
+  // When flipped, swap the visual positions
+  const leftPercent = isFlipped ? sentePercent : gotePercent;
+  const rightPercent = isFlipped ? gotePercent : sentePercent;
+  const leftLabel = isFlipped ? '先手' : '後手';
+  const rightLabel = isFlipped ? '後手' : '先手';
+  const leftBg = isFlipped ? 'bg-progress-sente' : 'bg-progress-gote';
+  const rightBg = isFlipped ? 'bg-progress-gote' : 'bg-progress-sente';
+  const leftTextClass = isFlipped ? 'text-primary-foreground' : 'text-secondary-foreground';
+  const rightTextClass = isFlipped ? 'text-secondary-foreground' : 'text-primary-foreground';
+
   return (
     <div className="w-full px-4 py-2 glassmorphism border-b border-white/20">
       <div className="max-w-[600px] mx-auto mb-2">
         <h2 className="text-center shogi-title mb-2 text-foreground drop-shadow-sm text-sm">形勢判断</h2>
         
-        <div className="relative w-full h-10 rounded-lg overflow-hidden flex shadow-inner ring-1 ring-black/10">
-        {/* Gote (後手) - Left side - Red */}
+        <div className="w-full h-10 rounded-lg overflow-hidden flex">
+        {/* Left side - seamless join with right */}
         <div 
-          className="h-full bg-progress-gote flex items-center justify-start pl-4 transition-all duration-500"
-          style={{ width: `${gotePercent}%` }}
+          className={`h-full ${leftBg} flex items-center justify-start pl-4 transition-all duration-500`}
+          style={{ width: `${leftPercent}%` }}
         >
-          <span className="text-lg font-bold text-secondary-foreground drop-shadow-sm">
-            後手 {gotePercent}%
+          <span className={`text-lg font-bold ${leftTextClass} drop-shadow-sm whitespace-nowrap`}>
+            {leftLabel} {leftPercent}%
           </span>
         </div>
         
-        {/* Center divider */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-foreground/20 z-10" />
-        
-        {/* Sente (先手) - Right side - Blue */}
+        {/* Right side - seamless join with left */}
         <div 
-          className="h-full bg-progress-sente flex items-center justify-end pr-4 transition-all duration-500"
-          style={{ width: `${sentePercent}%` }}
+          className={`h-full ${rightBg} flex items-center justify-end pr-4 transition-all duration-500`}
+          style={{ width: `${rightPercent}%` }}
         >
-          <span className="text-lg font-bold text-primary-foreground drop-shadow-sm">
-            先手 {sentePercent}%
+          <span className={`text-lg font-bold ${rightTextClass} drop-shadow-sm whitespace-nowrap`}>
+            {rightLabel} {rightPercent}%
           </span>
         </div>
       </div>

@@ -219,7 +219,7 @@ const PlayerPanel = ({
   // Full column mode: Timer → Video → Hand stacked vertically (TV Broadcast layout for iPad Pro)
   if (fullColumn) {
     return (
-      <div className="flex flex-col items-center gap-4 w-52 lg:w-64 xl:w-72">
+      <div className="flex flex-col items-center gap-4 w-[264px] lg:w-[316px] xl:w-[352px]">
         {/* Timer with label - using game-clock.png background */}
         <div className="flex flex-col items-center gap-2">
           <div className={`text-base lg:text-lg xl:text-xl font-bold drop-shadow-md ${isMyTurn ? 'text-amber-600' : 'text-muted-foreground'}`}>
@@ -250,10 +250,10 @@ const PlayerPanel = ({
           </div>
         </div>
         
-        {/* Video/Avatar - LARGER for iPad Pro with new character images */}
+        {/* Video/Avatar - SIGNIFICANTLY ENLARGED for clear opponent expressions */}
         <div 
           className={`
-            w-full aspect-[4/3] rounded-2xl 
+            w-full aspect-square rounded-2xl 
             bg-gradient-to-br from-gray-100 to-gray-200
             border-4 lg:border-6 border-amber-700/40
             shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.25)]

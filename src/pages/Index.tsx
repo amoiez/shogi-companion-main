@@ -244,8 +244,8 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden tatami-background" onClick={handleFirstInteraction}>
-      {/* Top Header - Situation Assessment Bar */}
-      <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} />
+      {/* Top Header - Situation Assessment Bar - flipped when Gote's turn */}
+      <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} isFlipped={gameCurrentTurn === 'gote'} />
       
       {/* BGM Toggle Button */}
       <button
@@ -268,31 +268,51 @@ const Index = () => {
       />
       
       {/* Main Game Area - TV Broadcast 3-Column Layout (Tight Proximity) */}
+      {/* When Gote's turn: flip layout (Sente on left, Gote on right) */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="min-w-[1280px] h-full flex flex-row items-start justify-center gap-x-[40px] xl:gap-x-[80px] px-4 pb-4 pt-2 relative">
         
-        {/* Left Column - Gote Panel - Top-aligned with board */}
+        {/* Left Column - Shows Gote when Sente's turn, Sente when Gote's turn */}
         <div className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
-          <PlayerPanel 
-            label="後手" 
-            time={goteTimeFormatted}
-            isOpponent={true}
-            hand={goteHand}
-            dragSource={dragSource}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDrop={handleDropWithSync}
-            videoStream={opponentStream}
-            isMyTurn={gameCurrentTurn === 'gote'}
-            canDrag={isMyTurn && role === 'guest' && !isGameOver}
-            selectedSource={selectedSource}
-            onSelectSource={setSelectedSource}
-            fullColumn={true}
-            rotateHand={true}
-          />
+          {gameCurrentTurn === 'sente' ? (
+            <PlayerPanel 
+              label="後手" 
+              time={goteTimeFormatted}
+              isOpponent={true}
+              hand={goteHand}
+              dragSource={dragSource}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDrop={handleDropWithSync}
+              videoStream={opponentStream}
+              isMyTurn={gameCurrentTurn === 'gote'}
+              canDrag={isMyTurn && role === 'guest' && !isGameOver}
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
+              fullColumn={true}
+              rotateHand={true}
+            />
+          ) : (
+            <PlayerPanel 
+              label="先手" 
+              time={senteTimeFormatted}
+              isOpponent={false}
+              hand={senteHand}
+              dragSource={dragSource}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDrop={handleDropWithSync}
+              videoStream={selfStream}
+              isMyTurn={gameCurrentTurn === 'sente'}
+              canDrag={isMyTurn && role !== 'guest' && !isGameOver}
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
+              fullColumn={true}
+            />
+          )}
         </div>
         
-        {/* Center Column - The Board (75vh Height, Perfect Square) - Shifted UPWARD */}
+        {/* Center Column - The Board (75vh Height, Perfect Square) - rotates 180° when Gote's turn */}
         <div id="board-container" className="flex-shrink-0 flex items-start justify-center pt-[2vh] relative">
           <div className="h-[75vh] aspect-square">
             <ShogiBoard 
@@ -305,34 +325,54 @@ const Index = () => {
               isGotePlayer={role === 'guest'}
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
-              rotateBoard={role === 'guest'}
+              rotateBoard={gameCurrentTurn === 'gote'}
             />
           </div>
           
-          {/* AI Assistant - Positioned far LEFT with 60px mandatory board clearance */}
-          <div className="absolute -left-[480px] bottom-[8vh] z-30">
+          {/* AI Assistant - Grounded at bottom-left with clear safety gap from board */}
+          <div className="absolute -left-[700px] bottom-[-45px] z-20">
             <AIAssistant message={aiWarningMessage || aiMessage} />
           </div>
         </div>
         
-        {/* Right Column - Sente Panel - Top-aligned with board */}
+        {/* Right Column - Shows Sente when Sente's turn, Gote when Gote's turn */}
         <div className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
-          <PlayerPanel 
-            label="先手" 
-            time={senteTimeFormatted}
-            isOpponent={false}
-            hand={senteHand}
-            dragSource={dragSource}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDrop={handleDropWithSync}
-            videoStream={selfStream}
-            isMyTurn={gameCurrentTurn === 'sente'}
-            canDrag={isMyTurn && role !== 'guest' && !isGameOver}
-            selectedSource={selectedSource}
-            onSelectSource={setSelectedSource}
-            fullColumn={true}
-          />
+          {gameCurrentTurn === 'sente' ? (
+            <PlayerPanel 
+              label="先手" 
+              time={senteTimeFormatted}
+              isOpponent={false}
+              hand={senteHand}
+              dragSource={dragSource}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDrop={handleDropWithSync}
+              videoStream={selfStream}
+              isMyTurn={gameCurrentTurn === 'sente'}
+              canDrag={isMyTurn && role !== 'guest' && !isGameOver}
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
+              fullColumn={true}
+            />
+          ) : (
+            <PlayerPanel 
+              label="後手" 
+              time={goteTimeFormatted}
+              isOpponent={true}
+              hand={goteHand}
+              dragSource={dragSource}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDrop={handleDropWithSync}
+              videoStream={opponentStream}
+              isMyTurn={gameCurrentTurn === 'gote'}
+              canDrag={isMyTurn && role === 'guest' && !isGameOver}
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
+              fullColumn={true}
+              rotateHand={true}
+            />
+          )}
         </div>
         
         {/* Game Over Overlay */}
