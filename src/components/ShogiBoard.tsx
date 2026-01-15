@@ -50,18 +50,19 @@ interface ShogiPieceProps {
 const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: ShogiPieceProps) => {
   if (!piece) return null;
 
-  // Piece rotation logic:
-  // - Opponent pieces (isOpponent=true) are normally rotated 180° so they face down
-  // - When board is rotated for Gote view, we flip the logic
-  const shouldRotate = rotateBoard ? !isOpponent : isOpponent;
+  // Piece rotation logic - FIXED:
+  // - Gote pieces (isOpponent=true) are ALWAYS rotated 180° to face downward
+  // - Sente pieces (isOpponent=false) are NEVER rotated
+  // - This remains constant regardless of board rotation (rotateBoard has no effect on piece rotation)
+  // - The board container handles the turn-flip rotation separately
 
   // Get the piece image path from /public/pieces/
   const imagePath = getPieceImagePath(piece, isOpponent);
 
   // FLEXBOX APPROACH: Piece is 90% of cell, naturally centered by parent flex container
   // Parent cell uses display:flex with center alignment
-  // Apply translateY(12px) offset so pieces sit perfectly centered in squares
-  // For rotated Gote pieces: rotate(180deg) translateY(12px) - translation in rotated space centers them
+  // Sente: translateY(12px) - pushes piece down to center
+  // Gote: rotate(180deg) translateY(12px) - rotates then translates in rotated space to center
   if (imagePath) {
     return (
       <img
@@ -72,7 +73,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
           width: '90%',
           height: '90%',
           objectFit: 'contain',
-          transform: shouldRotate ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
+          transform: isOpponent ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
           transformOrigin: 'center center',
           opacity: isDragging ? 0.5 : 1,
           pointerEvents: 'auto',
@@ -92,7 +93,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        transform: shouldRotate ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
+        transform: isOpponent ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
         transformOrigin: 'center center',
         opacity: isDragging ? 0.5 : 1,
         pointerEvents: 'auto',
