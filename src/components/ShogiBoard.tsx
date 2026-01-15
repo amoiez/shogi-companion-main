@@ -61,6 +61,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
   // FLEXBOX APPROACH: Piece is 90% of cell, naturally centered by parent flex container
   // Parent cell uses display:flex with center alignment
   // Apply translateY(12px) offset so pieces sit perfectly centered in squares
+  // For rotated Gote pieces: rotate(180deg) translateY(12px) - translation in rotated space centers them
   if (imagePath) {
     return (
       <img
@@ -71,7 +72,8 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
           width: '90%',
           height: '90%',
           objectFit: 'contain',
-          transform: shouldRotate ? 'rotate(180deg) translateY(-12px)' : 'translateY(12px)',
+          transform: shouldRotate ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
+          transformOrigin: 'center center',
           opacity: isDragging ? 0.5 : 1,
           pointerEvents: 'auto',
           zIndex: 5,
@@ -90,7 +92,8 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        transform: shouldRotate ? 'rotate(180deg) translateY(-12px)' : 'translateY(12px)',
+        transform: shouldRotate ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
+        transformOrigin: 'center center',
         opacity: isDragging ? 0.5 : 1,
         pointerEvents: 'auto',
         zIndex: 5,
