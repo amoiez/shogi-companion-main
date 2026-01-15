@@ -113,7 +113,8 @@ const Index = () => {
     if (senteByoyomi && gameCurrentTurn === 'sente' && !isGameOver) {
       // Check if time changed
       if (prevSenteTimeRef.current !== senteTime) {
-        if (senteTime === 30 || (senteTime <= 10 && senteTime >= 1)) {
+        // Beep at 10-second intervals: 50s, 40s, 30s, 20s, plus final countdown 10-1
+        if (senteTime === 50 || senteTime === 40 || senteTime === 30 || senteTime === 20 || (senteTime <= 10 && senteTime >= 1)) {
           speakByoyomiWarning(senteTime);
         }
         // Low time AI warning
@@ -129,7 +130,8 @@ const Index = () => {
   useEffect(() => {
     if (goteByoyomi && gameCurrentTurn === 'gote' && !isGameOver) {
       if (prevGoteTimeRef.current !== goteTime) {
-        if (goteTime === 30 || (goteTime <= 10 && goteTime >= 1)) {
+        // Beep at 10-second intervals: 50s, 40s, 30s, 20s, plus final countdown 10-1
+        if (goteTime === 50 || goteTime === 40 || goteTime === 30 || goteTime === 20 || (goteTime <= 10 && goteTime >= 1)) {
           speakByoyomiWarning(goteTime);
         }
         // Low time AI warning

@@ -75,9 +75,10 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
           objectFit: 'contain',
           transform: isOpponent ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
           transformOrigin: 'center center',
-          opacity: isDragging ? 0.5 : 1,
+          opacity: isDragging ? 0 : 1,
           pointerEvents: 'auto',
           zIndex: 5,
+          transition: 'opacity 0ms',
         }}
       />
     );
@@ -95,9 +96,10 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
         justifyContent: 'center',
         transform: isOpponent ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
         transformOrigin: 'center center',
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0 : 1,
         pointerEvents: 'auto',
         zIndex: 5,
+        transition: 'opacity 0ms',
       }}
     >
       <div
@@ -171,6 +173,50 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
     }
 
     e.dataTransfer.effectAllowed = 'move';
+    
+    // Create custom drag image with proper rotation for Gote pieces
+    try {
+      const target = e.currentTarget as HTMLElement;
+      const pieceImg = target.querySelector('img');
+      if (pieceImg) {
+        // Create a container for the drag image to properly apply transforms
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.top = '-9999px';
+        container.style.left = '-9999px';
+        container.style.width = pieceImg.offsetWidth + 'px';
+        container.style.height = pieceImg.offsetHeight + 'px';
+        container.style.pointerEvents = 'none';
+        
+        // Clone the image for drag preview
+        const dragImg = pieceImg.cloneNode(true) as HTMLImageElement;
+        dragImg.style.width = '100%';
+        dragImg.style.height = '100%';
+        dragImg.style.objectFit = 'contain';
+        // Apply the same transform as the original piece (rotation + translation)
+        dragImg.style.transform = cell.isOpponent ? 'rotate(180deg)' : 'none';
+        dragImg.style.transformOrigin = 'center center';
+        dragImg.style.pointerEvents = 'none';
+        
+        container.appendChild(dragImg);
+        document.body.appendChild(container);
+        
+        // Set custom drag image centered on cursor
+        const offsetX = pieceImg.offsetWidth / 2;
+        const offsetY = pieceImg.offsetHeight / 2;
+        e.dataTransfer.setDragImage(container, offsetX, offsetY);
+        
+        // Clean up after drag starts
+        requestAnimationFrame(() => {
+          if (container.parentNode) {
+            document.body.removeChild(container);
+          }
+        });
+      }
+    } catch (err) {
+      console.log('Custom drag image failed, using default');
+    }
+    
     onDragStart({
       type: 'board',
       row,
@@ -213,6 +259,7 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
         justifyContent: 'center',
         overflow: 'visible',
         cursor: canDragThis ? 'grab' : 'pointer',
+        touchAction: 'none',
         backgroundColor: isSelected 
           ? 'rgba(253, 224, 71, 0.7)' 
           : isDraggingThis 

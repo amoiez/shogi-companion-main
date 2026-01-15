@@ -279,15 +279,16 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
   const speakByoyomiWarning = useCallback((seconds: number) => {
     console.log('TIMER AUDIO: Triggered at ' + seconds);
     
-    if (seconds === 30) {
+    // Beep at 10-second intervals: 50s, 40s, 30s, 20s
+    if (seconds === 50 || seconds === 40 || seconds === 30 || seconds === 20) {
       playDoubleBeep();
-      setTimeout(() => {
-        if (voiceEnabled) {
+      if (voiceEnabled && seconds === 30) {
+        setTimeout(() => {
           speakJapanese('30秒', 1.2);
-        }
-      }, 300);
+        }, 300);
+      }
     } else if (seconds <= 10 && seconds >= 1) {
-      // FALLBACK BEEP - always play regardless of voice
+      // FALLBACK BEEP - always play regardless of voice (every second in final countdown)
       try {
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         const osc = ctx.createOscillator();
