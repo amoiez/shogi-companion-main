@@ -243,11 +243,20 @@ const Index = () => {
   // Determine which stream goes where based on role
   const opponentStream = role === 'host' ? remoteStream : (role === 'guest' ? remoteStream : null);
   const selfStream = role ? localStream : null;
+  
+  // PERSPECTIVE RULES for layout:
+  // - Host (Sente): Static view, Gote on left, Sente on right (their pieces at board bottom)
+  // - Guest (Gote): Static view, Sente on left, Gote on right (board rotated, their pieces at bottom)
+  // - Spectator: Auto-flip based on current turn
+  const shouldFlipLayout = 
+    role === 'host' ? false :              // Host always sees Gote left, Sente right
+    role === 'guest' ? true :              // Guest always sees Sente left, Gote right (with rotated board)
+    gameCurrentTurn === 'gote';            // Spectators follow active player
 
   return (
     <div className="h-screen flex flex-col overflow-hidden tatami-background" onClick={handleFirstInteraction}>
-      {/* Top Header - Situation Assessment Bar - flipped when Gote's turn */}
-      <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} isFlipped={gameCurrentTurn === 'gote'} />
+      {/* Top Header - Situation Assessment Bar - flipped based on perspective */}
+      <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} isFlipped={shouldFlipLayout} />
       
       {/* BGM Toggle Button */}
       <button
@@ -270,13 +279,13 @@ const Index = () => {
       />
       
       {/* Main Game Area - TV Broadcast 3-Column Layout (Tight Proximity) */}
-      {/* When Gote's turn: flip layout (Sente on left, Gote on right) */}
+      {/* Layout based on player perspective (not turn-based for players) */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="min-w-[1280px] h-full flex flex-row items-start justify-center gap-x-[40px] xl:gap-x-[80px] px-4 pb-4 pt-2 relative">
         
-        {/* Left Column - Shows Gote when Sente's turn, Sente when Gote's turn */}
+        {/* Left Column - Opponent for current player, or follows turn for spectators */}
         <div className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
-          {gameCurrentTurn === 'sente' ? (
+          {!shouldFlipLayout ? (
             <PlayerPanel 
               label="後手" 
               time={goteTimeFormatted}
@@ -314,7 +323,12 @@ const Index = () => {
           )}
         </div>
         
-        {/* Center Column - The Board (75vh Height, Perfect Square) - rotates 180° when Gote's turn */}
+        {/* Center Column - The Board (75vh Height, Perfect Square) */}
+        {/* PERSPECTIVE RULES:
+            - Host (Sente/Creator): Board stays static, their pieces at bottom (rotateBoard=false)
+            - Guest (Gote/Subscriber): Board rotated 180° permanently, their pieces at bottom (rotateBoard=true)
+            - Spectator (no role): Auto-flip based on current turn (follows active player)
+        */}
         <div id="board-container" className="flex-shrink-0 flex items-start justify-center pt-[2vh] relative">
           <div className="h-[75vh] aspect-square">
             <ShogiBoard 
@@ -327,7 +341,11 @@ const Index = () => {
               isGotePlayer={role === 'guest'}
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
-              rotateBoard={gameCurrentTurn === 'gote'}
+              rotateBoard={
+                role === 'host' ? false :           // Sente always sees their pieces at bottom
+                role === 'guest' ? true :           // Gote always sees their pieces at bottom (rotated)
+                gameCurrentTurn === 'gote'          // Spectators follow active player
+              }
             />
           </div>
           
@@ -337,9 +355,9 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Right Column - Shows Sente when Sente's turn, Gote when Gote's turn */}
+        {/* Right Column - Current player's side, or follows turn for spectators */}
         <div className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
-          {gameCurrentTurn === 'sente' ? (
+          {!shouldFlipLayout ? (
             <PlayerPanel 
               label="先手" 
               time={senteTimeFormatted}
