@@ -209,7 +209,10 @@ const Index = () => {
       return;
     }
     
+    console.log('[Sync] handleDropWithSync called with LOGICAL coords:', { row, col, role, isGotePlayer: role === 'guest' });
+    
     // handleDrop now returns the calculated new state synchronously
+    // NOTE: row, col are already in LOGICAL coordinates (mirrored by ShogiBoard if needed)
     const nextState = handleDrop(row, col);
     
     // If no state returned, the drop was invalid or waiting for promotion

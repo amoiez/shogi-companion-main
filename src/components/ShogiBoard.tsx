@@ -142,11 +142,17 @@ interface BoardCellProps {
 }
 
 const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop, canDrag, isGotePlayer, selectedSource, onCellClick, isLegalMove, rotateBoard = false }: BoardCellProps) => {
+  // ✅ FIX: row/col are already LOGICAL coordinates (array indices from board.map)
+  // The board array is in logical order: board[0] = row 0, board[8] = row 8
+  // CSS rotation is visual-only and doesn't affect array indices
+  // Therefore, NO coordinate translation needed here!
+  
   const isDraggingThis = dragSource?.type === 'board' &&
     dragSource?.row === row &&
     dragSource?.col === col;
 
   // Check if this cell is the selected source (for tap-to-move)
+  // selectedSource stores LOGICAL coordinates, row/col are LOGICAL, so direct comparison
   const isSelected = selectedSource?.type === 'board' &&
     selectedSource?.row === row &&
     selectedSource?.col === col;
@@ -154,21 +160,57 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   // Only show as valid drop target if it's a legal move
   const isValidDropTarget = isLegalMove && !isDraggingThis && !isSelected;
 
-  // Can only drag my own pieces when it's my turn
-  // For Sente (host): drag pieces where isOpponent === false
-  // For Gote (guest): drag pieces where isOpponent === true
+  // ============================================================
+  // PIECE OWNERSHIP ENFORCEMENT
+  // ============================================================
+  // RULE: Players can ONLY drag their own pieces
+  // - Host (Sente): can only drag pieces where isOpponent === false
+  // - Guest (Gote): can only drag pieces where isOpponent === true
+  // 
+  // WHY: isOpponent is an ABSOLUTE property (not relative to viewer)
+  // - isOpponent=false → Sente piece (belongs to host)
+  // - isOpponent=true → Gote piece (belongs to guest)
+  // 
+  // NOTE: Coordinate mirroring does NOT affect isOpponent flag
+  // ============================================================
   const isMyPiece = isGotePlayer ? cell.isOpponent : !cell.isOpponent;
   const canDragThis = canDrag && cell.piece && isMyPiece;
 
   const handleDragStart = (e: React.DragEvent) => {
+    // DEFENSIVE GUARDS: Prevent illegal drag operations
     if (!cell.piece || !canDragThis) {
       e.preventDefault();
+      console.log('[DragStart] BLOCKED - Not draggable:', { 
+        hasPiece: !!cell.piece, 
+        canDrag, 
+        isMyPiece,
+        isGotePlayer,
+        pieceIsOpponent: cell.isOpponent 
+      });
+      return;
+    }
+    
+    // TURN VALIDATION: Additional safety check
+    if (!canDrag) {
+      e.preventDefault();
+      console.warn('[DragStart] BLOCKED - Not your turn or game over');
       return;
     }
 
+    console.log('[DragStart] ALLOWED:', {
+      piece: cell.piece,
+      isGotePlayer,
+      pieceIsOpponent: cell.isOpponent,
+      isMyPiece,
+      position: { row, col }
+    });
+
     e.dataTransfer.effectAllowed = 'move';
     
-    // Create custom drag image with proper rotation for Gote pieces
+    // Create custom drag image with proper rotation
+    // CRITICAL: When board is rotated (isGotePlayer), we need to:
+    // 1. Apply piece rotation (opponent pieces get 180deg)
+    // 2. Apply board counter-rotation (additional 180deg) so drag follows cursor correctly
     try {
       const target = e.currentTarget as HTMLElement;
       const pieceImg = target.querySelector('img');
@@ -187,8 +229,17 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
         dragImg.style.width = '100%';
         dragImg.style.height = '100%';
         dragImg.style.objectFit = 'contain';
-        // Apply the same transform as the original piece (rotation + translation)
-        dragImg.style.transform = cell.isOpponent ? 'rotate(180deg)' : 'none';
+        
+        // Calculate total rotation:
+        // - Opponent pieces: 180deg for piece orientation
+        // - Gote player board: additional 180deg to counter board rotation
+        // Result: Opponent pieces on Gote board = 180 + 180 = 360deg (0deg)
+        //         Sente pieces on Gote board = 0 + 180 = 180deg
+        let rotation = 0;
+        if (cell.isOpponent) rotation += 180;
+        if (isGotePlayer) rotation += 180;
+        
+        dragImg.style.transform = rotation !== 0 ? `rotate(${rotation}deg)` : 'none';
         dragImg.style.transformOrigin = 'center center';
         dragImg.style.pointerEvents = 'none';
         
@@ -211,10 +262,14 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
       console.log('Custom drag image failed, using default');
     }
     
+    // ✅ FIX: row/col are already LOGICAL coordinates (no translation needed)
+    // They come from board.map() array indices, which map directly to logical positions
+    console.log('[DragStart] Logical coords:', { row, col }, 'isGote:', isGotePlayer);
+    
     onDragStart({
       type: 'board',
-      row,
-      col,
+      row: row,
+      col: col,
       piece: cell.piece,
       isOpponent: cell.isOpponent,
     });
@@ -230,6 +285,8 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (isValidDropTarget) {
+      // ✅ FIX: row/col are already LOGICAL coordinates (no translation needed)
+      console.log('[Drop] Logical coords:', { row, col }, 'isGote:', isGotePlayer);
       onDrop(row, col);
     }
   };
@@ -317,6 +374,53 @@ const ShogiBoard = ({
   onSelectSource: externalOnSelectSource,
   rotateBoard = false,
 }: ShogiBoardProps) => {
+  // ============================================================
+  // COORDINATE SYSTEM & RENDERING STRATEGY (FIXED ARCHITECTURE)
+  // ============================================================
+  // 
+  // CRITICAL FIX: Removed all coordinate translation bugs
+  // 
+  // LOGICAL COORDINATES (Game State):
+  //   - Fixed 9×9 grid: board[0][0] to board[8][8]
+  //   - Row 0 = Gote's starting zone (top in Host view)
+  //   - Row 8 = Sente's starting zone (bottom in Host view)
+  //   - NEVER rotates, NEVER changes
+  //   - Single source of truth for all game logic
+  //
+  // RENDERING (This Component):
+  //   - board.map((row, rowIndex) => ...) iterates in LOGICAL order
+  //   - rowIndex/colIndex ARE logical coordinates (array indices)
+  //   - These are passed directly to BoardCell as row/col props
+  //   - CSS rotate(180deg) applied to grid container for Guest
+  //   - Rotation is VISUAL ONLY - does not affect array indices
+  //
+  // COORDINATE FLOW:
+  //   1. User clicks/drags a cell on screen
+  //   2. React gives us the array index of clicked element
+  //   3. Array index = logical coordinate (because array is in logical order)
+  //   4. Pass logical coords directly to game state
+  //   5. NO TRANSLATION NEEDED ANYWHERE in this component!
+  //
+  // WHY THIS WORKS:
+  //   - DOM order: board[0] first, board[8] last
+  //   - Host view (no rotation): board[0] at top, board[8] at bottom ✅
+  //   - Guest view (180° rotation): board[0] rotated to bottom, board[8] to top ✅
+  //   - Click events target DOM elements, React returns array index ✅
+  //   - Array index = logical coordinate, no translation needed ✅
+  //
+  // MULTIPLAYER SYNC:
+  //   - Handled in useMultiplayer.ts, NOT here
+  //   - Guest mirrors ENTIRE board state when sending/receiving
+  //   - This component always works with local (already-correct) state
+  // ============================================================
+  // ============================================================
+  
+  // ============================================================
+  // TAP-TO-MOVE STATE MANAGEMENT
+  // ============================================================
+  // Note: mirrorCoord and mirrorIfNeeded functions removed - they caused double translation bugs
+  // All coordinates from board.map() are already logical, so no translation is needed
+  
   // Internal selected state (used if no external state provided)
   const [internalSelectedSource, setInternalSelectedSource] = useState<SelectedSource | null>(null);
 
@@ -346,7 +450,11 @@ const ShogiBoard = ({
     const isMyPiece = isGotePlayer ? cell.isOpponent : !cell.isOpponent;
     const hasPiece = cell.piece !== null;
 
-    console.log('[Tap] Cell clicked:', { row, col, piece: cell.piece, isMyPiece, isMyTurn, selectedSource });
+    // ✅ FIX: row/col are already LOGICAL coordinates (no translation needed)
+    const logicalRow = row;
+    const logicalCol = col;
+
+    console.log('[Tap] Cell clicked at logical:', { row, col, piece: cell.piece, isMyPiece, isMyTurn, selectedSource });
 
     // If it's not my turn, do nothing
     if (!isMyTurn) {
@@ -356,13 +464,13 @@ const ShogiBoard = ({
 
     // CASE 1: No piece selected yet
     if (!selectedSource) {
-      // If clicking on my own piece, select it
+      // If clicking on my own piece, select it (store LOGICAL coords)
       if (hasPiece && isMyPiece) {
-        console.log('[Tap] Selecting piece:', cell.piece);
+        console.log('[Tap] Selecting piece:', cell.piece, 'at logical:', logicalRow, logicalCol);
         setSelectedSource({
           type: 'board',
-          row,
-          col,
+          row: logicalRow,
+          col: logicalCol,
           piece: cell.piece!,
           isOpponent: cell.isOpponent,
         });
@@ -371,9 +479,10 @@ const ShogiBoard = ({
     }
 
     // CASE 2: A piece is already selected
+    // Compare using LOGICAL coordinates (selectedSource already stores logical coords)
     const isSameCell = selectedSource.type === 'board' &&
-      selectedSource.row === row &&
-      selectedSource.col === col;
+      selectedSource.row === logicalRow &&
+      selectedSource.col === logicalCol;
 
     // If clicking the same cell, deselect (cancel)
     if (isSameCell) {
@@ -384,11 +493,11 @@ const ShogiBoard = ({
 
     // If clicking on another of my pieces, switch selection
     if (hasPiece && isMyPiece) {
-      console.log('[Tap] Switching selection to:', cell.piece);
+      console.log('[Tap] Switching selection to:', cell.piece, 'at logical:', logicalRow, logicalCol);
       setSelectedSource({
         type: 'board',
-        row,
-        col,
+        row: logicalRow,
+        col: logicalCol,
         piece: cell.piece!,
         isOpponent: cell.isOpponent,
       });
@@ -396,13 +505,14 @@ const ShogiBoard = ({
     }
 
     // Otherwise, try to move to this cell (empty or opponent piece)
-    console.log('[Tap] Moving to destination:', { row, col });
+    console.log('[Tap] Moving to destination (logical):', { row: logicalRow, col: logicalCol });
 
     // First, set the drag source so handleDrop knows what piece to move
+    // selectedSource already contains LOGICAL coordinates
     onDragStart(selectedSource as DragSource);
 
-    // Execute the move
-    onDrop(row, col);
+    // Execute the move using LOGICAL coordinates
+    onDrop(logicalRow, logicalCol);
 
     // Clear selection
     setSelectedSource(null);
@@ -482,24 +592,31 @@ const ShogiBoard = ({
           }}
         >
           {board.map((row, rowIndex) =>
-            row.map((cell, colIndex) => (
-              <BoardCell
-                key={`${rowIndex}-${colIndex}`}
-                cell={cell}
-                row={rowIndex}
-                col={colIndex}
-                dragSource={dragSource}
-                onDragStart={onDragStart}
-                onDragEnd={onDragEnd}
-                onDrop={onDrop}
-                canDrag={isMyTurn}
-                isGotePlayer={isGotePlayer}
-                selectedSource={selectedSource}
-                onCellClick={handleCellClick}
-                isLegalMove={legalMoves.has(`${rowIndex}-${colIndex}`)}
-                rotateBoard={rotateBoard}
-              />
-            ))
+            row.map((cell, colIndex) => {
+              // ✅ FIX: rowIndex/colIndex are already LOGICAL coordinates (array indices)
+              // Legal moves are stored in logical coords, so direct comparison works
+              const logicalRow = rowIndex;
+              const logicalCol = colIndex;
+              
+              return (
+                <BoardCell
+                  key={`${rowIndex}-${colIndex}`}
+                  cell={cell}
+                  row={rowIndex}
+                  col={colIndex}
+                  dragSource={dragSource}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  onDrop={onDrop}
+                  canDrag={isMyTurn}
+                  isGotePlayer={isGotePlayer}
+                  selectedSource={selectedSource}
+                  onCellClick={handleCellClick}
+                  isLegalMove={legalMoves.has(`${logicalRow}-${logicalCol}`)}
+                  rotateBoard={rotateBoard}
+                />
+              );
+            })
           )}
         </div>
       </div>

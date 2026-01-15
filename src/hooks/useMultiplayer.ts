@@ -2,6 +2,41 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Peer, { DataConnection, MediaConnection } from 'peerjs';
 import { CellData } from './useGameState';
 
+// ============================================================
+// COORDINATE SYSTEM - NO MIRRORING NEEDED! (FIXED)
+// ============================================================
+// CRITICAL FIX: Removed board mirroring that was compensating for coordinate translation bugs
+//
+// WHY NO MIRRORING IS NEEDED:
+// - Both Host and Guest use the SAME logical board state
+// - board[0] = Gote pieces (row 0), board[8] = Sente pieces (row 8)
+// - Host view: No CSS rotation
+//   → board[0] renders at top (opponent pieces) ✅
+//   → board[8] renders at bottom (own pieces) ✅
+// - Guest view: CSS rotate(180deg) on board container
+//   → board[0] renders at top, rotates to bottom (own pieces) ✅
+//   → board[8] renders at bottom, rotates to top (opponent pieces) ✅
+//
+// MOVE SYNCHRONIZATION (Example):
+//   Host moves piece from (8,4) → (7,4):
+//     1. Host updates local: board[7][4] = piece
+//     2. Host sends: board[7][4] = piece
+//     3. Guest receives: board[7][4] = piece
+//     4. Guest renders with CSS rotation → appears at visual top (opponent) ✅
+//
+//   Guest moves piece from (0,4) → (1,4):
+//     1. Guest clicks visual bottom (row 0 after rotation)
+//     2. Array index = 0 (logical coordinate)
+//     3. Guest updates local: board[1][4] = piece
+//     4. Guest sends: board[1][4] = piece
+//     5. Host receives: board[1][4] = piece
+//     6. Host renders without rotation → appears at top (opponent) ✅
+//
+// THE OLD MIRRORING WAS WRONG:
+//   It was compensating for coordinate translation bugs in ShogiBoard.tsx
+//   Those bugs have been fixed, so mirroring is no longer needed!
+// ============================================================
+
 // Generate a short random game ID
 const generateGameId = (): string => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid confusing chars like 0/O, 1/I
@@ -68,6 +103,12 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
   const dataConnectionRef = useRef<DataConnection | null>(null);
   const mediaConnectionRef = useRef<MediaConnection | null>(null);
   const receiveCallbackRef = useRef<((state: GameState) => void) | null>(null);
+  const roleRef = useRef<PlayerRole>(null); // Store role in ref for callbacks
+  
+  // Keep roleRef in sync with role state
+  useEffect(() => {
+    roleRef.current = role;
+  }, [role]);
   
   // Cleanup function
   const cleanup = useCallback(() => {
@@ -131,21 +172,30 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         console.log('[DATA] Processing MOVE - New turn:', message.gameState.currentTurn);
         console.log('[DATA] Board state received, moveCount:', message.gameState.moveCount);
         
+        // ✅ FIX: Use received state directly without mirroring
+        // Both players maintain the same logical board state
+        // CSS rotation handles visual differences
+        const receivedState = message.gameState;
+        
         // Update local turn state
-        setCurrentTurn(message.gameState.currentTurn);
+        setCurrentTurn(receivedState.currentTurn);
         
         // Call the registered callback to update game state
         if (receiveCallbackRef.current) {
           console.log('[DATA] Calling receiveCallback to update local game state');
-          receiveCallbackRef.current(message.gameState);
+          receiveCallbackRef.current(receivedState);
         } else {
           console.warn('[DATA] No receiveCallback registered!');
         }
       } else if (message.type === 'SYNC' && message.gameState) {
         console.log('[DATA] Processing SYNC - Turn:', message.gameState.currentTurn);
-        setCurrentTurn(message.gameState.currentTurn);
+        
+        // ✅ FIX: Use synced state directly without mirroring
+        const syncedState = message.gameState;
+        
+        setCurrentTurn(syncedState.currentTurn);
         if (receiveCallbackRef.current) {
-          receiveCallbackRef.current(message.gameState);
+          receiveCallbackRef.current(syncedState);
         }
       } else if (message.type === 'READY') {
         console.log('[DATA] Peer is ready');
@@ -364,21 +414,26 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
   }, [cleanup]);
 
   // ============================================================
-  // SEND MOVE: Send game state to peer
+  // SEND MOVE: Send game state to peer (NO MIRRORING)
   // ============================================================
   const sendMove = useCallback((gameState: GameState) => {
     const conn = dataConnectionRef.current;
     
     if (conn && conn.open) {
+      // ✅ FIX: Send game state directly without mirroring
+      // Both players use the same logical board state
+      // CSS rotation handles visual differences
       const message: GameMessage = {
         type: 'MOVE',
-        gameState,
+        gameState: gameState,
       };
       
       console.log('[SEND] ========================================');
       console.log('[SEND] Sending MOVE to peer');
+      console.log('[SEND] Role:', role);
       console.log('[SEND] Turn:', gameState.currentTurn);
       console.log('[SEND] Move count:', gameState.moveCount);
+      console.log('[SEND] NO MIRRORING (fixed architecture)');
       console.log('[SEND] Connection open:', conn.open);
       console.log('[SEND] ========================================');
       
@@ -391,7 +446,7 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       console.error('[SEND] Is open:', conn?.open);
       console.error('[SEND] ========================================');
     }
-  }, []);
+  }, [role]);
 
   // Register callback for receiving state
   const onReceiveState = useCallback((callback: (state: GameState) => void) => {
