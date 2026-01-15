@@ -50,19 +50,19 @@ interface ShogiPieceProps {
 const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: ShogiPieceProps) => {
   if (!piece) return null;
 
-  // Piece rotation logic - FIXED:
-  // - Gote pieces (isOpponent=true) are ALWAYS rotated 180° to face downward
-  // - Sente pieces (isOpponent=false) are NEVER rotated
-  // - This remains constant regardless of board rotation (rotateBoard has no effect on piece rotation)
-  // - The board container handles the turn-flip rotation separately
+  // Piece rotation logic - MATHEMATICAL GRID CENTERING:
+  // - Gote pieces (isOpponent=true): ONLY rotate(180deg)
+  // - Sente pieces (isOpponent=false): NO transform
+  // - Parent flexbox handles ALL centering via display:flex + align/justify center
+  // - Piece fills 88% of cell for optimal visual fit with grid lines
 
   // Get the piece image path from /public/pieces/
   const imagePath = getPieceImagePath(piece, isOpponent);
 
-  // FLEXBOX APPROACH: Piece is 90% of cell, naturally centered by parent flex container
-  // Parent cell uses display:flex with center alignment
-  // Sente: translateY(12px) - pushes piece down to center
-  // Gote: rotate(180deg) translateY(12px) - rotates then translates in rotated space to center
+  // MATHEMATICAL CENTERING FORMULA:
+  // pieceX = cellLeft + cellWidth/2 (achieved via justify-content: center)
+  // pieceY = cellTop + cellHeight/2 (achieved via align-items: center)
+  // Piece size = 88% of cell to leave uniform gap from grid lines
   if (imagePath) {
     return (
       <img
@@ -70,36 +70,30 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
         alt={piece}
         draggable={false}
         style={{
-          width: '90%',
-          height: '90%',
+          width: '88%',
+          height: '88%',
           objectFit: 'contain',
-          transform: isOpponent ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
+          transform: isOpponent ? 'rotate(180deg)' : 'none',
           transformOrigin: 'center center',
           opacity: isDragging ? 0 : 1,
-          pointerEvents: 'auto',
-          zIndex: 5,
-          transition: 'opacity 0ms',
+          pointerEvents: isDragging ? 'none' : 'auto',
         }}
       />
     );
   }
 
   // Fallback to text rendering if no image found
-  // Apply translateY(12px) offset so pieces sit perfectly centered in squares
   return (
     <div
       style={{
-        width: '90%',
-        height: '90%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transform: isOpponent ? 'rotate(180deg) translateY(12px)' : 'translateY(12px)',
+        width: '88%',
+        height: '88%',
+        aspectRatio: '140/148',
+        position: 'relative',
+        transform: isOpponent ? 'rotate(180deg)' : 'none',
         transformOrigin: 'center center',
         opacity: isDragging ? 0 : 1,
-        pointerEvents: 'auto',
-        zIndex: 5,
-        transition: 'opacity 0ms',
+        pointerEvents: isDragging ? 'none' : 'auto',
       }}
     >
       <div
@@ -251,24 +245,33 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   return (
     <div
       style={{
+        // CELL POSITIONING: Aligned to SVG grid via CSS Grid
+        // Each cell is exactly 1/9 of gridWidth × 1/9 of gridHeight
+        // Position formula: cellX = gridLeft + col * (gridWidth/9)
+        //                   cellY = gridTop + row * (gridHeight/9)
         position: 'relative',
         width: '100%',
         height: '100%',
+        boxSizing: 'border-box',
+        // NO borders - grid lines come from the SVG
+        border: 'none',
+        // FLEXBOX CENTERING: pieceX = cellX + cellWidth/2, pieceY = cellY + cellHeight/2
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'visible',
+        padding: 0,
+        margin: 0,
         cursor: canDragThis ? 'grab' : 'pointer',
         touchAction: 'none',
         backgroundColor: isSelected 
-          ? 'rgba(253, 224, 71, 0.7)' 
+          ? 'rgba(253, 224, 71, 0.6)' 
           : isDraggingThis 
-            ? 'rgba(252, 211, 77, 0.5)'
+            ? 'rgba(252, 211, 77, 0.4)'
             : isValidDropTarget 
-              ? 'rgba(251, 191, 36, 0.3)' 
+              ? 'rgba(74, 222, 128, 0.4)' 
               : 'transparent',
-        boxShadow: isSelected ? 'inset 0 0 0 2px #eab308' : 'none',
-        transition: 'background-color 150ms, box-shadow 150ms',
+        boxShadow: isSelected ? 'inset 0 0 0 3px #ca8a04' : 'none',
+        transition: 'background-color 100ms',
       }}
       draggable={!!canDragThis}
       onDragStart={handleDragStart}
@@ -424,37 +427,58 @@ const ShogiBoard = ({
         </div>
       )}
 
-      {/* Board - Direct child, fills entire parent with 20px internal padding safety zone */}
+      {/* Board container - uses ORIGINAL board.svg UNCHANGED */}
+      {/* Grid bounds detected from SVG analysis:
+          viewBox: 0 0 439.21539 479.79199
+          gridLeft: 6.4 (1.46% of width)
+          gridTop: 6.1 (1.27% of height)
+          gridWidth: 426.4 (97.08% of width)
+          gridHeight: 467.6 (97.46% of height)
+          squareWidth: gridWidth/9 = 47.38
+          squareHeight: gridHeight/9 = 51.96
+      */}
       <div
         style={{
           position: 'relative',
           width: '100%',
           height: '100%',
+          // ORIGINAL board.svg - UNTOUCHED
           backgroundImage: 'url(/board.svg)',
-          backgroundSize: 'cover',
+          backgroundSize: '100% 100%',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          border: '15px solid #5d3a1a',
+          border: '12px solid #5d3a1a',
           borderRadius: '4px',
-          boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0,0,0,0.2)',
-          overflow: 'visible',
+          boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(139, 90, 43, 0.3)',
+          overflow: 'hidden',
           opacity: !isMyTurn ? 0.9 : 1,
-          padding: '20px',
         }}
       >
-        {/* 9x9 Grid Layer - fills area inside 20px padding, grid stays within wooden frame */}
+        {/* 9x9 Grid overlay - ALIGNED TO SVG GRID BOUNDS */}
+        {/* 
+          MATHEMATICAL ALIGNMENT:
+          - SVG viewBox: 439.21539 × 479.79199
+          - Grid starts at: (6.4, 6.1) in viewBox units
+          - Grid size: 426.4 × 467.6 in viewBox units
+          - As percentages:
+            left: 6.4 / 439.21539 = 1.457%
+            top: 6.1 / 479.79199 = 1.271%
+            width: 426.4 / 439.21539 = 97.08%
+            height: 467.6 / 479.79199 = 97.46%
+        */}
         <div
           style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
+            position: 'absolute',
+            // EXACT grid bounds from SVG analysis
+            left: '1.457%',
+            top: '1.271%',
+            width: '97.08%',
+            height: '97.46%',
             display: 'grid',
             gridTemplateColumns: 'repeat(9, 1fr)',
             gridTemplateRows: 'repeat(9, 1fr)',
             gap: 0,
             transform: rotateBoard ? 'rotate(180deg)' : 'none',
-            zIndex: 2,
-            overflow: 'visible',
           }}
         >
           {board.map((row, rowIndex) =>
