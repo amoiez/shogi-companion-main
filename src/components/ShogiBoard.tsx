@@ -52,60 +52,75 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
 
   // Piece rotation logic:
   // - Opponent pieces (isOpponent=true) are normally rotated 180° so they face down
-  // - When board is rotated for Gote view, we flip the logic:
-  //   - My pieces (now isOpponent=true from Gote view) should face up (rotate-180 to counter board rotation)
-  //   - Opponent pieces (isOpponent=false from Gote view) should face down (no rotation, board already flipped them)
+  // - When board is rotated for Gote view, we flip the logic
   const shouldRotate = rotateBoard ? !isOpponent : isOpponent;
 
-  // Get the piece image path
+  // Get the piece image path from /public/pieces/
   const imagePath = getPieceImagePath(piece, isOpponent);
 
+  // FLEXBOX APPROACH: Piece is 90% of cell, naturally centered by parent flex container
+  // Parent cell uses display:flex with center alignment
+  // Apply translateY(12px) offset so pieces sit perfectly centered in squares
+  if (imagePath) {
+    return (
+      <img
+        src={imagePath}
+        alt={piece}
+        draggable={false}
+        style={{
+          width: '90%',
+          height: '90%',
+          objectFit: 'contain',
+          transform: shouldRotate ? 'rotate(180deg) translateY(-12px)' : 'translateY(12px)',
+          opacity: isDragging ? 0.5 : 1,
+          pointerEvents: 'auto',
+          zIndex: 5,
+        }}
+      />
+    );
+  }
+
+  // Fallback to text rendering if no image found
+  // Apply translateY(12px) offset so pieces sit perfectly centered in squares
   return (
     <div
-      className={`
-        w-full h-full flex items-center justify-center
-        shogi-piece text-board-foreground
-        ${shouldRotate ? 'rotate-180' : ''}
-        ${isDragging ? 'opacity-50' : ''}
-        transition-opacity
-      `}
       style={{
-        padding: '8%',
-        boxSizing: 'border-box',
+        width: '90%',
+        height: '90%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: shouldRotate ? 'rotate(180deg) translateY(-12px)' : 'translateY(12px)',
+        opacity: isDragging ? 0.5 : 1,
+        pointerEvents: 'auto',
+        zIndex: 5,
       }}
     >
-      {imagePath ? (
-        <img
-          src={imagePath}
-          alt={piece}
-          className="max-w-full max-h-full object-contain drop-shadow-lg"
-          style={{
-            width: '85%',
-            height: '85%',
-          }}
-          draggable={false}
-        />
-      ) : (
-        /* Fallback to text rendering if no image found */
-        <div className="relative w-full h-full">
-          <div
-            className="absolute inset-0 shogi-wedge-piece"
-            style={{
-              clipPath: 'polygon(50% 0%, 95% 15%, 100% 100%, 0% 100%, 5% 15%)',
-            }}
-          >
-            <div
-              className="absolute top-0 left-0 right-0 h-[30%] bg-gradient-to-b from-amber-50/80 to-transparent"
-              style={{
-                clipPath: 'polygon(50% 0%, 95% 15%, 90% 30%, 10% 30%, 5% 15%)',
-              }}
-            />
-          </div>
-          <span className="absolute inset-0 flex items-center justify-center z-10 text-[clamp(0.875rem,2vmin,1.5rem)] font-bold shogi-piece-text drop-shadow-sm">
-            {piece}
-          </span>
-        </div>
-      )}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(180deg, #f5e6c8 0%, #e8d4a8 20%, #dcc090 50%, #c9a870 80%, #b89860 100%)',
+          clipPath: 'polygon(50% 0%, 95% 15%, 100% 100%, 0% 100%, 5% 15%)',
+          boxShadow: 'inset 0 2px 4px rgba(255, 255, 255, 0.5), inset 0 -2px 4px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.3)',
+        }}
+      />
+      <span
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10,
+          fontSize: 'clamp(0.875rem, 2vmin, 1.5rem)',
+          fontWeight: 'bold',
+          fontFamily: "'Noto Serif JP', serif",
+          color: '#2d1810',
+        }}
+      >
+        {piece}
+      </span>
     </div>
   );
 };
@@ -185,17 +200,25 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
 
   return (
     <div
-      className={`
-        w-full h-full
-        flex items-center justify-center
-        transition-all duration-150
-        ${canDragThis ? 'cursor-grab' : 'cursor-pointer'}
-        relative
-        ${isSelected ? 'bg-yellow-300/70 ring-2 ring-yellow-500 shadow-lg' : ''}
-        ${isValidDropTarget && !isSelected ? 'bg-amber-400/30 hover:bg-amber-400/50' : 'hover:bg-amber-400/20'}
-        ${isDraggingThis ? 'bg-amber-300/50' : ''}
-        ${isPromotionZone && !cell.piece && !isSelected ? 'bg-amber-600/5' : ''}
-      `}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'visible',
+        cursor: canDragThis ? 'grab' : 'pointer',
+        backgroundColor: isSelected 
+          ? 'rgba(253, 224, 71, 0.7)' 
+          : isDraggingThis 
+            ? 'rgba(252, 211, 77, 0.5)'
+            : isValidDropTarget 
+              ? 'rgba(251, 191, 36, 0.3)' 
+              : 'transparent',
+        boxShadow: isSelected ? 'inset 0 0 0 2px #eab308' : 'none',
+        transition: 'background-color 150ms, box-shadow 150ms',
+      }}
       draggable={!!canDragThis}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
@@ -333,38 +356,54 @@ const ShogiBoard = ({
   };
 
   return (
-    <div className="flex flex-col items-center w-full h-full">
-      {/* Turn indicator */}
+    <>
+      {/* Turn indicator - positioned absolutely */}
       {!isMyTurn && (
-        <div className="mb-2 px-4 py-2 bg-amber-100/80 rounded-full text-base text-amber-800 font-medium">
+        <div 
+          style={{
+            position: 'absolute',
+            top: '-40px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10,
+          }}
+          className="px-4 py-2 bg-amber-100/80 rounded-full text-base text-amber-800 font-medium whitespace-nowrap"
+        >
           相手の番です
         </div>
       )}
 
-      {/* Board container - tight border frame around the 9x9 grid */}
+      {/* Board - Direct child, fills entire parent with 20px internal padding safety zone */}
       <div
-        className={`
-          relative overflow-hidden
-          shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]
-          border-[3px] border-amber-900/60
-          h-full max-h-[88vh] aspect-square
-          ${!isMyTurn ? 'opacity-90' : ''}
-        `}
         style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
           backgroundImage: 'url(/board.svg)',
-          backgroundSize: '100% 100%',
+          backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          padding: 0,
-          margin: 0,
+          border: '15px solid #5d3a1a',
+          borderRadius: '4px',
+          boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0,0,0,0.2)',
+          overflow: 'visible',
+          opacity: !isMyTurn ? 0.9 : 1,
+          padding: '20px',
         }}
       >
-        {/* 9x9 Grid Layer - fills entire container with zero gap */}
+        {/* 9x9 Grid Layer - fills area inside 20px padding, grid stays within wooden frame */}
         <div
-          className={`absolute inset-0 grid gap-0 ${rotateBoard ? 'rotate-180' : ''}`}
           style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            display: 'grid',
             gridTemplateColumns: 'repeat(9, 1fr)',
             gridTemplateRows: 'repeat(9, 1fr)',
+            gap: 0,
+            transform: rotateBoard ? 'rotate(180deg)' : 'none',
+            zIndex: 2,
+            overflow: 'visible',
           }}
         >
           {board.map((row, rowIndex) =>
@@ -389,7 +428,7 @@ const ShogiBoard = ({
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
