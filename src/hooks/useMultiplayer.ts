@@ -6,7 +6,7 @@ import { CellData } from './useGameState';
 // COORDINATE SYSTEM - NO MIRRORING NEEDED! (FIXED)
 // ============================================================
 // CRITICAL FIX: Removed board mirroring that was compensating for coordinate translation bugs
-//
+//details below.
 // WHY NO MIRRORING IS NEEDED:
 // - Both Host and Guest use the SAME logical board state
 // - board[0] = Gote pieces (row 0), board[8] = Sente pieces (row 8)
