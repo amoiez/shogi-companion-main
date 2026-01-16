@@ -19,11 +19,31 @@ interface SelectedSource {
   isOpponent: boolean;
 }
 
+// Safe zone type for collision detection
+interface SafeZone {
+  id: string;
+  bounds: {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+    width: number;
+    height: number;
+  };
+  priority: number;
+}
+
 const Index = () => {
   // Tap-to-move selected state (shared between board and komadai)
   const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(null);
   // Track if user has interacted (for BGM autoplay)
   const [hasInteracted, setHasInteracted] = useState(false);
+  
+  // Safe zone refs for collision detection
+  const boardRef = useRef<HTMLDivElement>(null);
+  const leftColumnRef = useRef<HTMLDivElement>(null);
+  const rightColumnRef = useRef<HTMLDivElement>(null);
+  const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
   
   const {
     board,
@@ -255,6 +275,88 @@ const Index = () => {
     role === 'host' ? false :              // Host always sees Gote left, Sente right
     role === 'guest' ? true :              // Guest always sees Sente left, Gote right (with rotated board)
     gameCurrentTurn === 'gote';            // Spectators follow active player
+  
+  // Calculate safe zones for AI assistant collision detection
+  const updateSafeZones = useCallback(() => {
+    const zones: SafeZone[] = [];
+    
+    // Board safe zone (highest priority)
+    if (boardRef.current) {
+      const rect = boardRef.current.getBoundingClientRect();
+      zones.push({
+        id: 'board',
+        bounds: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        },
+        priority: 1,
+      });
+    }
+    
+    // Left player frame safe zone
+    if (leftColumnRef.current) {
+      const rect = leftColumnRef.current.getBoundingClientRect();
+      zones.push({
+        id: 'left-player',
+        bounds: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        },
+        priority: 2,
+      });
+    }
+    
+    // Right player frame safe zone
+    if (rightColumnRef.current) {
+      const rect = rightColumnRef.current.getBoundingClientRect();
+      zones.push({
+        id: 'right-player',
+        bounds: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        },
+        priority: 2,
+      });
+    }
+    
+    setSafeZones(zones);
+  }, []);
+  
+  // Update safe zones on mount and resize
+  useEffect(() => {
+    updateSafeZones();
+    
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateSafeZones, 100);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+    };
+  }, [updateSafeZones]);
+  
+  // Recalculate safe zones when layout changes
+  useEffect(() => {
+    // Small delay to allow DOM to update after layout change
+    const timeoutId = setTimeout(updateSafeZones, 50);
+    return () => clearTimeout(timeoutId);
+  }, [shouldFlipLayout, updateSafeZones]);
 
   return (
     <div className="h-screen flex flex-col overflow-hidden tatami-background" onClick={handleFirstInteraction}>
@@ -287,7 +389,7 @@ const Index = () => {
         <div className="min-w-[1280px] h-full flex flex-row items-start justify-center gap-x-[40px] xl:gap-x-[80px] px-4 pb-4 pt-2 relative">
         
         {/* Left Column - Opponent for current player, or follows turn for spectators */}
-        <div className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
+        <div ref={leftColumnRef} className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
           {!shouldFlipLayout ? (
             <PlayerPanel 
               label="後手" 
@@ -305,6 +407,8 @@ const Index = () => {
               onSelectSource={setSelectedSource}
               fullColumn={true}
               rotateHand={true}
+              playerName="鈴木一郎"
+              playerRank="初段"
             />
           ) : (
             <PlayerPanel 
@@ -322,6 +426,8 @@ const Index = () => {
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}
+              playerName="ナカノさん"
+              playerRank="3級"
             />
           )}
         </div>
@@ -333,7 +439,7 @@ const Index = () => {
             - Spectator (no role): Auto-flip based on current turn (follows active player)
         */}
         <div id="board-container" className="flex-shrink-0 flex items-start justify-center pt-[2vh] relative">
-          <div className="h-[75vh] aspect-square">
+          <div ref={boardRef} className="h-[75vh] aspect-square">
             <ShogiBoard 
               board={board}
               dragSource={dragSource}
@@ -351,15 +457,10 @@ const Index = () => {
               }
             />
           </div>
-          
-          {/* AI Assistant - Grounded at bottom-left with clear safety gap from board */}
-          <div className="absolute -left-[700px] bottom-[-45px] z-20">
-            <AIAssistant message={aiWarningMessage || aiMessage} />
-          </div>
         </div>
         
         {/* Right Column - Current player's side, or follows turn for spectators */}
-        <div className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
+        <div ref={rightColumnRef} className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
           {!shouldFlipLayout ? (
             <PlayerPanel 
               label="先手" 
@@ -376,6 +477,8 @@ const Index = () => {
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}
+              playerName="ナカノさん"
+              playerRank="3級"
             />
           ) : (
             <PlayerPanel 
@@ -394,6 +497,8 @@ const Index = () => {
               onSelectSource={setSelectedSource}
               fullColumn={true}
               rotateHand={true}
+              playerName="鈴木一郎"
+              playerRank="初段"
             />
           )}
         </div>
@@ -414,6 +519,20 @@ const Index = () => {
           </div>
         )}
         </div>
+      </div>
+      
+      {/* AI Assistant - Fixed position at bottom-left, collision-aware */}
+      <div 
+        className="fixed z-20"
+        style={{
+          left: '24px',
+          bottom: '24px',
+        }}
+      >
+        <AIAssistant 
+          message={aiWarningMessage || aiMessage} 
+          safeZones={safeZones}
+        />
       </div>
       
       {/* Promotion Dialog */}

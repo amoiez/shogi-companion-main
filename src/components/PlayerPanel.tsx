@@ -52,6 +52,9 @@ interface PlayerPanelProps {
   videoOnly?: boolean;
   rotateHand?: boolean;
   fullColumn?: boolean;
+  // Player identity (name + rank)
+  playerName?: string;
+  playerRank?: string;
 }
 
 interface HandPieceProps {
@@ -136,12 +139,86 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
           </span>
         </div>
       )}
-      {/* Count badge for grouped pieces */}
+      {/* Count badge for grouped pieces - ENLARGED for accessibility (elderly users) */}
       {count && count > 1 && (
-        <div className="absolute -bottom-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md z-20">
+        <div className="absolute -bottom-1 -right-1 bg-red-600 text-white text-base lg:text-lg font-bold rounded-full w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center shadow-lg z-20 border-2 border-white">
           {count}
         </div>
       )}
+    </div>
+  );
+};
+
+// ============================================================
+// PLAYER IDENTITY DISPLAY COMPONENT
+// Shows player name, rank (Dan/Kyu), and Sente/Gote piece icon
+// ============================================================
+interface PlayerIdentityProps {
+  name: string;
+  rank: string;
+  isSente: boolean; // true = Sente (black/filled icon), false = Gote (white/outlined icon)
+}
+
+const PlayerIdentity = ({ name, rank, isSente }: PlayerIdentityProps) => {
+  // Truncate name to 10 characters max
+  const displayName = name.length > 10 ? name.slice(0, 10) : name;
+  
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50/80 rounded-lg shadow-md border border-amber-200">
+      {/* Sente/Gote piece icon */}
+      {isSente ? (
+        // Sente: Solid black piece icon (filled pentagon)
+        <svg 
+          width="24" 
+          height="28" 
+          viewBox="0 0 24 28" 
+          className="flex-shrink-0"
+        >
+          <path 
+            d="M12 2 L22 7 L22 26 L2 26 L2 7 Z" 
+            fill="#1a1a1a" 
+            stroke="#1a1a1a" 
+            strokeWidth="1"
+          />
+        </svg>
+      ) : (
+        // Gote: Outlined white piece icon (hollow pentagon)
+        <svg 
+          width="24" 
+          height="28" 
+          viewBox="0 0 24 28" 
+          className="flex-shrink-0"
+        >
+          <path 
+            d="M12 2 L22 7 L22 26 L2 26 L2 7 Z" 
+            fill="white" 
+            stroke="#1a1a1a" 
+            strokeWidth="2"
+          />
+        </svg>
+      )}
+      
+      {/* Player name and rank */}
+      <div 
+        className="flex items-baseline gap-1.5 min-w-0"
+        style={{ maxWidth: '180px' }}
+      >
+        <span 
+          className="text-base lg:text-lg font-bold text-amber-900 truncate"
+          style={{ 
+            maxWidth: '120px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+          title={name} // Show full name on hover
+        >
+          {displayName}
+        </span>
+        <span className="text-sm lg:text-base font-medium text-amber-700 flex-shrink-0">
+          {rank}
+        </span>
+      </div>
     </div>
   );
 };
@@ -163,6 +240,8 @@ const PlayerPanel = ({
   videoOnly = false,
   rotateHand = false,
   fullColumn = false,
+  playerName = '',
+  playerRank = '',
 }: PlayerPanelProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -276,6 +355,15 @@ const PlayerPanel = ({
             />
           )}
         </div>
+        
+        {/* Player Identity - Name and Rank with Sente/Gote icon */}
+        {playerName && (
+          <PlayerIdentity 
+            name={playerName} 
+            rank={playerRank} 
+            isSente={!isOpponent} 
+          />
+        )}
         
         {/* Captured Pieces (Hand/Komadai) - LARGER for iPad Pro with grouped display */}
         <div className="w-full">
