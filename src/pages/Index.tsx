@@ -8,6 +8,9 @@ import PromotionDialog from "@/components/PromotionDialog";
 import { useGameState } from "@/hooks/useGameState";
 import { useMultiplayer } from "@/hooks/useMultiplayer";
 import { useAudioSystem } from "@/hooks/useAudioSystem";
+import { getAPIGameState } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 // Selected source interface for tap-to-move
 interface SelectedSource {
@@ -44,6 +47,9 @@ const Index = () => {
   const leftColumnRef = useRef<HTMLDivElement>(null);
   const rightColumnRef = useRef<HTMLDivElement>(null);
   const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
+  
+  // Toast for API errors
+  const { toast } = useToast();
   
   const {
     board,
@@ -262,6 +268,55 @@ const Index = () => {
       sendMove(nextState);
     }
   }, [handlePromotionChoice, connectionStatus, sendMove]);
+
+  // ============================================================
+  // API EXPORT HELPER FOR EXTERNAL AI INTEGRATION
+  // ============================================================
+  // Extracts current game state in clean JSON format for Nakano Douga AI API
+  // Can be called anytime to get API-ready data snapshot
+  // ============================================================
+  const exportAPIGameState = useCallback(() => {
+    try {
+      const apiState = getAPIGameState(
+        board,
+        lastMove,
+        senteTime,
+        goteTime,
+        senteByoyomi,
+        goteByoyomi,
+        moveCount,
+        gameCurrentTurn
+      );
+      
+      console.log('[API Export] Game state prepared:', apiState);
+      return apiState;
+    } catch (error) {
+      console.error('[API Export] Failed to export game state:', error);
+      
+      // Show error toast to user
+      toast({
+        title: "Sync Error",
+        description: "Failed to prepare game state for AI analysis",
+        variant: "destructive",
+      });
+      
+      return null;
+    }
+  }, [board, lastMove, senteTime, goteTime, senteByoyomi, goteByoyomi, moveCount, gameCurrentTurn, toast]);
+
+  // Example: Export API state after each move (optional - can be triggered on demand)
+  useEffect(() => {
+    if (moveCount > 0) {
+      // Automatically prepare API state after moves
+      // This ensures data is ready for external AI to fetch
+      const apiState = exportAPIGameState();
+      
+      // Store in window for external access (if needed by integration partner)
+      if (apiState) {
+        (window as any).__shogiAPIState = apiState;
+      }
+    }
+  }, [moveCount, exportAPIGameState]);
 
   // Determine which stream goes where based on role
   const opponentStream = role === 'host' ? remoteStream : (role === 'guest' ? remoteStream : null);
@@ -545,6 +600,9 @@ const Index = () => {
           onDecline={() => handlePromotionWithSync(false)}
         />
       )}
+      
+      {/* Toast notifications for API errors */}
+      <Toaster />
     </div>
   );
 };
