@@ -50,11 +50,24 @@ interface ShogiPieceProps {
 const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: ShogiPieceProps) => {
   if (!piece) return null;
 
-  // Piece rotation logic - MATHEMATICAL GRID CENTERING:
-  // - Gote pieces (isOpponent=true): ONLY rotate(180deg)
-  // - Sente pieces (isOpponent=false): NO transform
-  // - Parent flexbox handles ALL centering via display:flex + align/justify center
-  // - Piece fills 88% of cell for optimal visual fit with grid lines
+  // Piece rotation logic - CORRECT ORIENTATION FOR SHOGI RULES:
+  // NON-NEGOTIABLE: Opposing players' pieces MUST face opposite directions (180° apart)
+  // VISUAL REQUIREMENT: Upper-side pieces face UPWARD (0°), lower-side pieces face DOWNWARD (180°)
+  // 
+  // WHEN BOARD NOT ROTATED (rotateBoard=false):
+  // - Gote pieces (isOpponent=true) are at TOP: rotate(0deg) - face upward
+  // - Sente pieces (isOpponent=false) are at BOTTOM: rotate(180deg) - face downward
+  // 
+  // WHEN BOARD ROTATED (rotateBoard=true):
+  // - Sente pieces (isOpponent=false) are now at TOP: rotate(0deg) - face upward
+  // - Gote pieces (isOpponent=true) are now at BOTTOM: rotate(180deg) - face downward
+  // 
+  // Parent flexbox handles ALL centering via display:flex + align/justify center
+  // Piece fills 88% of cell for optimal visual fit with grid lines
+  
+  // Calculate piece rotation: ALL pieces face upward regardless of position
+  // When board rotates, counter-rotate pieces to maintain upward facing on screen
+  const pieceRotation = rotateBoard ? 180 : 0;
 
   // Get the piece image path from /public/pieces/
   const imagePath = getPieceImagePath(piece, isOpponent);
@@ -73,7 +86,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
           width: '88%',
           height: '88%',
           objectFit: 'contain',
-          transform: isOpponent ? 'rotate(180deg)' : 'none',
+          transform: `rotate(${pieceRotation}deg)`,
           transformOrigin: 'center center',
           opacity: isDragging ? 0 : 1,
           pointerEvents: isDragging ? 'none' : 'auto',
@@ -90,7 +103,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
         height: '88%',
         aspectRatio: '140/148',
         position: 'relative',
-        transform: isOpponent ? 'rotate(180deg)' : 'none',
+        transform: `rotate(${pieceRotation}deg)`,
         transformOrigin: 'center center',
         opacity: isDragging ? 0 : 1,
         pointerEvents: isDragging ? 'none' : 'auto',

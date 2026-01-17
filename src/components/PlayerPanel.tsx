@@ -115,12 +115,20 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
             maxWidth: '100%',
             maxHeight: '100%',
             aspectRatio: '140/148',
+            transform: isOpponent ? 'rotate(180deg)' : 'rotate(0deg)',
+            transformOrigin: 'center center',
           }}
           draggable={false}
         />
       ) : (
         /* Fallback to text rendering */
-        <div className="relative w-full h-full">
+        <div 
+          className="relative w-full h-full"
+          style={{
+            transform: isOpponent ? 'rotate(180deg)' : 'rotate(0deg)',
+            transformOrigin: 'center center',
+          }}
+        >
           <div 
             className="absolute inset-0 shogi-wedge-piece"
             style={{
