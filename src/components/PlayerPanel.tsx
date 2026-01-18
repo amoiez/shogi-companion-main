@@ -329,7 +329,7 @@ const PlayerPanel = ({
             {/* Tan mask to cover static digits on clock image */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-[#dcc9a5] px-3 py-1 rounded-md">
-                <span className={`shogi-timer text-xl lg:text-2xl xl:text-3xl font-bold ${isMyTurn ? 'text-amber-400 drop-shadow-lg' : 'text-amber-200'}`}>
+                <span className="shogi-timer text-xl lg:text-2xl xl:text-3xl font-black text-black" style={{ textShadow: '0 0 2px rgba(255, 255, 255, 0.5)' }}>
                   {time}
                 </span>
               </div>
@@ -497,7 +497,7 @@ const PlayerPanel = ({
         >
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="bg-[#dcc9a5] px-3 py-1 rounded-md">
-              <span className={`shogi-timer text-xl font-bold ${isMyTurn ? 'text-amber-400' : 'text-amber-200'}`}>
+              <span className="shogi-timer text-xl font-black text-black" style={{ textShadow: '0 0 2px rgba(255, 255, 255, 0.5)' }}>
                 {time}
               </span>
             </div>
@@ -558,7 +558,7 @@ const PlayerPanel = ({
       >
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="bg-[#dcc9a5] px-3 py-1 rounded-md">
-            <span className={`shogi-timer text-xl font-bold ${isMyTurn ? 'text-amber-400' : 'text-amber-200'}`}>
+            <span className="shogi-timer text-xl font-black text-black" style={{ textShadow: '0 0 2px rgba(255, 255, 255, 0.5)' }}>
               {time}
             </span>
           </div>
