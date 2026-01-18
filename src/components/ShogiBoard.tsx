@@ -50,32 +50,34 @@ interface ShogiPieceProps {
 const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: ShogiPieceProps) => {
   if (!piece) return null;
 
-  // Piece rotation logic - CORRECT ORIENTATION FOR SHOGI RULES:
-  // NON-NEGOTIABLE: Opposing players' pieces MUST face opposite directions (180° apart)
-  // VISUAL REQUIREMENT: Upper-side pieces face UPWARD (0°), lower-side pieces face DOWNWARD (180°)
+  // ============================================================
+  // PIECE ORIENTATION - PNG-BASED RENDERING (NO CSS ROTATION)
+  // ============================================================
+  // CRITICAL: Piece images are pre-oriented PNG files:
+  // - gote_*.png = upper-side pieces, ALREADY facing upward in the image
+  // - sente_*.png = bottom-side pieces, ALREADY facing downward in the image
   // 
-  // WHEN BOARD NOT ROTATED (rotateBoard=false):
-  // - Gote pieces (isOpponent=true) are at TOP: rotate(0deg) - face upward
-  // - Sente pieces (isOpponent=false) are at BOTTOM: rotate(180deg) - face downward
+  // ABSOLUTE RULE: DO NOT apply CSS rotation to PNG images!
+  // The orientation is BAKED INTO the image files themselves.
   // 
-  // WHEN BOARD ROTATED (rotateBoard=true):
-  // - Sente pieces (isOpponent=false) are now at TOP: rotate(0deg) - face upward
-  // - Gote pieces (isOpponent=true) are now at BOTTOM: rotate(180deg) - face downward
+  // WHY NO ROTATION:
+  // - Rotating PNGs via CSS causes inherited transforms
+  // - Re-renders can trigger double-rotation bugs  
+  // - Turn changes must NOT affect visual orientation
+  // - Board rotation must NOT flip piece PNGs
   // 
-  // Parent flexbox handles ALL centering via display:flex + align/justify center
-  // Piece fills 88% of cell for optimal visual fit with grid lines
-  
-  // Calculate piece rotation: ALL pieces face upward regardless of position
-  // When board rotates, counter-rotate pieces to maintain upward facing on screen
-  const pieceRotation = rotateBoard ? 180 : 0;
+  // VISUAL INVARIANT (LOCKED):
+  // - Upper-side PNGs (gote_*.png) → always display facing UP
+  // - Bottom-side PNGs (sente_*.png) → always display facing DOWN
+  // - Turn changes → NO VISUAL CHANGE to pieces
+  // - Board rotation → NO PNG FLIP
+  // ============================================================
 
   // Get the piece image path from /public/pieces/
+  // This automatically selects the correctly-oriented PNG based on isOpponent
   const imagePath = getPieceImagePath(piece, isOpponent);
 
-  // MATHEMATICAL CENTERING FORMULA:
-  // pieceX = cellLeft + cellWidth/2 (achieved via justify-content: center)
-  // pieceY = cellTop + cellHeight/2 (achieved via align-items: center)
-  // Piece size = 88% of cell to leave uniform gap from grid lines
+  // Render PNG with NO CSS rotation - images are pre-oriented
   if (imagePath) {
     return (
       <img
@@ -86,8 +88,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
           width: '88%',
           height: '88%',
           objectFit: 'contain',
-          transform: `rotate(${pieceRotation}deg)`,
-          transformOrigin: 'center center',
+          // NO transform rotation - PNG is already oriented correctly
           opacity: isDragging ? 0 : 1,
           pointerEvents: isDragging ? 'none' : 'auto',
         }}
@@ -96,6 +97,8 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
   }
 
   // Fallback to text rendering if no image found
+  // Text pieces DO need rotation since they're not pre-oriented assets
+  const textRotation = isOpponent ? 0 : 180;
   return (
     <div
       style={{
@@ -103,7 +106,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
         height: '88%',
         aspectRatio: '140/148',
         position: 'relative',
-        transform: `rotate(${pieceRotation}deg)`,
+        transform: `rotate(${textRotation}deg)`,
         transformOrigin: 'center center',
         opacity: isDragging ? 0 : 1,
         pointerEvents: isDragging ? 'none' : 'auto',
