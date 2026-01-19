@@ -259,6 +259,8 @@ const Index = () => {
     if (gameMode === 'solo') {
       // SOLO MODE: No turn restrictions, allow any move
       handleDrop(row, col);
+      // CRITICAL FIX: Clear selected source to remove highlights
+      setSelectedSource(null);
       return;
     }
     
@@ -283,6 +285,9 @@ const Index = () => {
       return;
     }
     
+    // CRITICAL FIX: Clear selected source to remove highlights after successful move
+    setSelectedSource(null);
+    
     console.log('[Sync] ========================================');
     console.log('[Sync] Move executed locally');
     console.log('[Sync] Next state - moveCount:', nextState.moveCount);
@@ -299,6 +304,9 @@ const Index = () => {
   // Handle promotion choice with sync
   const handlePromotionWithSync = useCallback((shouldPromote: boolean) => {
     const nextState = handlePromotionChoice(shouldPromote);
+    
+    // CRITICAL FIX: Clear selected source after promotion decision
+    setSelectedSource(null);
     
     if (nextState && connectionStatus === 'connected') {
       sendMove(nextState);

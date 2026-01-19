@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DragSource, CellData, getLegalMoves, getLegalDrops, GameMode } from '@/hooks/useGameState';
 
 // Selected cell state for tap-to-move
@@ -246,6 +246,8 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
     if (isValidDropTarget && dragSource) {
       console.log('[Click] Attempting move to:', { row, col }, 'isGote:', isGotePlayer);
       onDrop(row, col);
+      // CRITICAL FIX: Force drag end to ensure all highlights clear
+      onDragEnd();
       return;
     }
     
@@ -382,6 +384,15 @@ const ShogiBoard = ({
   const selectedSource = externalSelectedSource !== undefined ? externalSelectedSource : internalSelectedSource;
   const setSelectedSource = externalOnSelectSource || setInternalSelectedSource;
 
+  // CRITICAL FIX: Clear selectedSource when dragSource is cleared externally
+  // This ensures highlights disappear when moves complete via any path
+  useEffect(() => {
+    if (!dragSource && selectedSource) {
+      console.log('[Highlight Fix] dragSource cleared, clearing selectedSource');
+      setSelectedSource(null);
+    }
+  }, [dragSource, selectedSource, setSelectedSource]);
+
   // Compute legal moves for the currently selected/dragged piece
   const legalMoves = useMemo(() => {
     const source = dragSource || selectedSource;
@@ -468,7 +479,8 @@ const ShogiBoard = ({
     // Execute the move using LOGICAL coordinates
     onDrop(logicalRow, logicalCol);
 
-    // Clear selection
+    // CRITICAL FIX: Clear selection IMMEDIATELY before calling onDragEnd
+    // This ensures highlights disappear the instant the move is registered
     setSelectedSource(null);
     onDragEnd();
   };
