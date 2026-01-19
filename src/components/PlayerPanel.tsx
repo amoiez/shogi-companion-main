@@ -75,12 +75,15 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
     dragSource?.handIndex === index && 
     dragSource?.isOpponent === isOpponent;
 
-  const handleDragStart = (e: React.DragEvent) => {
+  // Handle pointer down for piece selection (replaces drag start)
+  const handlePointerDown = (e: React.PointerEvent) => {
     if (!canDrag) {
-      e.preventDefault();
       return;
     }
-    e.dataTransfer.effectAllowed = 'move';
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Call existing game function - NO CHANGES to game logic
     onDragStart({
       type: 'hand',
       handIndex: index,
@@ -95,15 +98,13 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
   return (
     <div
       className={`
+        hand-piece
         relative w-12 h-14 lg:w-14 lg:h-16 xl:w-16 xl:h-18 flex items-center justify-center
         ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default opacity-70'}
-        ${isDragging ? 'opacity-50' : ''}
         ${isSelected ? 'ring-3 ring-yellow-500 rounded-md shadow-xl scale-115' : ''}
         transition-all duration-150 p-1
       `}
-      draggable={canDrag}
-      onDragStart={handleDragStart}
-      onDragEnd={onDragEnd}
+      onPointerDown={canDrag ? handlePointerDown : undefined}
       onClick={onPieceClick}
     >
       {imagePath ? (
@@ -378,12 +379,17 @@ const PlayerPanel = ({
         {/* Video/Avatar - SIGNIFICANTLY ENLARGED for clear opponent expressions */}
         <div 
           className={`
-            w-full aspect-square rounded-2xl 
+            rounded-2xl 
             bg-gradient-to-br from-gray-100 to-gray-200
             border-4 lg:border-6 border-amber-700/40
             shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.25)]
             overflow-hidden
+            flex items-center justify-center
           `}
+          style={{
+            width: 'clamp(200px, 20vw, 260px)',
+            height: 'clamp(170px, 24vh, 240px)',
+          }}
         >
           {videoStream ? (
             <video
@@ -391,13 +397,15 @@ const PlayerPanel = ({
               autoPlay
               playsInline
               muted={!isOpponent}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
+              style={{ objectPosition: 'center' }}
             />
           ) : (
             <img 
               src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
               alt={isOpponent ? '対戦相手' : '中野さん'}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
+              style={{ objectPosition: 'center' }}
             />
           )}
         </div>
@@ -412,25 +420,35 @@ const PlayerPanel = ({
         )}
         
         {/* Captured Pieces (Hand/Komadai) - LARGER for iPad Pro with grouped display */}
-        <div className="w-full">
+        <div className="w-full flex flex-col items-center">
           <div className="text-sm lg:text-base xl:text-lg text-muted-foreground text-center mb-2 font-medium">
             {isOpponent ? '後手の持ち駒' : '先手の持ち駒'}
           </div>
           <div 
             className={`
-              min-h-[80px] lg:min-h-[100px] xl:min-h-[120px] p-3 lg:p-4 rounded-xl
+              p-3 lg:p-4 rounded-xl
               komadai-wood
               border-3 border-amber-800/50
               shadow-xl
+              flex justify-center
               ${rotateHand ? 'rotate-180' : ''}
             `}
+            style={{
+              width: 'clamp(130px, 14vw, 180px)',
+              minHeight: 'clamp(90px, 10vh, 140px)',
+            }}
           >
             {hand.length === 0 ? (
               <div className={`text-sm lg:text-base xl:text-lg text-amber-700/50 text-center py-3 ${rotateHand ? 'rotate-180' : ''}`}>
                 なし
               </div>
             ) : (
-              <div className="flex flex-wrap gap-2 lg:gap-3 justify-center">
+              <div 
+                className="grid grid-cols-2 justify-center"
+                style={{
+                  gap: 'clamp(6px, 1vh, 10px)',
+                }}
+              >
                 {groupedHandArray.map(({ piece, count, index }) => {
                   const isThisSelected = selectedSource?.type === 'hand' && 
                     selectedSource?.piece === piece && 
@@ -545,12 +563,17 @@ const PlayerPanel = ({
         {/* Video feed - LARGER for iPad Pro */}
         <div 
           className={`
-            w-full aspect-[4/3] max-w-[280px] lg:max-w-[320px] xl:max-w-[360px] rounded-xl 
+            rounded-xl 
             bg-gradient-to-br from-gray-100 to-gray-200
             border-4 border-gray-300
             shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.15)]
             overflow-hidden
+            flex items-center justify-center
           `}
+          style={{
+            width: 'clamp(200px, 20vw, 280px)',
+            aspectRatio: '4/3',
+          }}
         >
           {videoStream ? (
             <video
@@ -558,13 +581,15 @@ const PlayerPanel = ({
               autoPlay
               playsInline
               muted={!isOpponent}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
+              style={{ objectPosition: 'center' }}
             />
           ) : (
             <img 
               src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
               alt={isOpponent ? '対戦相手' : 'あなた'}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
+              style={{ objectPosition: 'center' }}
             />
           )}
         </div>
@@ -606,12 +631,17 @@ const PlayerPanel = ({
       {/* Video feed with tablet/picture frame effect - LARGER */}
       <div 
         className={`
-          w-full aspect-[4/3] max-w-[280px] lg:max-w-[320px] rounded-xl 
+          rounded-xl 
           bg-gradient-to-br from-gray-100 to-gray-200
           border-4 border-gray-300
           shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.15)]
           overflow-hidden
+          flex items-center justify-center
         `}
+        style={{
+          width: 'clamp(200px, 20vw, 280px)',
+          aspectRatio: '4/3',
+        }}
       >
         {videoStream ? (
           <video
@@ -619,13 +649,15 @@ const PlayerPanel = ({
             autoPlay
             playsInline
             muted={!isOpponent} // Mute local stream to avoid echo
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
+            style={{ objectPosition: 'center' }}
           />
         ) : (
           <img 
             src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
             alt={isOpponent ? '対戦相手' : 'あなた'}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
+            style={{ objectPosition: 'center' }}
           />
         )}
       </div>

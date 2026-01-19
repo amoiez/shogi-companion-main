@@ -6,6 +6,21 @@
 
 /* Tablet Shogi Demo - Warm, accessible design for elderly users */
 
+/* ============================================================
+   POINTER EVENT SUPPORT FOR iPAD SAFARI
+   ============================================================
+   Prevent Safari from blocking pointer events on custom elements.
+   This ensures tap-to-select works for both Sente and Gote players.
+   ============================================================ */
+.shogi-board,
+.shogi-board > *,
+.shogi-piece,
+.hand-piece {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 @layer base {
   :root {
     /* Warm wood-inspired palette */

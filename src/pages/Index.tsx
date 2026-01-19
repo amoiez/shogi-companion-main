@@ -486,7 +486,14 @@ const Index = () => {
         <div className="min-w-[1280px] h-full flex flex-row items-start justify-center gap-x-[40px] xl:gap-x-[80px] px-4 pb-4 pt-2 relative">
         
         {/* Left Column - Opponent for current player, or follows turn for spectators */}
-        <div ref={leftColumnRef} className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
+        <div 
+          ref={leftColumnRef} 
+          className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]"
+          style={{
+            paddingBottom: 'clamp(14px, 3vh, 28px)',
+            height: '100%',
+          }}
+        >
           {!shouldFlipLayout ? (
             <PlayerPanel 
               label="後手" 
@@ -567,7 +574,14 @@ const Index = () => {
         </div>
         
         {/* Right Column - Current player's side, or follows turn for spectators */}
-        <div ref={rightColumnRef} className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]">
+        <div 
+          ref={rightColumnRef} 
+          className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]"
+          style={{
+            paddingBottom: 'clamp(14px, 3vh, 28px)',
+            height: '100%',
+          }}
+        >
           {!shouldFlipLayout ? (
             <PlayerPanel 
               label="先手" 

@@ -81,6 +81,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
   if (imagePath) {
     return (
       <img
+        className="shogi-piece"
         src={imagePath}
         alt={piece}
         draggable={false}
@@ -89,8 +90,9 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
           height: '88%',
           objectFit: 'contain',
           // NO transform rotation - PNG is already oriented correctly
-          opacity: isDragging ? 0 : 1,
-          pointerEvents: isDragging ? 'none' : 'auto',
+          // Piece stays visible when selected (tap-to-select, not drag-and-drop)
+          opacity: 1,
+          pointerEvents: 'auto',
         }}
       />
     );
@@ -101,6 +103,7 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
   const textRotation = isOpponent ? 0 : 180;
   return (
     <div
+      className="shogi-piece"
       style={{
         width: '88%',
         height: '88%',
@@ -108,8 +111,9 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
         position: 'relative',
         transform: `rotate(${textRotation}deg)`,
         transformOrigin: 'center center',
-        opacity: isDragging ? 0 : 1,
-        pointerEvents: isDragging ? 'none' : 'auto',
+        // Piece stays visible when selected (tap-to-select, not drag-and-drop)
+        opacity: 1,
+        pointerEvents: 'auto',
       }}
     >
       <div
@@ -195,11 +199,11 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   const isMyPiece = gameMode === 'solo' ? true : (isGotePlayer ? cell.isOpponent : !cell.isOpponent);
   const canDragThis = canDrag && cell.piece && isMyPiece;
 
-  const handleDragStart = (e: React.DragEvent) => {
-    // DEFENSIVE GUARDS: Prevent illegal drag operations
+  // Handle pointer down for piece selection (replaces drag start)
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // DEFENSIVE GUARDS: Prevent illegal operations
     if (!cell.piece || !canDragThis) {
-      e.preventDefault();
-      console.log('[DragStart] BLOCKED - Not draggable:', { 
+      console.log('[PointerDown] BLOCKED - Not draggable:', { 
         hasPiece: !!cell.piece, 
         canDrag, 
         isMyPiece,
@@ -211,80 +215,22 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
     
     // TURN VALIDATION: Additional safety check
     if (!canDrag) {
-      e.preventDefault();
-      console.warn('[DragStart] BLOCKED - Not your turn or game over');
+      console.warn('[PointerDown] BLOCKED - Not your turn or game over');
       return;
     }
 
-    console.log('[DragStart] ALLOWED:', {
+    e.preventDefault();
+    e.stopPropagation();
+
+    console.log('[PointerDown] Piece selected:', {
       piece: cell.piece,
       isGotePlayer,
       pieceIsOpponent: cell.isOpponent,
       isMyPiece,
       position: { row, col }
     });
-
-    e.dataTransfer.effectAllowed = 'move';
     
-    // Create custom drag image with proper rotation
-    // CRITICAL: When board is rotated (isGotePlayer), we need to:
-    // 1. Apply piece rotation (opponent pieces get 180deg)
-    // 2. Apply board counter-rotation (additional 180deg) so drag follows cursor correctly
-    try {
-      const target = e.currentTarget as HTMLElement;
-      const pieceImg = target.querySelector('img');
-      if (pieceImg) {
-        // Create a container for the drag image to properly apply transforms
-        const container = document.createElement('div');
-        container.style.position = 'absolute';
-        container.style.top = '-9999px';
-        container.style.left = '-9999px';
-        container.style.width = pieceImg.offsetWidth + 'px';
-        container.style.height = pieceImg.offsetHeight + 'px';
-        container.style.pointerEvents = 'none';
-        
-        // Clone the image for drag preview
-        const dragImg = pieceImg.cloneNode(true) as HTMLImageElement;
-        dragImg.style.width = '100%';
-        dragImg.style.height = '100%';
-        dragImg.style.objectFit = 'contain';
-        
-        // Calculate total rotation:
-        // - Opponent pieces: 180deg for piece orientation
-        // - Gote player board: additional 180deg to counter board rotation
-        // Result: Opponent pieces on Gote board = 180 + 180 = 360deg (0deg)
-        //         Sente pieces on Gote board = 0 + 180 = 180deg
-        let rotation = 0;
-        if (cell.isOpponent) rotation += 180;
-        if (isGotePlayer) rotation += 180;
-        
-        dragImg.style.transform = rotation !== 0 ? `rotate(${rotation}deg)` : 'none';
-        dragImg.style.transformOrigin = 'center center';
-        dragImg.style.pointerEvents = 'none';
-        
-        container.appendChild(dragImg);
-        document.body.appendChild(container);
-        
-        // Set custom drag image centered on cursor
-        const offsetX = pieceImg.offsetWidth / 2;
-        const offsetY = pieceImg.offsetHeight / 2;
-        e.dataTransfer.setDragImage(container, offsetX, offsetY);
-        
-        // Clean up after drag starts
-        requestAnimationFrame(() => {
-          if (container.parentNode) {
-            document.body.removeChild(container);
-          }
-        });
-      }
-    } catch (err) {
-      console.log('Custom drag image failed, using default');
-    }
-    
-    // ✅ FIX: row/col are already LOGICAL coordinates (no translation needed)
-    // They come from board.map() array indices, which map directly to logical positions
-    console.log('[DragStart] Logical coords:', { row, col }, 'isGote:', isGotePlayer);
-    
+    // Call existing game function - NO CHANGES to game logic
     onDragStart({
       type: 'board',
       row: row,
@@ -294,32 +240,22 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
     });
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    if (isValidDropTarget) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (isValidDropTarget) {
-      // ✅ FIX: row/col are already LOGICAL coordinates (no translation needed)
-      console.log('[Drop] Logical coords:', { row, col }, 'isGote:', isGotePlayer);
-      onDrop(row, col);
-    }
-  };
-
-  // Determine if this is in a promotion zone (for visual hint)
-  const isPromotionZone = row <= 2 || row >= 6;
-
-  // Handle click/tap for mobile support
+  // Handle click/tap for destination selection
   const handleClick = () => {
+    // If a piece is already selected and this is a valid drop target, attempt move
+    if (isValidDropTarget && dragSource) {
+      console.log('[Click] Attempting move to:', { row, col }, 'isGote:', isGotePlayer);
+      onDrop(row, col);
+      return;
+    }
+    
+    // Otherwise, handle cell click (for selecting pieces)
     onCellClick(row, col, cell);
   };
 
   return (
     <div
+      className="shogi-board"
       style={{
         // CELL POSITIONING: Aligned to SVG grid via CSS Grid
         // Each cell is exactly 1/9 of gridWidth × 1/9 of gridHeight
@@ -349,11 +285,7 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
         boxShadow: isSelected ? 'inset 0 0 0 3px #ca8a04' : 'none',
         transition: 'background-color 100ms',
       }}
-      draggable={!!canDragThis}
-      onDragStart={handleDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
+      onPointerDown={cell.piece && canDragThis ? handlePointerDown : undefined}
       onClick={handleClick}
     >
       <ShogiPiece
