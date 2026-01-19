@@ -397,14 +397,14 @@ const PlayerPanel = ({
               autoPlay
               playsInline
               muted={!isOpponent}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
               style={{ objectPosition: 'center' }}
             />
           ) : (
             <img 
               src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
               alt={isOpponent ? '対戦相手' : '中野さん'}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
               style={{ objectPosition: 'center' }}
             />
           )}
@@ -581,14 +581,14 @@ const PlayerPanel = ({
               autoPlay
               playsInline
               muted={!isOpponent}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
               style={{ objectPosition: 'center' }}
             />
           ) : (
             <img 
               src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
               alt={isOpponent ? '対戦相手' : 'あなた'}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
               style={{ objectPosition: 'center' }}
             />
           )}
@@ -649,14 +649,14 @@ const PlayerPanel = ({
             autoPlay
             playsInline
             muted={!isOpponent} // Mute local stream to avoid echo
-            className="w-full h-full object-contain"
+            className="w-full h-full object-cover"
             style={{ objectPosition: 'center' }}
           />
         ) : (
           <img 
             src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
             alt={isOpponent ? '対戦相手' : 'あなた'}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-cover"
             style={{ objectPosition: 'center' }}
           />
         )}
