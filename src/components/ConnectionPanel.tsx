@@ -10,6 +10,7 @@ interface ConnectionPanelProps {
   onHost: () => void;
   onJoin: (gameId: string) => void;
   onDisconnect: () => void;
+  onSoloMode: () => void;
 }
 
 const ConnectionPanel = ({
@@ -20,6 +21,7 @@ const ConnectionPanel = ({
   onHost,
   onJoin,
   onDisconnect,
+  onSoloMode,
 }: ConnectionPanelProps) => {
   const [joinId, setJoinId] = useState('');
   const [copied, setCopied] = useState(false);
@@ -121,16 +123,7 @@ const ConnectionPanel = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full mx-4 relative">
-        {/* Close button */}
-        <button
-          onClick={() => setDismissed(true)}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-          title="閉じる"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        
-        <h3 className="font-bold text-xl text-center mb-6">オンライン対戦</h3>
+        <h3 className="font-bold text-xl text-center mb-6">ゲームモードを選択</h3>
         
         {errorMessage && (
           <div className="bg-red-100 border border-red-300 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
@@ -139,6 +132,30 @@ const ConnectionPanel = ({
         )}
         
         <div className="space-y-4">
+          {/* Solo Practice Option */}
+          <div className="border border-green-200 rounded-lg p-4 bg-green-50/50">
+            <h4 className="font-semibold mb-1">一人で練習する</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              自由に駒を動かして練習できます
+            </p>
+            <button
+              onClick={() => {
+                setDismissed(true);
+                onSoloMode();
+              }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              ソロ練習を始める
+            </button>
+          </div>
+          
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-sm text-muted-foreground">または</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          
           {/* Host Option */}
           <div className="border border-amber-200 rounded-lg p-4 bg-amber-50/50">
             <h4 className="font-semibold mb-1">新しいゲームを作成</h4>
@@ -146,7 +163,10 @@ const ConnectionPanel = ({
               あなたが先手（黒）になります
             </p>
             <button
-              onClick={onHost}
+              onClick={() => {
+                setDismissed(true);
+                onHost();
+              }}
               disabled={connectionStatus === 'connecting'}
               className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -184,7 +204,10 @@ const ConnectionPanel = ({
                 disabled={connectionStatus === 'connecting'}
               />
               <button
-                onClick={handleJoin}
+                onClick={() => {
+                  setDismissed(true);
+                  handleJoin();
+                }}
                 disabled={!joinId.trim() || connectionStatus === 'connecting'}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -192,19 +215,6 @@ const ConnectionPanel = ({
               </button>
             </div>
           </div>
-        </div>
-        
-        {/* Single Player Hint */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            接続せずに一人で練習する場合は、
-            <button
-              onClick={() => setDismissed(true)}
-              className="text-amber-600 hover:text-amber-700 underline ml-1"
-            >
-              このダイアログを閉じてください
-            </button>
-          </p>
         </div>
       </div>
     </div>

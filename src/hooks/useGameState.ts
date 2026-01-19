@@ -452,7 +452,9 @@ export const generateUSIMove = (
 // GAME STATE HOOK
 // ============================================================
 
-export const useGameState = () => {
+export type GameMode = 'solo' | 'online';
+
+export const useGameState = (gameMode: GameMode = 'solo') => {
   const [board, setBoard] = useState<CellData[][]>(createInitialBoard);
   const [senteHand, setSenteHand] = useState<string[]>([]);
   const [goteHand, setGoteHand] = useState<string[]>([]);
@@ -463,6 +465,7 @@ export const useGameState = () => {
   const [dragSource, setDragSource] = useState<DragSource | null>(null);
   
   // Timer: 2 minutes + 60 second byoyomi (TESTING MODE - change back to 20 * 60 for production)
+  // DISABLED IN SOLO MODE
   const INITIAL_TIME = 2 * 60;
   const BYOYOMI_TIME = 60;
   
@@ -523,7 +526,19 @@ export const useGameState = () => {
   }, []);
 
   // Timer with byoyomi
+  // SOLO MODE: Timer is DISABLED - clock does NOT run
   useEffect(() => {
+    // CRITICAL: In solo mode, timer never runs
+    if (gameMode === 'solo') {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setIsTimerRunning(false);
+      return;
+    }
+    
+    // ONLINE MODE: Normal timer behavior
     if (isTimerRunning && moveCount > 0 && !isGameOver) {
       timerRef.current = setInterval(() => {
         // Safety check: don't update state if unmounted
@@ -589,11 +604,15 @@ export const useGameState = () => {
         timerRef.current = null;
       }
     };
-  }, [isTimerRunning, currentTurn, moveCount, senteByoyomi, goteByoyomi, isGameOver]);
+  }, [isTimerRunning, currentTurn, moveCount, senteByoyomi, goteByoyomi, isGameOver, gameMode]);
 
   const startTimer = useCallback(() => {
+    // SOLO MODE: Never start timer
+    if (gameMode === 'solo') {
+      return;
+    }
     setIsTimerRunning(true);
-  }, []);
+  }, [gameMode]);
 
   const getBasePiece = (piece: string): string => {
     return DEMOTION_MAP[piece] || piece;
@@ -931,6 +950,8 @@ export const useGameState = () => {
     // Timer callbacks
     setOnMainTimeExpired,
     setOnByoyomiTimeUp,
+    // Game mode
+    gameMode,
   };
 };
 

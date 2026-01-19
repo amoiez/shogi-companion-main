@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { DragSource, CellData, getLegalMoves, getLegalDrops } from '@/hooks/useGameState';
+import { DragSource, CellData, getLegalMoves, getLegalDrops, GameMode } from '@/hooks/useGameState';
 
 // Selected cell state for tap-to-move
 interface SelectedSource {
@@ -155,9 +155,10 @@ interface BoardCellProps {
   onCellClick: (row: number, col: number, cell: CellData) => void;
   isLegalMove: boolean; // New: highlight legal moves
   rotateBoard?: boolean; // Board rotation for Gote perspective
+  gameMode?: GameMode; // Game mode for piece ownership check
 }
 
-const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop, canDrag, isGotePlayer, selectedSource, onCellClick, isLegalMove, rotateBoard = false }: BoardCellProps) => {
+const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop, canDrag, isGotePlayer, selectedSource, onCellClick, isLegalMove, rotateBoard = false, gameMode = 'online' }: BoardCellProps) => {
   // ✅ FIX: row/col are already LOGICAL coordinates (array indices from board.map)
   // The board array is in logical order: board[0] = row 0, board[8] = row 8
   // CSS rotation is visual-only and doesn't affect array indices
@@ -179,9 +180,11 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   // ============================================================
   // PIECE OWNERSHIP ENFORCEMENT
   // ============================================================
-  // RULE: Players can ONLY drag their own pieces
+  // RULE: Players can ONLY drag their own pieces (in online mode)
   // - Host (Sente): can only drag pieces where isOpponent === false
   // - Guest (Gote): can only drag pieces where isOpponent === true
+  // 
+  // SOLO MODE: Can drag ANY piece regardless of isOpponent
   // 
   // WHY: isOpponent is an ABSOLUTE property (not relative to viewer)
   // - isOpponent=false → Sente piece (belongs to host)
@@ -189,7 +192,7 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   // 
   // NOTE: Coordinate mirroring does NOT affect isOpponent flag
   // ============================================================
-  const isMyPiece = isGotePlayer ? cell.isOpponent : !cell.isOpponent;
+  const isMyPiece = gameMode === 'solo' ? true : (isGotePlayer ? cell.isOpponent : !cell.isOpponent);
   const canDragThis = canDrag && cell.piece && isMyPiece;
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -376,6 +379,8 @@ interface ShogiBoardProps {
   onSelectSource?: (source: SelectedSource | null) => void;
   // Board rotation for Gote perspective
   rotateBoard?: boolean;
+  // Game mode for piece ownership
+  gameMode?: GameMode;
 }
 
 const ShogiBoard = ({
@@ -389,6 +394,7 @@ const ShogiBoard = ({
   selectedSource: externalSelectedSource,
   onSelectSource: externalOnSelectSource,
   rotateBoard = false,
+  gameMode = 'online',
 }: ShogiBoardProps) => {
   // ============================================================
   // COORDINATE SYSTEM & RENDERING STRATEGY (FIXED ARCHITECTURE)
@@ -630,6 +636,7 @@ const ShogiBoard = ({
                   onCellClick={handleCellClick}
                   isLegalMove={legalMoves.has(`${logicalRow}-${logicalCol}`)}
                   rotateBoard={rotateBoard}
+                  gameMode={gameMode}
                 />
               );
             })

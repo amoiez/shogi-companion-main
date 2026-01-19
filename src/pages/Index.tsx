@@ -5,7 +5,7 @@ import ShogiBoard from "@/components/ShogiBoard";
 import AIAssistant from "@/components/AIAssistant";
 import ConnectionPanel from "@/components/ConnectionPanel";
 import PromotionDialog from "@/components/PromotionDialog";
-import { useGameState } from "@/hooks/useGameState";
+import { useGameState, GameMode } from "@/hooks/useGameState";
 import { useMultiplayer } from "@/hooks/useMultiplayer";
 import { useAudioSystem } from "@/hooks/useAudioSystem";
 import { getAPIGameState } from "@/lib/utils";
@@ -37,6 +37,11 @@ interface SafeZone {
 }
 
 const Index = () => {
+  // Game mode state: 'solo' or 'online'
+  const [gameMode, setGameMode] = useState<GameMode>('online');
+  // Track if user has made initial mode selection
+  const [modeSelected, setModeSelected] = useState(false);
+  
   // Tap-to-move selected state (shared between board and komadai)
   const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(null);
   // Track if user has interacted (for BGM autoplay)
@@ -85,7 +90,7 @@ const Index = () => {
     gameOverReason,
     setOnMainTimeExpired,
     setOnByoyomiTimeUp,
-  } = useGameState();
+  } = useGameState(gameMode);
   
   // Audio system
   const {
@@ -212,6 +217,25 @@ const Index = () => {
     currentTurn,
   } = useMultiplayer();
 
+  // Solo mode handler
+  const handleSoloMode = useCallback(() => {
+    setGameMode('solo');
+    setModeSelected(true);
+  }, []);
+
+  // Online mode handlers
+  const handleHostGame = useCallback(() => {
+    setGameMode('online');
+    setModeSelected(true);
+    hostGame();
+  }, [hostGame]);
+
+  const handleJoinGame = useCallback((gameId: string) => {
+    setGameMode('online');
+    setModeSelected(true);
+    joinGame(gameId);
+  }, [joinGame]);
+
   // Register callback for receiving game state updates
   useEffect(() => {
     onReceiveState((state) => {
@@ -229,6 +253,13 @@ const Index = () => {
 
   // Wrap handleDrop to also send move to peer
   const handleDropWithSync = useCallback((row: number, col: number) => {
+    // SOLO MODE: No turn restrictions, allow any move
+    if (gameMode === 'solo') {
+      handleDrop(row, col);
+      return;
+    }
+    
+    // ONLINE MODE: Check turn restrictions
     // Don't allow moves when not connected but in multiplayer mode, or when not your turn
     if (role && !isMyTurn) {
       console.log('[Sync] Not your turn!');
@@ -258,7 +289,7 @@ const Index = () => {
       console.log('[Sync] Sending nextState to peer...');
       sendMove(nextState);
     }
-  }, [handleDrop, connectionStatus, sendMove, role, isMyTurn]);
+  }, [handleDrop, connectionStatus, sendMove, role, isMyTurn, gameMode]);
 
   // Handle promotion choice with sync
   const handlePromotionWithSync = useCallback((shouldPromote: boolean) => {
@@ -428,15 +459,19 @@ const Index = () => {
       </button>
       
       {/* Connection Panel - Lobby Modal or Status Badge (handles its own positioning) */}
-      <ConnectionPanel
-        gameId={gameId}
-        role={role}
-        connectionStatus={connectionStatus}
-        errorMessage={errorMessage}
-        onHost={hostGame}
-        onJoin={joinGame}
-        onDisconnect={disconnect}
-      />
+      {/* Show modal until user selects a mode, then only show in online mode */}
+      {(!modeSelected || gameMode === 'online') && (
+        <ConnectionPanel
+          gameId={gameId}
+          role={role}
+          connectionStatus={connectionStatus}
+          errorMessage={errorMessage}
+          onHost={handleHostGame}
+          onJoin={handleJoinGame}
+          onDisconnect={disconnect}
+          onSoloMode={handleSoloMode}
+        />
+      )}
       
       {/* Main Game Area - TV Broadcast 3-Column Layout (Tight Proximity) */}
       {/* Layout based on player perspective (not turn-based for players) */}
@@ -457,7 +492,7 @@ const Index = () => {
               onDrop={handleDropWithSync}
               videoStream={opponentStream}
               isMyTurn={gameCurrentTurn === 'gote'}
-              canDrag={isMyTurn && role === 'guest' && !isGameOver}
+              canDrag={gameMode === 'solo' ? !isGameOver : (isMyTurn && role === 'guest' && !isGameOver)}
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}
@@ -477,7 +512,7 @@ const Index = () => {
               onDrop={handleDropWithSync}
               videoStream={selfStream}
               isMyTurn={gameCurrentTurn === 'sente'}
-              canDrag={isMyTurn && role !== 'guest' && !isGameOver}
+              canDrag={gameMode === 'solo' ? !isGameOver : (isMyTurn && role !== 'guest' && !isGameOver)}
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}
@@ -501,15 +536,17 @@ const Index = () => {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
-              isMyTurn={isMyTurn && !isGameOver}
-              isGotePlayer={role === 'guest'}
+              isMyTurn={gameMode === 'solo' ? true : (isMyTurn && !isGameOver)}
+              isGotePlayer={gameMode === 'solo' ? false : (role === 'guest')}
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               rotateBoard={
+                gameMode === 'solo' ? false :       // SOLO MODE: Board NEVER rotates
                 role === 'host' ? false :           // Sente always sees their pieces at bottom
                 role === 'guest' ? true :           // Gote always sees their pieces at bottom (rotated)
                 gameCurrentTurn === 'gote'          // Spectators follow active player
               }
+              gameMode={gameMode}
             />
           </div>
         </div>
@@ -528,7 +565,7 @@ const Index = () => {
               onDrop={handleDropWithSync}
               videoStream={selfStream}
               isMyTurn={gameCurrentTurn === 'sente'}
-              canDrag={isMyTurn && role !== 'guest' && !isGameOver}
+              canDrag={gameMode === 'solo' ? !isGameOver : (isMyTurn && role !== 'guest' && !isGameOver)}
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}
@@ -547,7 +584,7 @@ const Index = () => {
               onDrop={handleDropWithSync}
               videoStream={opponentStream}
               isMyTurn={gameCurrentTurn === 'gote'}
-              canDrag={isMyTurn && role === 'guest' && !isGameOver}
+              canDrag={gameMode === 'solo' ? !isGameOver : (isMyTurn && role === 'guest' && !isGameOver)}
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}
