@@ -132,30 +132,6 @@ const ConnectionPanel = ({
         )}
         
         <div className="space-y-4">
-          {/* Solo Practice Option */}
-          <div className="border border-green-200 rounded-lg p-4 bg-green-50/50">
-            <h4 className="font-semibold mb-1">一人で練習する</h4>
-            <p className="text-sm text-muted-foreground mb-3">
-              自由に駒を動かして練習できます
-            </p>
-            <button
-              onClick={() => {
-                setDismissed(true);
-                onSoloMode();
-              }}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              ソロ練習を始める
-            </button>
-          </div>
-          
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-sm text-muted-foreground">または</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-          
           {/* Host Option */}
           <div className="border border-amber-200 rounded-lg p-4 bg-amber-50/50">
             <h4 className="font-semibold mb-1">新しいゲームを作成</h4>
@@ -214,6 +190,30 @@ const ConnectionPanel = ({
                 参加
               </button>
             </div>
+          </div>
+          
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-sm text-muted-foreground">または</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          
+          {/* Solo Practice Option */}
+          <div className="border border-green-200 rounded-lg p-4 bg-green-50/50">
+            <h4 className="font-semibold mb-1">一人で練習する</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              自由に駒を動かして練習できます
+            </p>
+            <button
+              onClick={() => {
+                setDismissed(true);
+                onSoloMode();
+              }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              ソロ練習を始める
+            </button>
           </div>
         </div>
       </div>

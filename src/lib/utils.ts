@@ -6,6 +6,108 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// SFEN piece mapping
+const PIECE_TO_SFEN: Record<string, string> = {
+  '歩': 'P', '香': 'L', '桂': 'N', '銀': 'S', '金': 'G', '飛': 'R', '角': 'B', '王': 'K', '玉': 'K',
+  'と': '+P', '杏': '+L', '圭': '+N', '全': '+S', '龍': '+R', '馬': '+B',
+};
+
+const PIECE_TO_USI_DROP: Record<string, string> = {
+  '歩': 'P', '香': 'L', '桂': 'N', '銀': 'S', '金': 'G', '飛': 'R', '角': 'B',
+};
+
+// Helper: Convert board coordinates to USI notation
+function coordToUSI(row: number, col: number): string {
+  const colChar = String(9 - col);
+  const rowChar = String.fromCharCode('a'.charCodeAt(0) + row);
+  return colChar + rowChar;
+}
+
+// Helper: Generate USI move string
+function generateUSIMove(
+  from: { row: number; col: number } | null,
+  to: { row: number; col: number },
+  piece: string,
+  promoted: boolean,
+  isDrop: boolean
+): string {
+  if (isDrop) {
+    const pieceChar = PIECE_TO_USI_DROP[piece] || 'P';
+    return `${pieceChar}*${coordToUSI(to.row, to.col)}`;
+  }
+  
+  const fromStr = from ? coordToUSI(from.row, from.col) : '';
+  const toStr = coordToUSI(to.row, to.col);
+  const promoStr = promoted ? '+' : '';
+  
+  return `${fromStr}${toStr}${promoStr}`;
+}
+
+// Helper: Generate SFEN string from board state
+function generateSFEN(
+  board: CellData[][],
+  currentTurn: 'sente' | 'gote',
+  senteHand: string[],
+  goteHand: string[],
+  moveCount: number
+): string {
+  // Board representation
+  const rows: string[] = [];
+  for (let row = 0; row < 9; row++) {
+    let rowStr = '';
+    let emptyCount = 0;
+    
+    for (let col = 0; col < 9; col++) {
+      const cell = board[row][col];
+      if (!cell.piece) {
+        emptyCount++;
+      } else {
+        if (emptyCount > 0) {
+          rowStr += emptyCount;
+          emptyCount = 0;
+        }
+        const sfenPiece = PIECE_TO_SFEN[cell.piece] || 'P';
+        // Lowercase for gote (opponent), uppercase for sente
+        rowStr += cell.isOpponent ? sfenPiece.toLowerCase() : sfenPiece;
+      }
+    }
+    if (emptyCount > 0) {
+      rowStr += emptyCount;
+    }
+    rows.push(rowStr);
+  }
+  
+  const boardStr = rows.join('/');
+  
+  // Turn: 'b' for sente (black), 'w' for gote (white)
+  const turnStr = currentTurn === 'sente' ? 'b' : 'w';
+  
+  // Hand pieces
+  const formatHand = (hand: string[], isOpponent: boolean): string => {
+    if (hand.length === 0) return '';
+    
+    const counts: Record<string, number> = {};
+    hand.forEach(p => {
+      const sfen = PIECE_TO_SFEN[p] || 'P';
+      const key = isOpponent ? sfen.toLowerCase() : sfen;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    
+    return Object.entries(counts)
+      .map(([piece, count]) => count > 1 ? `${count}${piece}` : piece)
+      .join('');
+  };
+  
+  const senteHandStr = formatHand(senteHand, false);
+  const goteHandStr = formatHand(goteHand, true);
+  const handStr = senteHandStr + goteHandStr || '-';
+  
+  // Move count (ply)
+  const plyCount = moveCount + 1;
+  
+  return `${boardStr} ${turnStr} ${handStr} ${plyCount}`;
+}
+
 // ============================================================
 // API EXPORT HELPER FOR EXTERNAL AI INTEGRATION
 // ============================================================
@@ -36,6 +138,7 @@ export function cn(...inputs: ClassValue[]) {
 // ============================================================
 
 export interface APIGameState {
+  sfen: string;
   lastMove: {
     from: { row: number; col: number } | null;
     to: { row: number; col: number };
@@ -43,11 +146,8 @@ export interface APIGameState {
     promoted: boolean;
     captured: string | null;
     isDrop: boolean;
+    usi: string;
   } | null;
-  board: {
-    piece: string | null;
-    isOpponent: boolean;
-  }[][];
   clock: {
     senteTime: number;
     goteTime: number;
@@ -62,7 +162,7 @@ export interface APIGameState {
 }
 
 /**
- * Extract API-ready game state for external AI integration
+ * Extract API-ready game state for external AI integration (SFEN format)
  * @param board - 9x9 Shogi board array
  * @param lastMove - Last move information
  * @param senteTime - Sente remaining time in seconds
@@ -71,7 +171,9 @@ export interface APIGameState {
  * @param goteByoyomi - Whether Gote is in byoyomi
  * @param moveCount - Current move number
  * @param currentTurn - Current player turn
- * @returns Clean JSON object ready for API transmission
+ * @param senteHand - Sente captured pieces
+ * @param goteHand - Gote captured pieces
+ * @returns SFEN-compressed JSON object ready for API transmission
  */
 export function getAPIGameState(
   board: CellData[][],
@@ -81,27 +183,25 @@ export function getAPIGameState(
   senteByoyomi: boolean,
   goteByoyomi: boolean,
   moveCount: number,
-  currentTurn: "sente" | "gote"
+  currentTurn: "sente" | "gote",
+  senteHand: string[],
+  goteHand: string[]
 ): APIGameState {
   try {
-    // Deep clone board to ensure clean JSON (remove any non-serializable refs)
-    const cleanBoard = board.map(row =>
-      row.map(cell => ({
-        piece: cell.piece,
-        isOpponent: cell.isOpponent
-      }))
-    );
+    // Generate SFEN string (compressed board representation)
+    const sfen = generateSFEN(board, currentTurn, senteHand, goteHand, moveCount);
 
     const apiState: APIGameState = {
+      sfen,
       lastMove: lastMove ? {
         from: lastMove.from,
         to: lastMove.to,
         piece: lastMove.piece,
         promoted: lastMove.promoted,
         captured: lastMove.captured,
-        isDrop: lastMove.isDrop
+        isDrop: lastMove.isDrop,
+        usi: generateUSIMove(lastMove.from, lastMove.to, lastMove.piece, lastMove.promoted, lastMove.isDrop)
       } : null,
-      board: cleanBoard,
       clock: {
         senteTime,
         goteTime,
