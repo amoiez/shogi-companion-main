@@ -253,12 +253,50 @@ const PlayerPanel = ({
 }: PlayerPanelProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Set up video stream
+  // Set up video stream with explicit play() call
   useEffect(() => {
-    if (videoRef.current && videoStream) {
-      videoRef.current.srcObject = videoStream;
+    const videoElement = videoRef.current;
+    if (videoElement && videoStream) {
+      console.log('[PlayerPanel] Setting up video/audio stream, isOpponent:', isOpponent);
+      
+      // Set the stream
+      videoElement.srcObject = videoStream;
+      
+      // Explicitly play to ensure audio works (autoPlay can be blocked)
+      const playPromise = videoElement.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('[PlayerPanel] Video/audio playback started successfully, isOpponent:', isOpponent);
+          })
+          .catch((error) => {
+            console.error('[PlayerPanel] Failed to start video/audio playback:', error);
+            // On mobile/iPad, playback might require user interaction
+            // Try again on next user interaction
+            const handleInteraction = () => {
+              videoElement.play()
+                .then(() => {
+                  console.log('[PlayerPanel] Video/audio started after user interaction');
+                  document.removeEventListener('click', handleInteraction);
+                  document.removeEventListener('touchstart', handleInteraction);
+                })
+                .catch(err => console.error('[PlayerPanel] Still failed after interaction:', err));
+            };
+            
+            document.addEventListener('click', handleInteraction, { once: true });
+            document.addEventListener('touchstart', handleInteraction, { once: true });
+          });
+      }
     }
-  }, [videoStream]);
+    
+    // Cleanup
+    return () => {
+      if (videoElement) {
+        videoElement.srcObject = null;
+      }
+    };
+  }, [videoStream, isOpponent]);
 
   // Handle hand piece click for tap-to-move
   const handleHandPieceClick = (piece: string, index: number) => {
