@@ -464,9 +464,9 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
   const [gotePercent, setGotePercent] = useState(50);
   const [dragSource, setDragSource] = useState<DragSource | null>(null);
   
-  // Timer: 2 minutes + 60 second byoyomi (TESTING MODE - change back to 20 * 60 for production)
+  // Timer: 20 minutes + 60 second byoyomi (PRODUCTION MODE)
   // DISABLED IN SOLO MODE
-  const INITIAL_TIME = 2 * 60;
+  const INITIAL_TIME = 20 * 60;
   const BYOYOMI_TIME = 60;
   
   const [senteTime, setSenteTime] = useState(INITIAL_TIME);

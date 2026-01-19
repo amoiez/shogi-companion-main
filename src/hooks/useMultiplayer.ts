@@ -283,6 +283,29 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         // Send a READY message to confirm connection
         conn.send({ type: 'READY' });
         console.log('[HOST] Sent READY message to guest');
+        
+        // ============================================================
+        // CRITICAL FIX: Host must also call guest to send video
+        // ============================================================
+        if (stream && peer) {
+          console.log('[HOST] Initiating VIDEO call to guest:', conn.peer);
+          const hostCall = peer.call(conn.peer, stream);
+          if (hostCall) {
+            hostCall.on('stream', (remoteMediaStream) => {
+              console.log('[HOST] Received guest VIDEO stream from outgoing call');
+              setRemoteStream(remoteMediaStream);
+            });
+            hostCall.on('error', (err) => {
+              console.error('[HOST] Outgoing media call error:', err);
+            });
+            // Store the call reference
+            if (!mediaConnectionRef.current) {
+              mediaConnectionRef.current = hostCall;
+            }
+          } else {
+            console.warn('[HOST] Failed to create outgoing media call to guest');
+          }
+        }
       });
     });
     
@@ -372,7 +395,7 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         const call = peer.call(formattedId, stream);
         if (call) {
           call.on('stream', (remoteMediaStream) => {
-            console.log('[GUEST] Received host VIDEO stream');
+            console.log('[GUEST] Received host VIDEO stream from outgoing call');
             setRemoteStream(remoteMediaStream);
           });
           call.on('error', (err) => {
@@ -382,6 +405,19 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         } else {
           console.warn('[GUEST] Failed to create media call');
         }
+      }
+    });
+    
+    // ============================================================
+    // CRITICAL FIX: Guest must also listen for incoming calls from host
+    // ============================================================
+    peer.on('call', (call) => {
+      console.log('[GUEST] Incoming VIDEO call from host');
+      if (stream) {
+        console.log('[GUEST] Answering host call with local stream');
+        setupMediaConnection(call, stream);
+      } else {
+        console.warn('[GUEST] No local stream to answer with');
       }
     });
     

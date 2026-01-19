@@ -253,14 +253,19 @@ const Index = () => {
 
   // Wrap handleDrop to also send move to peer
   const handleDropWithSync = useCallback((row: number, col: number) => {
-    // SOLO MODE: No turn restrictions, allow any move
+    // ============================================================
+    // MODE SEPARATION: Solo vs Multiplayer
+    // ============================================================
     if (gameMode === 'solo') {
+      // SOLO MODE: No turn restrictions, allow any move
       handleDrop(row, col);
       return;
     }
     
-    // ONLINE MODE: Check turn restrictions
-    // Don't allow moves when not connected but in multiplayer mode, or when not your turn
+    // ============================================================
+    // MULTIPLAYER MODE: Strict turn enforcement (RESTORED)
+    // ============================================================
+    // Don't allow moves when not your turn
     if (role && !isMyTurn) {
       console.log('[Sync] Not your turn!');
       return;
@@ -536,8 +541,16 @@ const Index = () => {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
-              isMyTurn={gameMode === 'solo' ? true : (isMyTurn && !isGameOver)}
-              isGotePlayer={gameMode === 'solo' ? false : (role === 'guest')}
+              isMyTurn={
+                gameMode === 'solo' 
+                  ? true 
+                  : (isMyTurn && !isGameOver)
+              }
+              isGotePlayer={
+                gameMode === 'solo' 
+                  ? false 
+                  : (role === 'guest')
+              }
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               rotateBoard={
@@ -565,7 +578,11 @@ const Index = () => {
               onDrop={handleDropWithSync}
               videoStream={selfStream}
               isMyTurn={gameCurrentTurn === 'sente'}
-              canDrag={gameMode === 'solo' ? !isGameOver : (isMyTurn && role !== 'guest' && !isGameOver)}
+              canDrag={
+                gameMode === 'solo' 
+                  ? !isGameOver 
+                  : (isMyTurn && role !== 'guest' && !isGameOver)
+              }
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}
@@ -584,7 +601,11 @@ const Index = () => {
               onDrop={handleDropWithSync}
               videoStream={opponentStream}
               isMyTurn={gameCurrentTurn === 'gote'}
-              canDrag={gameMode === 'solo' ? !isGameOver : (isMyTurn && role === 'guest' && !isGameOver)}
+              canDrag={
+                gameMode === 'solo' 
+                  ? !isGameOver 
+                  : (isMyTurn && role === 'guest' && !isGameOver)
+              }
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}

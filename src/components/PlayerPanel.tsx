@@ -625,7 +625,7 @@ const PlayerPanel = ({
                     dragSource={dragSource}
                     onDragStart={onDragStart}
                     onDragEnd={onDragEnd}
-                    canDrag={canDrag && !isOpponent}
+                    canDrag={canDrag}
                     isSelected={isThisSelected}
                     onPieceClick={() => handleHandPieceClick(piece, index)}
                   />
