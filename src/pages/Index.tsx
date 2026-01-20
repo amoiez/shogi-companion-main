@@ -460,7 +460,7 @@ const Index = () => {
   }, [shouldFlipLayout, updateSafeZones]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden tatami-background" onClick={handleFirstInteraction}>
+    <div className="game-container" onClick={handleFirstInteraction}>
       {/* Top Header - Situation Assessment Bar - flipped based on perspective */}
       <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} isFlipped={shouldFlipLayout} />
       
@@ -488,20 +488,10 @@ const Index = () => {
         />
       )}
       
-      {/* Main Game Area - TV Broadcast 3-Column Layout (Tight Proximity) */}
-      {/* Layout based on player perspective (not turn-based for players) */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="min-w-[1280px] h-full flex flex-row items-start justify-center gap-x-[40px] xl:gap-x-[80px] px-4 pb-4 pt-2 relative">
-        
-        {/* Left Column - Opponent for current player, or follows turn for spectators */}
-        <div 
-          ref={leftColumnRef} 
-          className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]"
-          style={{
-            paddingBottom: 'clamp(14px, 3vh, 28px)',
-            height: '100%',
-          }}
-        >
+      {/* Main Game Grid - 2 Rows × 3 Columns */}
+      <div className="game-grid">
+        {/* Row 1, Col 1: Left Player Panel */}
+        <div ref={leftColumnRef} className="grid-cell player-cell">
           {!shouldFlipLayout ? (
             <PlayerPanel 
               label="後手" 
@@ -544,14 +534,9 @@ const Index = () => {
           )}
         </div>
         
-        {/* Center Column - The Board (75vh Height, Perfect Square) */}
-        {/* PERSPECTIVE RULES:
-            - Host (Sente/Creator): Board stays static, their pieces at bottom (rotateBoard=false)
-            - Guest (Gote/Subscriber): Board rotated 180° permanently, their pieces at bottom (rotateBoard=true)
-            - Spectator (no role): Auto-flip based on current turn (follows active player)
-        */}
-        <div id="board-container" className="flex-shrink-0 flex items-start justify-center pt-[2vh] relative">
-          <div ref={boardRef} className="h-[75vh] aspect-square">
+        {/* Row 1, Col 2: Shogi Board (Center) */}
+        <div className="grid-cell board-cell">
+          <div ref={boardRef} className="board-wrapper">
             <ShogiBoard 
               board={board}
               dragSource={dragSource}
@@ -571,25 +556,18 @@ const Index = () => {
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               rotateBoard={
-                gameMode === 'solo' ? false :       // SOLO MODE: Board NEVER rotates
-                role === 'host' ? false :           // Sente always sees their pieces at bottom
-                role === 'guest' ? true :           // Gote always sees their pieces at bottom (rotated)
-                gameCurrentTurn === 'gote'          // Spectators follow active player
+                gameMode === 'solo' ? false :
+                role === 'host' ? false :
+                role === 'guest' ? true :
+                gameCurrentTurn === 'gote'
               }
               gameMode={gameMode}
             />
           </div>
         </div>
         
-        {/* Right Column - Current player's side, or follows turn for spectators */}
-        <div 
-          ref={rightColumnRef} 
-          className="flex-shrink-0 flex flex-col items-center justify-start pt-[2vh]"
-          style={{
-            paddingBottom: 'clamp(14px, 3vh, 28px)',
-            height: '100%',
-          }}
-        >
+        {/* Row 1, Col 3: Right Player Panel */}
+        <div ref={rightColumnRef} className="grid-cell player-cell">
           {!shouldFlipLayout ? (
             <PlayerPanel 
               label="先手" 
@@ -640,9 +618,17 @@ const Index = () => {
           )}
         </div>
         
+        {/* Row 2, Col 2: AI Assistant (below the board) */}
+        <div className="grid-cell ai-cell">
+          <AIAssistant 
+            message={aiWarningMessage || aiMessage} 
+            safeZones={safeZones}
+          />
+        </div>
+        
         {/* Game Over Overlay */}
         {isGameOver && (
-          <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="game-over-overlay">
             <div className="bg-amber-100 rounded-2xl p-8 shadow-2xl text-center">
               <h2 className="text-3xl font-bold text-amber-900 mb-4">対局終了</h2>
               <p className="text-xl text-amber-800 mb-6">{gameOverReason}</p>
@@ -655,21 +641,6 @@ const Index = () => {
             </div>
           </div>
         )}
-        </div>
-      </div>
-      
-      {/* AI Assistant - Fixed position at bottom-left, collision-aware */}
-      <div 
-        className="fixed z-20"
-        style={{
-          left: '24px',
-          bottom: '24px',
-        }}
-      >
-        <AIAssistant 
-          message={aiWarningMessage || aiMessage} 
-          safeZones={safeZones}
-        />
       </div>
       
       {/* Promotion Dialog */}
