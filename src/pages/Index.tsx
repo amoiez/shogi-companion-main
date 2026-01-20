@@ -373,10 +373,12 @@ const Index = () => {
   const selfStream = role ? localStream : null;
   
   // PERSPECTIVE RULES for layout:
+  // - Solo Mode: LOCKED - Gote always on left, Sente always on right (NO SWAPPING)
   // - Host (Sente): Static view, Gote on left, Sente on right (their pieces at board bottom)
   // - Guest (Gote): Static view, Sente on left, Gote on right (board rotated, their pieces at bottom)
   // - Spectator: Auto-flip based on current turn
   const shouldFlipLayout = 
+    gameMode === 'solo' ? false :          // SOLO MODE FIX: Lock layout - NEVER flip portraits
     role === 'host' ? false :              // Host always sees Gote left, Sente right
     role === 'guest' ? true :              // Guest always sees Sente left, Gote right (with rotated board)
     gameCurrentTurn === 'gote';            // Spectators follow active player
