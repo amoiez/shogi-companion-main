@@ -13,6 +13,7 @@ interface SelectedSource {
 }
 
 // Mapping from Japanese piece characters to image filenames (captured pieces are always demoted)
+// CRITICAL: Kings ('王' and '玉') do NOT demote - they remain as-is if captured
 const HAND_PIECE_IMAGE_MAP: Record<string, { sente: string; gote: string }> = {
   '歩': { sente: 'sente_pawn.png', gote: 'gote_pawn.png' },
   '香': { sente: 'sente_lance.png', gote: 'gote_lance.png' },
@@ -21,6 +22,9 @@ const HAND_PIECE_IMAGE_MAP: Record<string, { sente: string; gote: string }> = {
   '金': { sente: 'sente_gold.png', gote: 'gote_gold.png' },
   '角': { sente: 'sente_bishop.png', gote: 'gote_bishop.png' },
   '飛': { sente: 'sente_rook.png', gote: 'gote_rook.png' },
+  // King pieces (rare to capture, but must be rendered correctly)
+  '王': { sente: 'sente_king.png', gote: 'gote_king.png' },
+  '玉': { sente: 'sente_king_jewel.png', gote: 'gote_king_jewel.png' },
 };
 
 // Get hand piece image path
