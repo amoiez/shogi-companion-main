@@ -335,7 +335,8 @@ const Index = () => {
         moveCount,
         gameCurrentTurn,
         senteHand,
-        goteHand
+        goteHand,
+        usiHistory // Pass USI history for API Rev 0.3
       );
       
       console.log('[API Export] Game state prepared:', apiState);
@@ -352,7 +353,7 @@ const Index = () => {
       
       return null;
     }
-  }, [board, lastMove, senteTime, goteTime, senteByoyomi, goteByoyomi, moveCount, gameCurrentTurn, senteHand, goteHand, toast]);
+  }, [board, lastMove, senteTime, goteTime, senteByoyomi, goteByoyomi, moveCount, gameCurrentTurn, senteHand, goteHand, usiHistory, toast]);
 
   // Example: Export API state after each move (optional - can be triggered on demand)
   useEffect(() => {

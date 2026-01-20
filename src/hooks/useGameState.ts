@@ -757,10 +757,12 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     const usiMove = generateUSIMove(from, to, piece, shouldPromote, isDrop);
     
     // Update last move metadata
+    // API Rev 0.3: Store ORIGINAL piece type (e.g., '歩'), not promoted (e.g., 'と')
+    // The 'promoted' boolean separately indicates if promotion occurred
     const newLastMove: LastMove = {
       from,
       to,
-      piece: finalPiece,
+      piece: piece, // CRITICAL: Store original piece, not finalPiece
       promoted: shouldPromote,
       captured: capturedPiece,
       isDrop,
