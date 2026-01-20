@@ -188,7 +188,11 @@ const BoardCell = ({ cell, row, col, dragSource, onDragStart, onDragEnd, onDrop,
   // - Host (Sente): can only drag pieces where isOpponent === false
   // - Guest (Gote): can only drag pieces where isOpponent === true
   // 
-  // SOLO MODE: Can drag ANY piece regardless of isOpponent
+  // SOLO MODE CRITICAL FIX: Can drag ANY piece regardless of isOpponent
+  // - isMyPiece is ALWAYS true in solo mode
+  // - This allows controlling both Sente and Gote pieces
+  // - Turn alternation still occurs, but doesn't restrict piece selection
+  // - Captures work for both sides (Gote can capture Sente and vice versa)
   // 
   // WHY: isOpponent is an ABSOLUTE property (not relative to viewer)
   // - isOpponent=false → Sente piece (belongs to host)
@@ -411,17 +415,27 @@ const ShogiBoard = ({
 
   // Handle cell click for tap-to-move
   const handleCellClick = (row: number, col: number, cell: CellData) => {
-    // Determine if this cell has my piece
-    const isMyPiece = isGotePlayer ? cell.isOpponent : !cell.isOpponent;
+    // ============================================================
+    // PIECE OWNERSHIP CHECK - SOLO MODE FIX
+    // ============================================================
+    // ONLINE MODE: Determine ownership based on player role
+    // - isGotePlayer=true → my pieces have isOpponent=true
+    // - isGotePlayer=false → my pieces have isOpponent=false
+    //
+    // SOLO MODE CRITICAL FIX: Determine ownership based on SELECTED piece
+    // - When a piece is selected, compare target piece's isOpponent flag
+    // - Same isOpponent flag → friendly piece (switch selection)
+    // - Different isOpponent flag → enemy piece (capture!)
+    // - No selection → any piece can be selected
+    // ============================================================
     const hasPiece = cell.piece !== null;
-
-    // ✅ FIX: row/col are already LOGICAL coordinates (no translation needed)
     const logicalRow = row;
     const logicalCol = col;
 
-    console.log('[Tap] Cell clicked at logical:', { row, col, piece: cell.piece, isMyPiece, isMyTurn, selectedSource });
+    console.log('[Tap] Cell clicked at logical:', { row, col, piece: cell.piece, hasPiece, isMyTurn, selectedSource, gameMode });
 
-    // If it's not my turn, do nothing
+    // TURN VALIDATION: In online mode, prevent moves when not your turn
+    // SOLO MODE: isMyTurn is always true, so this check never blocks
     if (!isMyTurn) {
       console.log('[Tap] Not my turn, ignoring click');
       return;
@@ -429,16 +443,22 @@ const ShogiBoard = ({
 
     // CASE 1: No piece selected yet
     if (!selectedSource) {
-      // If clicking on my own piece, select it (store LOGICAL coords)
-      if (hasPiece && isMyPiece) {
-        console.log('[Tap] Selecting piece:', cell.piece, 'at logical:', logicalRow, logicalCol);
-        setSelectedSource({
-          type: 'board',
-          row: logicalRow,
-          col: logicalCol,
-          piece: cell.piece!,
-          isOpponent: cell.isOpponent,
-        });
+      // In Solo Mode: ANY piece can be selected
+      // In Online Mode: Only "my" pieces can be selected
+      if (hasPiece) {
+        const canSelect = gameMode === 'solo' ? true : (isGotePlayer ? cell.isOpponent : !cell.isOpponent);
+        if (canSelect) {
+          console.log('[Tap] Selecting piece:', cell.piece, 'at logical:', logicalRow, logicalCol);
+          setSelectedSource({
+            type: 'board',
+            row: logicalRow,
+            col: logicalCol,
+            piece: cell.piece!,
+            isOpponent: cell.isOpponent,
+          });
+        } else {
+          console.log('[Tap] Cannot select opponent piece in online mode');
+        }
       }
       return;
     }
@@ -456,21 +476,33 @@ const ShogiBoard = ({
       return;
     }
 
-    // If clicking on another of my pieces, switch selection
-    if (hasPiece && isMyPiece) {
-      console.log('[Tap] Switching selection to:', cell.piece, 'at logical:', logicalRow, logicalCol);
-      setSelectedSource({
-        type: 'board',
-        row: logicalRow,
-        col: logicalCol,
-        piece: cell.piece!,
-        isOpponent: cell.isOpponent,
-      });
-      return;
+    // CAPTURE VALIDATION: Check if clicking on friendly vs enemy piece
+    if (hasPiece) {
+      // CRITICAL FIX: In Solo Mode, determine friendly/enemy based on SELECTED piece
+      // In Online Mode, determine based on player role
+      const isFriendlyPiece = gameMode === 'solo' 
+        ? (cell.isOpponent === selectedSource.isOpponent) // Same side = friendly
+        : (isGotePlayer ? cell.isOpponent : !cell.isOpponent); // Based on player role
+
+      if (isFriendlyPiece) {
+        // Clicking on friendly piece → switch selection
+        console.log('[Tap] Switching selection to friendly piece:', cell.piece, 'at logical:', logicalRow, logicalCol);
+        setSelectedSource({
+          type: 'board',
+          row: logicalRow,
+          col: logicalCol,
+          piece: cell.piece!,
+          isOpponent: cell.isOpponent,
+        });
+        return;
+      } else {
+        // Clicking on enemy piece → attempt capture
+        console.log('[Tap] Attempting capture of enemy piece:', cell.piece, 'at logical:', logicalRow, logicalCol);
+      }
     }
 
-    // Otherwise, try to move to this cell (empty or opponent piece)
-    console.log('[Tap] Moving to destination (logical):', { row: logicalRow, col: logicalCol });
+    // MOVE EXECUTION: Try to move to this cell (empty or opponent piece)
+    console.log('[Tap] Executing move to destination (logical):', { row: logicalRow, col: logicalCol });
 
     // First, set the drag source so handleDrop knows what piece to move
     // selectedSource already contains LOGICAL coordinates

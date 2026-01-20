@@ -257,7 +257,11 @@ const Index = () => {
     // MODE SEPARATION: Solo vs Multiplayer
     // ============================================================
     if (gameMode === 'solo') {
-      // SOLO MODE: No turn restrictions, allow any move
+      // SOLO MODE: No turn restrictions, allow any piece to move
+      // - Player can control both Sente and Gote pieces
+      // - Captures work for both sides (mirroring multiplayer logic)
+      // - Turn still alternates for SFEN/USI export consistency
+      // - No validation against currentTurn (unlike multiplayer)
       handleDrop(row, col);
       // CRITICAL FIX: Clear selected source to remove highlights
       setSelectedSource(null);

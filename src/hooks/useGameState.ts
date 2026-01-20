@@ -132,6 +132,11 @@ const isInBounds = (row: number, col: number): boolean => {
 };
 
 // Get legal moves for a piece on the board
+// CRITICAL: Handles BOTH Sente and Gote pieces correctly
+// - Sente (isOpponent=false): attacks UPWARD (decreasing row index, forward=-1)
+// - Gote (isOpponent=true): attacks DOWNWARD (increasing row index, forward=+1)
+// - Captures: Allowed when target.isOpponent !== isOpponent (opponent's piece)
+// - Blocks: Prevented when target.isOpponent === isOpponent (own piece)
 export const getLegalMoves = (
   board: CellData[][],
   row: number,
@@ -142,16 +147,25 @@ export const getLegalMoves = (
   const moves: { row: number; col: number }[] = [];
   
   // Direction: Sente moves up (-1), Gote moves down (+1)
+  // GOTE FIX: forward=+1 means Gote pieces attack DOWNWARD (increasing row)
   const forward = isOpponent ? 1 : -1;
   
+  // CAPTURE VALIDATION: Add move if square is empty OR contains opponent piece
+  // Blocked only if square contains own piece (target.isOpponent === isOpponent)
   const addMove = (r: number, c: number) => {
     if (!isInBounds(r, c)) return false;
     const target = board[r][c];
+    // Block move if target square has our own piece
     if (target.piece && target.isOpponent === isOpponent) return false;
+    // Allow move (empty square or opponent piece - capture!)
     moves.push({ row: r, col: c });
-    return !target.piece;
+    return !target.piece; // Continue sliding if empty
   };
   
+  // RANGED PIECE VALIDATION: Rooks, Bishops, and promoted pieces
+  // Slides in given directions until hitting a piece or board edge
+  // CAPTURE LOGIC: Can capture opponent piece (target.isOpponent !== isOpponent)
+  // BLOCKING: Stops sliding when hitting any piece (own or opponent)
   const addSlidingMoves = (directions: [number, number][]) => {
     for (const [dr, dc] of directions) {
       for (let i = 1; i < 9; i++) {
@@ -160,11 +174,15 @@ export const getLegalMoves = (
         if (!isInBounds(r, c)) break;
         const target = board[r][c];
         if (target.piece) {
+          // Hit a piece - can we capture it?
           if (target.isOpponent !== isOpponent) {
+            // Opponent piece - add as capture move
             moves.push({ row: r, col: c });
           }
+          // Stop sliding (blocked by any piece)
           break;
         }
+        // Empty square - add and continue sliding
         moves.push({ row: r, col: c });
       }
     }

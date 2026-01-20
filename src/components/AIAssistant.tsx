@@ -77,7 +77,8 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
           <img 
             src="/images/ai-assistant.gif" 
             alt="AIアシスタント" 
-            className="w-full h-full object-contain"
+            className="w-full h-full object-cover"
+            style={{ objectPosition: 'center' }}
           />
         </div>
         {/* Ambient glow effect */}
