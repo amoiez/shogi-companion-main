@@ -515,7 +515,6 @@ const Index = () => {
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}
-              rotateHand={true}
               playerName="鈴木一郎"
               playerRank="初段"
             />
@@ -618,7 +617,6 @@ const Index = () => {
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               fullColumn={true}
-              rotateHand={true}
               playerName="鈴木一郎"
               playerRank="初段"
             />

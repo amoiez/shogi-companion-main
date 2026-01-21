@@ -103,11 +103,18 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
     <div
       className={`
         hand-piece
-        relative w-12 h-14 lg:w-14 lg:h-16 xl:w-16 xl:h-18 flex items-center justify-center
+        relative flex items-center justify-center
         ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default opacity-70'}
-        ${isSelected ? 'ring-3 ring-yellow-500 rounded-md shadow-xl scale-115' : ''}
-        transition-all duration-150 p-1
+        ${isSelected ? 'ring-2 ring-yellow-500 rounded-md shadow-lg' : ''}
+        transition-all duration-150
       `}
+      style={{
+        width: '100%',
+        height: '100%',
+        maxWidth: '100%',
+        maxHeight: '100%',
+        padding: '5%',
+      }}
       onPointerDown={canDrag ? handlePointerDown : undefined}
       onClick={onPieceClick}
     >
@@ -152,9 +159,9 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
           </span>
         </div>
       )}
-      {/* Count badge for grouped pieces - ENLARGED for accessibility (elderly users) */}
+      {/* Count badge for grouped pieces - CONTAINED within cell boundaries */}
       {count && count > 1 && (
-        <div className="absolute -bottom-1 -right-1 bg-red-600 text-white text-base lg:text-lg font-bold rounded-full w-7 h-7 lg:w-8 lg:h-8 flex items-center justify-center shadow-lg z-20 border-2 border-white">
+        <div className="absolute bottom-0 right-0 bg-red-600 text-white text-xs lg:text-sm font-bold rounded-full w-5 h-5 lg:w-6 lg:h-6 flex items-center justify-center shadow-lg z-20 border border-white" style={{ transform: 'translate(10%, 10%)' }}>
           {count}
         </div>
       )}
@@ -350,18 +357,10 @@ const PlayerPanel = ({
   if (fullColumn) {
     return (
       <div className="flex flex-col items-center gap-4 w-[264px] lg:w-[316px] xl:w-[352px]">
-        {/* Timer with label - using game-clock.png background */}
+        {/* Timer with wooden clock frame */}
         <div className="flex flex-col items-center gap-2">
-          <div className={`text-base lg:text-lg xl:text-xl font-bold drop-shadow-md ${isMyTurn ? 'text-amber-600' : 'text-muted-foreground'}`}>
-            {label} {isMyTurn && <span className="text-sm lg:text-base">(考え中)</span>}
-          </div>
           <div 
-            className={`
-              relative rounded-xl shadow-xl transition-all duration-300
-              w-40 h-20 lg:w-48 lg:h-24 xl:w-56 xl:h-28
-              flex items-center justify-center
-              ${isMyTurn ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-transparent' : 'opacity-80'}
-            `}
+            className="relative rounded-xl shadow-xl transition-all duration-300 w-40 h-20 lg:w-48 lg:h-24 xl:w-56 xl:h-28 flex items-center justify-center"
             style={{
               backgroundImage: 'url(/images/game-clock.png)',
               backgroundSize: 'contain',
@@ -423,110 +422,119 @@ const PlayerPanel = ({
           />
         )}
         
-        {/* Captured Pieces (Hand/Komadai) - LARGER for iPad Pro with grouped display */}
+        {/* Captured Pieces (Hand/Komadai) - 4 columns, dynamic vertical expansion */}
         <div className="w-full flex flex-col items-center">
-          <div className="text-sm lg:text-base xl:text-lg text-muted-foreground text-center mb-2 font-medium">
-            {isOpponent ? '後手の持ち駒' : '先手の持ち駒'}
-          </div>
           <div 
-            className={`
+            className="
               p-3 lg:p-4 rounded-xl
               komadai-wood
               border-3 border-amber-800/50
               shadow-xl
-              flex justify-center
-              ${rotateHand ? 'rotate-180' : ''}
-            `}
+            "
             style={{
-              width: 'clamp(130px, 14vw, 180px)',
-              minHeight: 'clamp(90px, 10vh, 140px)',
+              width: 'clamp(230px, 20vw, 310px)',
+              height: 'auto',
+              minHeight: 'clamp(140px, 16vh, 180px)',
+              paddingBottom: 'clamp(12px, 1.8vh, 18px)',
+              paddingRight: 'clamp(20px, 2.8vh, 28px)',
+              overflow: 'hidden',
             }}
           >
-            {hand.length === 0 ? (
-              <div className={`text-sm lg:text-base xl:text-lg text-amber-700/50 text-center py-3 ${rotateHand ? 'rotate-180' : ''}`}>
-                なし
-              </div>
-            ) : (
-              <div 
-                className="grid grid-cols-2 justify-center"
-                style={{
-                  gap: 'clamp(6px, 1vh, 10px)',
-                }}
-              >
-                {groupedHandArray.map(({ piece, count, index }) => {
-                  const isThisSelected = selectedSource?.type === 'hand' && 
-                    selectedSource?.piece === piece && 
-                    selectedSource?.isOpponent === isOpponent;
-                  
-                  return (
+            {/* Dynamic grid: 3 columns (fixed width), auto rows (vertical expansion) */}
+            {/* Fills from TOP-LEFT to RIGHT, then wraps to next row */}
+            <div 
+              className="grid w-full"
+              style={{
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridAutoRows: 'minmax(clamp(50px, 7vh, 80px), auto)',
+                gap: '3px',
+                height: 'auto',
+              }}
+            >
+              {/* Render grouped pieces sequentially from top-left */}
+              {groupedHandArray.map((group) => {
+                const isThisSelected = selectedSource?.type === 'hand' && 
+                  selectedSource?.piece === group.piece && 
+                  selectedSource?.isOpponent === isOpponent;
+                
+                return (
+                  <div key={`${group.piece}-${group.index}`} className="relative w-full" style={{ aspectRatio: '1/1' }}>
                     <HandPiece
-                      key={`${piece}-grouped`}
-                      piece={piece}
-                      index={index}
+                      piece={group.piece}
+                      index={group.index}
                       isOpponent={isOpponent}
                       dragSource={dragSource}
                       onDragStart={onDragStart}
                       onDragEnd={onDragEnd}
                       canDrag={canDrag}
                       isSelected={isThisSelected}
-                      onPieceClick={() => handleHandPieceClick(piece, index)}
-                      count={count}
+                      onPieceClick={() => handleHandPieceClick(group.piece, group.index)}
+                      count={group.count}
                     />
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Hand-only mode: just show the komadai with grouped pieces
+  // Hand-only mode: 4x2 grid komadai
   if (handOnly) {
     return (
-      <div className="w-full max-w-[280px] lg:max-w-[320px]">
-        <div className="text-sm text-muted-foreground text-center mb-2 font-medium">
-          {isOpponent ? '後手の持ち駒' : '先手の持ち駒'}
-        </div>
+      <div className="w-full max-w-[335px] lg:max-w-[400px]">
         <div 
-          className={`
-            min-h-[80px] p-3 rounded-lg
+          className="
+            p-3 rounded-lg
             komadai-wood
             border-2 border-amber-800/40
             shadow-lg
-            ${rotateHand ? 'rotate-180' : ''}
-          `}
+          "
+          style={{
+            height: 'auto',
+            minHeight: 'clamp(140px, 16vh, 180px)',
+            paddingBottom: 'clamp(10px, 1.5vh, 16px)',
+            paddingRight: 'clamp(20px, 2.8vh, 28px)',
+            overflow: 'hidden',
+          }}
         >
-          {hand.length === 0 ? (
-            <div className="text-sm text-amber-700/50 text-center py-3">
-              なし
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2 justify-center">
-              {groupedHandArray.map(({ piece, count, index }) => {
-                const isThisSelected = selectedSource?.type === 'hand' && 
-                  selectedSource?.piece === piece && 
-                  selectedSource?.isOpponent === isOpponent;
-                
-                return (
+          {/* Dynamic grid: 3 columns (fixed width), auto rows (vertical expansion) */}
+          {/* Fills from TOP-LEFT to RIGHT, then wraps to next row */}
+          <div 
+            className="grid w-full"
+            style={{
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridAutoRows: 'minmax(clamp(50px, 7vh, 80px), auto)',
+              gap: '3px',
+              height: 'auto',
+            }}
+          >
+            {/* Render grouped pieces sequentially from top-left */}
+            {groupedHandArray.map((group) => {
+              const isThisSelected = selectedSource?.type === 'hand' && 
+                selectedSource?.piece === group.piece && 
+                selectedSource?.isOpponent === isOpponent;
+              
+              return (
+                <div key={`${group.piece}-${group.index}`} className="relative w-full" style={{ aspectRatio: '1/1' }}>
                   <HandPiece
-                    key={`${piece}-grouped`}
-                    piece={piece}
-                    index={index}
+                    piece={group.piece}
+                    index={group.index}
                     isOpponent={isOpponent}
                     dragSource={dragSource}
                     onDragStart={onDragStart}
                     onDragEnd={onDragEnd}
                     canDrag={canDrag}
                     isSelected={isThisSelected}
-                    onPieceClick={() => handleHandPieceClick(piece, index)}
-                    count={count}
+                    onPieceClick={() => handleHandPieceClick(group.piece, group.index)}
+                    count={group.count}
                   />
-                );
-              })}
-            </div>
-          )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -536,18 +544,9 @@ const PlayerPanel = ({
   if (videoOnly) {
     return (
       <div className="flex flex-col items-center gap-4">
-        {/* Time label with turn indicator */}
-        <div className={`text-lg font-medium drop-shadow-sm ${isMyTurn ? 'text-amber-600' : 'text-muted-foreground'}`}>
-          {label} {isMyTurn && <span className="text-xs">(考え中)</span>}
-        </div>
-        
-        {/* Digital clock display */}
+        {/* Digital clock display with wooden frame */}
         <div 
-          className={`
-            relative rounded-xl shadow-xl transition-all duration-300
-            w-40 h-20 flex items-center justify-center
-            ${isMyTurn ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent' : 'opacity-75'}
-          `}
+          className="relative rounded-xl shadow-xl transition-all duration-300 w-40 h-20 flex items-center justify-center"
           style={{
             backgroundImage: 'url(/images/game-clock.png)',
             backgroundSize: 'contain',
@@ -604,18 +603,9 @@ const PlayerPanel = ({
   // Full mode (legacy - not used in new layout)
   return (
     <div className="flex flex-col items-center gap-4 p-4">
-      {/* Time label with turn indicator */}
-      <div className={`text-lg font-medium drop-shadow-sm ${isMyTurn ? 'text-amber-600' : 'text-muted-foreground'}`}>
-        {label} {isMyTurn && <span className="text-xs">(考え中)</span>}
-      </div>
-      
-      {/* Digital clock display with beveled effect - highlight active turn */}
+      {/* Digital clock display with beveled effect */}
       <div 
-        className={`
-          relative rounded-xl shadow-xl transition-all duration-300
-          w-40 h-20 flex items-center justify-center
-          ${isMyTurn ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent' : 'opacity-75'}
-        `}
+        className="relative rounded-xl shadow-xl transition-all duration-300 w-40 h-20 flex items-center justify-center"
         style={{
           backgroundImage: 'url(/images/game-clock.png)',
           backgroundSize: 'contain',
@@ -666,47 +656,58 @@ const PlayerPanel = ({
         )}
       </div>
 
-      {/* Komadai (Piece Stand) */}
-      <div className="w-full max-w-[280px] lg:max-w-[320px]">
-        <div className="text-sm text-muted-foreground text-center mb-2 font-medium">
-          {isOpponent ? '後手の持ち駒' : '先手の持ち駒'}
-        </div>
+      {/* Komadai (Piece Stand) - 3 columns, dynamic rows */}
+      <div className="w-full max-w-[335px] lg:max-w-[400px]">
         <div 
           className="
-            min-h-[80px] p-3 rounded-lg
+            p-3 rounded-lg
             komadai-wood
             border-2 border-amber-800/40
             shadow-lg
           "
+          style={{
+            height: 'auto',
+            minHeight: 'clamp(140px, 16vh, 180px)',
+            paddingBottom: 'clamp(10px, 1.5vh, 16px)',
+            paddingRight: 'clamp(20px, 2.8vh, 28px)',
+            overflow: 'hidden',
+          }}
         >
-          {hand.length === 0 ? (
-            <div className="text-sm text-amber-700/50 text-center py-3">
-              なし
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2 justify-center">
-              {hand.map((piece, index) => {
-                const isThisSelected = selectedSource?.type === 'hand' && 
-                  selectedSource?.handIndex === index && 
-                  selectedSource?.isOpponent === isOpponent;
-                
-                return (
+          {/* Dynamic grid: 3 columns (fixed width), auto rows (vertical expansion) */}
+          {/* Fills from TOP-LEFT to RIGHT, then wraps to next row */}
+          <div 
+            className="grid w-full"
+            style={{
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridAutoRows: 'minmax(clamp(50px, 7vh, 80px), auto)',
+              gap: '3px',
+              height: 'auto',
+            }}
+          >
+            {/* Render grouped pieces sequentially from top-left */}
+            {groupedHandArray.map((group) => {
+              const isThisSelected = selectedSource?.type === 'hand' && 
+                selectedSource?.piece === group.piece && 
+                selectedSource?.isOpponent === isOpponent;
+              
+              return (
+                <div key={`${group.piece}-${group.index}`} className="relative w-full" style={{ aspectRatio: '1/1' }}>
                   <HandPiece
-                    key={`${piece}-${index}`}
-                    piece={piece}
-                    index={index}
+                    piece={group.piece}
+                    index={group.index}
                     isOpponent={isOpponent}
                     dragSource={dragSource}
                     onDragStart={onDragStart}
                     onDragEnd={onDragEnd}
                     canDrag={canDrag}
                     isSelected={isThisSelected}
-                    onPieceClick={() => handleHandPieceClick(piece, index)}
+                    onPieceClick={() => handleHandPieceClick(group.piece, group.index)}
+                    count={group.count}
                   />
-                );
-              })}
-            </div>
-          )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

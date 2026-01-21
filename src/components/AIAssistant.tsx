@@ -24,13 +24,15 @@ interface AIAssistantProps {
 
 // ============================================================================
 // CONSTANTS - Optimized for iPad Pro (2732 × 2048 px)
+// REFACTORED: Single-line horizontal speech bubble with dynamic width expansion
+// REPOSITIONED: Shifted left to prevent collision with widened right komadai
 // ============================================================================
 
-const ASSISTANT_SIZE = { min: 120, max: 200, vw: 14 };
-const BUBBLE_MAX_WIDTH = 300;
-const BUBBLE_MIN_WIDTH = 180;
-const BUBBLE_TAIL_SIZE = 14;
-const BUBBLE_GAP = 14; // Gap between bubble and avatar
+const ASSISTANT_SIZE = { min: 120, max: 184, vw: 12 }; // Reduced 20% from previous
+const BUBBLE_MAX_WIDTH = 440; // Maximum single-line width (prevents right collision with widened komadai)
+const BUBBLE_MIN_WIDTH = 200; // Minimum width for very short messages
+const BUBBLE_TAIL_SIZE = 14; // Proportionally reduced
+const BUBBLE_GAP = 16; // Gap between bubble and avatar
 
 // ============================================================================
 // HORIZONTAL SPEECH BUBBLE COMPONENT
@@ -61,14 +63,14 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
         width: 'fit-content',
         display: 'flex',
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-end', // Anchor to bottom
       }}
     >
-      {/* AI Assistant Avatar with Frame Effect */}
+      {/* AI Assistant Avatar - Anchored to bottom with cropped lower portion */}
       <div 
         className="relative flex-shrink-0"
         style={{
-          // Responsive sizing that works in both landscape and portrait
+          // Larger responsive sizing for iPad Pro
           width: `clamp(${ASSISTANT_SIZE.min}px, ${ASSISTANT_SIZE.vw}vw, ${ASSISTANT_SIZE.max}px)`,
           height: `clamp(${ASSISTANT_SIZE.min}px, ${ASSISTANT_SIZE.vw}vw, ${ASSISTANT_SIZE.max}px)`,
         }}
@@ -78,14 +80,17 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
             src="/images/ai-assistant.gif" 
             alt="AIアシスタント" 
             className="w-full h-full object-cover"
-            style={{ objectPosition: 'center' }}
+            style={{ 
+              objectPosition: 'center bottom', // Crop from bottom
+              objectFit: 'cover',
+            }}
           />
         </div>
         {/* Ambient glow effect */}
         <div className="absolute inset-0 rounded-full bg-amber-400/40 blur-2xl -z-10" />
       </div>
 
-      {/* Speech Bubble - Horizontally Positioned to the Right of Avatar */}
+      {/* Speech Bubble - SINGLE-LINE HORIZONTAL with dynamic width expansion */}
       {message && (
         <div 
           style={{
@@ -94,14 +99,15 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
             top: '50%',
             transform: 'translateY(-50%)',
             marginLeft: `${BUBBLE_GAP}px`,
-            width: 'max-content',
+            width: 'auto', // Dynamic: expands horizontally with single-line text
             minWidth: `${BUBBLE_MIN_WIDTH}px`,
+            maxWidth: `${BUBBLE_MAX_WIDTH}px`,
             // Fade in transition
             opacity: isVisible ? 1 : 0,
             transition: 'opacity 0.3s ease-out',
           }}
         >
-          {/* Bubble Container with Glassmorphism Effect */}
+          {/* Bubble Container with Glassmorphism Effect - SINGLE-LINE */}
           <div 
             className="relative rounded-2xl"
             style={{
@@ -110,10 +116,10 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
               WebkitBackdropFilter: 'blur(16px)',
               border: '1px solid rgba(255, 255, 255, 0.7)',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9)',
-              padding: '14px 22px',
+              padding: '16px 24px', // Reduced vertical padding for single-line
             }}
           >
-            {/* Side-Pointing Tail - Points Left Toward AI's Mouth */}
+            {/* Side-Pointing Tail - Points Left Toward AI's Mouth - LARGER */}
             <div 
               style={{
                 position: 'absolute',
@@ -132,29 +138,30 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
             <div 
               style={{
                 position: 'absolute',
-                left: `-${BUBBLE_TAIL_SIZE + 2}px`,
+                left: `-${BUBBLE_TAIL_SIZE + 3}px`,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 width: 0,
                 height: 0,
-                borderTop: `${BUBBLE_TAIL_SIZE + 2}px solid transparent`,
-                borderBottom: `${BUBBLE_TAIL_SIZE + 2}px solid transparent`,
-                borderRight: `${BUBBLE_TAIL_SIZE + 2}px solid rgba(0, 0, 0, 0.06)`,
+                borderTop: `${BUBBLE_TAIL_SIZE + 3}px solid transparent`,
+                borderBottom: `${BUBBLE_TAIL_SIZE + 3}px solid transparent`,
+                borderRight: `${BUBBLE_TAIL_SIZE + 3}px solid rgba(0, 0, 0, 0.06)`,
                 zIndex: -1,
               }}
             />
             
-            {/* Text Content - Horizontal Single Line */}
+            {/* Text Content - SINGLE-LINE with no wrapping */}
             <p 
               className="font-medium leading-relaxed text-gray-800"
               style={{
-                // Responsive font size for iPad Pro
-                fontSize: 'clamp(15px, 1.2vw, 18px)',
+                // Responsive font size for iPad Pro single-line bubble
+                fontSize: 'clamp(16px, 1.4vw, 20px)',
                 textAlign: 'left',
                 margin: 0,
-                // Force single-line horizontal text - NO WRAPPING
+                // Force single line - bubble expands horizontally instead of wrapping
                 whiteSpace: 'nowrap',
-                lineHeight: 1.6,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis', // Truncate with ... if exceeding max-width
               }}
             >
               {message}
