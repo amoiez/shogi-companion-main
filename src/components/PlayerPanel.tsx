@@ -403,7 +403,7 @@ const PlayerPanel = ({
           </div>
         </div>
         
-        {/* Video/Avatar - SIGNIFICANTLY ENLARGED for clear opponent expressions */}
+        {/* Video/Avatar - UNIFIED SIZE for balanced player illustrations */}
         <div 
           className={`
             rounded-2xl 
@@ -414,8 +414,9 @@ const PlayerPanel = ({
             flex items-center justify-center
           `}
           style={{
-            width: 'clamp(200px, 20vw, 260px)',
-            height: 'clamp(170px, 24vh, 240px)',
+            width: 'clamp(200px, 22vw, 280px)',
+            maxHeight: 'clamp(200px, 28vh, 280px)',
+            aspectRatio: '1 / 1',
           }}
         >
           {videoStream ? (
@@ -424,14 +425,14 @@ const PlayerPanel = ({
               autoPlay
               playsInline
               muted={!isOpponent}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               style={{ objectPosition: 'center' }}
             />
           ) : (
             <img 
               src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
               alt={isOpponent ? '対戦相手' : '中野さん'}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               style={{ objectPosition: 'center' }}
             />
           )}
