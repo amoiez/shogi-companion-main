@@ -27,9 +27,22 @@ const HAND_PIECE_IMAGE_MAP: Record<string, { sente: string; gote: string }> = {
   '玉': { sente: 'sente_king_jewel.png', gote: 'gote_king_jewel.png' },
 };
 
+// Normalize captured King character based on which player captured it
+// Sente's hand (isOpponent=false) displays captured King as '王'
+// Gote's hand (isOpponent=true) displays captured King as '玉'
+const normalizeKingPiece = (piece: string, isOpponent: boolean): string => {
+  // If piece is any King variant, normalize it
+  if (piece === '王' || piece === '玉') {
+    return isOpponent ? '玉' : '王'; // Gote's hand → '玉', Sente's hand → '王'
+  }
+  return piece; // All other pieces remain unchanged
+};
+
 // Get hand piece image path
 const getHandPieceImagePath = (piece: string, isOpponent: boolean): string | null => {
-  const mapping = HAND_PIECE_IMAGE_MAP[piece];
+  // Normalize King character based on capturing player
+  const normalizedPiece = normalizeKingPiece(piece, isOpponent);
+  const mapping = HAND_PIECE_IMAGE_MAP[normalizedPiece];
   if (!mapping) return null;
   // isOpponent=true means Gote piece, isOpponent=false means Sente piece
   const filename = isOpponent ? mapping.gote : mapping.sente;
@@ -79,6 +92,9 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
     dragSource?.handIndex === index && 
     dragSource?.isOpponent === isOpponent;
 
+  // Normalize King character for display (Sente's hand → '王', Gote's hand → '玉')
+  const displayPiece = normalizeKingPiece(piece, isOpponent);
+
   // Handle pointer down for piece selection (replaces drag start)
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!canDrag) {
@@ -121,7 +137,7 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
       {imagePath ? (
         <img 
           src={imagePath} 
-          alt={piece}
+          alt={displayPiece}
           className="w-full h-full object-contain drop-shadow-md"
           style={{
             maxWidth: '100%',
@@ -133,7 +149,7 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
           draggable={false}
         />
       ) : (
-        /* Fallback to text rendering */
+        /* Fallback to text rendering with normalized King character */
         <div 
           className="relative w-full h-full"
           style={{
@@ -155,7 +171,7 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
             />
           </div>
           <span className="absolute inset-0 flex items-center justify-center z-10 text-base md:text-lg font-bold shogi-piece-text drop-shadow-sm">
-            {piece}
+            {displayPiece}
           </span>
         </div>
       )}
