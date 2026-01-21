@@ -373,25 +373,33 @@ const PlayerPanel = ({
   if (fullColumn) {
     return (
       <div className="flex flex-col items-center gap-4 w-[264px] lg:w-[316px] xl:w-[352px]">
-        {/* Timer with wooden clock frame */}
+        {/* Timer with wooden clock frame - transparent white background blend */}
         <div className="flex flex-col items-center gap-2">
           <div 
-            className="relative rounded-xl shadow-xl transition-all duration-300 w-40 h-20 lg:w-48 lg:h-24 xl:w-56 xl:h-28 flex items-center justify-center"
+            className="relative rounded-xl transition-all duration-300 w-40 h-20 lg:w-48 lg:h-24 xl:w-56 xl:h-28 flex items-center justify-center"
             style={{
               backgroundImage: 'url(/images/game-clock.png)',
               backgroundSize: 'contain',
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'center',
+              mixBlendMode: 'multiply', // Makes white background transparent
+              isolation: 'isolate', // Prevents blend mode from affecting children
             }}
           >
-            {/* Tan mask to cover static digits on clock image */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-[#dcc9a5] px-3 py-1 rounded-md">
-                <span className="shogi-timer text-xl lg:text-2xl xl:text-3xl font-black text-black" style={{ textShadow: '0 0 2px rgba(255, 255, 255, 0.5)' }}>
-                  {time}
-                </span>
-              </div>
-            </div>
+            {/* Centered digital timer with professional segmented display font */}
+            <span 
+              className="shogi-timer font-black tracking-wider"
+              style={{ 
+                fontFamily: 'Orbitron, monospace',
+                fontSize: 'clamp(1.5rem, 2.2vw, 2.5rem)', // Responsive digital font sizing
+                color: '#323232', // Updated to requested color
+                letterSpacing: '0.1em',
+                mixBlendMode: 'normal',
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              }}
+            >
+              {time}
+            </span>
           </div>
         </div>
         
@@ -560,23 +568,32 @@ const PlayerPanel = ({
   if (videoOnly) {
     return (
       <div className="flex flex-col items-center gap-4">
-        {/* Digital clock display with wooden frame */}
+        {/* Digital clock display with wooden frame - transparent white background blend */}
         <div 
-          className="relative rounded-xl shadow-xl transition-all duration-300 w-40 h-20 flex items-center justify-center"
+          className="relative rounded-xl transition-all duration-300 w-40 h-20 flex items-center justify-center"
           style={{
             backgroundImage: 'url(/images/game-clock.png)',
             backgroundSize: 'contain',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',
+            mixBlendMode: 'multiply', // Makes white background transparent
+            isolation: 'isolate', // Prevents blend mode from affecting children
           }}
         >
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-[#dcc9a5] px-3 py-1 rounded-md">
-              <span className="shogi-timer text-xl font-black text-black" style={{ textShadow: '0 0 2px rgba(255, 255, 255, 0.5)' }}>
-                {time}
-              </span>
-            </div>
-          </div>
+          {/* Centered digital timer with professional segmented display font */}
+          <span 
+            className="shogi-timer font-black tracking-wider"
+            style={{ 
+              fontFamily: 'Orbitron, monospace',
+              fontSize: '1.5rem', // Large digital font
+              color: '#323232', // Updated to requested color
+              letterSpacing: '0.1em',
+              mixBlendMode: 'normal',
+              textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            }}
+          >
+            {time}
+          </span>
         </div>
         
         {/* Video feed - LARGER for iPad Pro */}
@@ -619,23 +636,32 @@ const PlayerPanel = ({
   // Full mode (legacy - not used in new layout)
   return (
     <div className="flex flex-col items-center gap-4 p-4">
-      {/* Digital clock display with beveled effect */}
+      {/* Digital clock display with transparent white background blend */}
       <div 
-        className="relative rounded-xl shadow-xl transition-all duration-300 w-40 h-20 flex items-center justify-center"
+        className="relative rounded-xl transition-all duration-300 w-40 h-20 flex items-center justify-center"
         style={{
           backgroundImage: 'url(/images/game-clock.png)',
           backgroundSize: 'contain',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'center',
+          mixBlendMode: 'multiply', // Makes white background transparent
+          isolation: 'isolate', // Prevents blend mode from affecting children
         }}
       >
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-[#dcc9a5] px-3 py-1 rounded-md">
-            <span className="shogi-timer text-xl font-black text-black" style={{ textShadow: '0 0 2px rgba(255, 255, 255, 0.5)' }}>
-              {time}
-            </span>
-          </div>
-        </div>
+        {/* Centered digital timer with professional segmented display font */}
+        <span 
+          className="shogi-timer font-black tracking-wider"
+          style={{ 
+            fontFamily: 'Orbitron, monospace',
+            fontSize: '1.5rem', // Large digital font
+            color: '#323232', // Updated to requested color
+            letterSpacing: '0.1em',
+            mixBlendMode: 'normal',
+            textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          }}
+        >
+          {time}
+        </span>
       </div>
       
       {/* Video feed with tablet/picture frame effect - LARGER */}
