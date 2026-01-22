@@ -407,7 +407,6 @@ const PlayerPanel = ({
         <div 
           className={`
             rounded-2xl 
-            bg-gradient-to-br from-gray-100 to-gray-200
             border-4 lg:border-6 border-amber-700/40
             shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.25)]
             overflow-hidden
@@ -417,6 +416,8 @@ const PlayerPanel = ({
             width: 'clamp(200px, 22vw, 280px)',
             maxHeight: 'clamp(200px, 28vh, 280px)',
             aspectRatio: '1 / 1',
+            transform: 'translateY(-12px)',
+            backgroundColor: '#e5e7eb',
           }}
         >
           {videoStream ? (
@@ -432,8 +433,11 @@ const PlayerPanel = ({
             <img 
               src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
               alt={isOpponent ? '対戦相手' : '中野さん'}
-              className="w-full h-full object-contain"
-              style={{ objectPosition: 'center' }}
+              className="w-full h-full object-cover"
+              style={{ 
+                objectPosition: 'center center', 
+                transform: 'scale(1.15) scaleX(1.25)'
+              }}
             />
           )}
         </div>
@@ -447,7 +451,7 @@ const PlayerPanel = ({
           />
         )}
         
-        {/* Captured Pieces (Hand/Komadai) - 4 columns, dynamic vertical expansion */}
+        {/* Captured Pieces (Hand/Komadai) - 4 columns, dynamic vertical expansion with internal scroll */}
         <div className="w-full flex flex-col items-center">
           <div 
             className="
@@ -457,23 +461,21 @@ const PlayerPanel = ({
               shadow-xl
             "
             style={{
-              width: 'clamp(230px, 20vw, 310px)',
-              height: 'auto',
-              minHeight: 'clamp(140px, 16vh, 180px)',
-              paddingBottom: 'clamp(12px, 1.8vh, 18px)',
-              paddingRight: 'clamp(20px, 2.8vh, 28px)',
+              width: 'clamp(280px, 24vw, 380px)',
+              height: 'clamp(140px, 18vh, 180px)',
+              padding: 'clamp(8px, 1.5vmin, 12px)',
               overflow: 'hidden',
             }}
           >
-            {/* Dynamic grid: 3 columns (fixed width), auto rows (vertical expansion) */}
-            {/* Fills from TOP-LEFT to RIGHT, then wraps to next row */}
+            {/* Fixed 2×4 grid: 2 rows × 4 columns layout */}
+            {/* Excess pieces scroll internally within fixed container */}
             <div 
               className="grid w-full"
               style={{
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gridAutoRows: 'minmax(clamp(50px, 7vh, 80px), auto)',
-                gap: '3px',
-                height: 'auto',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gridTemplateRows: 'repeat(2, 1fr)',
+                gap: '4px',
+                height: '100%',
               }}
             >
               {/* Render grouped pieces sequentially from top-left */}
@@ -506,7 +508,7 @@ const PlayerPanel = ({
     );
   }
 
-  // Hand-only mode: 4x2 grid komadai
+  // Hand-only mode: 2×4 fixed grid komadai with internal scroll
   if (handOnly) {
     return (
       <div className="w-full max-w-[335px] lg:max-w-[400px]">
@@ -518,22 +520,20 @@ const PlayerPanel = ({
             shadow-lg
           "
           style={{
-            height: 'auto',
-            minHeight: 'clamp(140px, 16vh, 180px)',
-            paddingBottom: 'clamp(10px, 1.5vh, 16px)',
-            paddingRight: 'clamp(20px, 2.8vh, 28px)',
+            height: 'clamp(140px, 18vh, 180px)',
+            padding: 'clamp(8px, 1.5vmin, 12px)',
             overflow: 'hidden',
           }}
         >
-          {/* Dynamic grid: 3 columns (fixed width), auto rows (vertical expansion) */}
-          {/* Fills from TOP-LEFT to RIGHT, then wraps to next row */}
+          {/* Fixed 2×4 grid: 2 rows × 4 columns layout */}
+          {/* Excess pieces scroll internally within fixed container */}
           <div 
             className="grid w-full"
             style={{
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gridAutoRows: 'minmax(clamp(50px, 7vh, 80px), auto)',
-              gap: '3px',
-              height: 'auto',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateRows: 'repeat(2, 1fr)',
+              gap: '4px',
+              height: '100%',
             }}
           >
             {/* Render grouped pieces sequentially from top-left */}
@@ -626,7 +626,7 @@ const PlayerPanel = ({
               src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
               alt={isOpponent ? '対戦相手' : 'あなた'}
               className="w-full h-full object-cover"
-              style={{ objectPosition: 'center' }}
+              style={{ objectPosition: 'center', transform: 'scale(1.15)' }}
             />
           )}
         </div>
@@ -694,12 +694,12 @@ const PlayerPanel = ({
             src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
             alt={isOpponent ? '対戦相手' : 'あなた'}
             className="w-full h-full object-cover"
-            style={{ objectPosition: 'center' }}
+            style={{ objectPosition: 'center', transform: 'scale(1.15)' }}
           />
         )}
       </div>
 
-      {/* Komadai (Piece Stand) - 3 columns, dynamic rows */}
+      {/* Komadai (Piece Stand) - Fixed 2×4 grid with internal scroll */}
       <div className="w-full max-w-[335px] lg:max-w-[400px]">
         <div 
           className="
@@ -709,22 +709,20 @@ const PlayerPanel = ({
             shadow-lg
           "
           style={{
-            height: 'auto',
-            minHeight: 'clamp(140px, 16vh, 180px)',
-            paddingBottom: 'clamp(10px, 1.5vh, 16px)',
-            paddingRight: 'clamp(20px, 2.8vh, 28px)',
+            height: 'clamp(140px, 18vh, 180px)',
+            padding: 'clamp(8px, 1.5vmin, 12px)',
             overflow: 'hidden',
           }}
         >
-          {/* Dynamic grid: 3 columns (fixed width), auto rows (vertical expansion) */}
-          {/* Fills from TOP-LEFT to RIGHT, then wraps to next row */}
+          {/* Fixed 2×4 grid: 2 rows × 4 columns layout */}
+          {/* Excess pieces scroll internally within fixed container */}
           <div 
             className="grid w-full"
             style={{
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gridAutoRows: 'minmax(clamp(50px, 7vh, 80px), auto)',
-              gap: '3px',
-              height: 'auto',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateRows: 'repeat(2, 1fr)',
+              gap: '4px',
+              height: '100%',
             }}
           >
             {/* Render grouped pieces sequentially from top-left */}

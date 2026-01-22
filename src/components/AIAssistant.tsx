@@ -28,10 +28,10 @@ interface AIAssistantProps {
 // REPOSITIONED: Shifted left to prevent collision with widened right komadai
 // ============================================================================
 
-const ASSISTANT_SIZE = { min: 120, max: 184, vw: 12 }; // Reduced 20% from previous
-const BUBBLE_MAX_WIDTH = 440; // Maximum single-line width (prevents right collision with widened komadai)
+const ASSISTANT_SIZE = { min: 112, max: 206, vw: 11.2 }; // Increased ~12% for better visibility
+const BUBBLE_MAX_WIDTH = 495; // Maximum single-line width (increased with avatar size)
 const BUBBLE_MIN_WIDTH = 200; // Minimum width for very short messages
-const BUBBLE_TAIL_SIZE = 14; // Proportionally reduced
+const BUBBLE_TAIL_SIZE = 16; // Proportionally scaled with avatar
 const BUBBLE_GAP = 16; // Gap between bubble and avatar
 
 // ============================================================================
@@ -63,7 +63,9 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
         width: 'fit-content',
         display: 'flex',
         flexDirection: 'row',
-        alignItems: 'flex-end', // Anchor to bottom
+        alignItems: 'flex-end',
+        marginLeft: '-100px',
+        marginTop: '-70px',
       }}
     >
       {/* AI Assistant Avatar - Anchored to bottom with cropped lower portion */}
