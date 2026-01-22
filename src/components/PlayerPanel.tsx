@@ -436,7 +436,7 @@ const PlayerPanel = ({
               className="w-full h-full object-cover"
               style={{ 
                 objectPosition: 'center center', 
-                transform: 'scale(1.15) scaleX(1.25)'
+                transform: isOpponent ? 'scale(1.15) scaleX(1.25)' : 'scale(1.4) scaleX(1.25)'
               }}
             />
           )}
