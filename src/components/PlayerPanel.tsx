@@ -372,7 +372,7 @@ const PlayerPanel = ({
   // Full column mode: Timer → Video → Hand stacked vertically (TV Broadcast layout for iPad Pro)
   if (fullColumn) {
     return (
-      <div className="flex flex-col items-center gap-4 w-[264px] lg:w-[316px] xl:w-[352px]">
+      <div className="flex flex-col items-center w-[264px] lg:w-[316px] xl:w-[352px]" style={{ gap: 'clamp(8px, 1.5vh, 16px)' }}>
         {/* Timer with wooden clock frame - transparent white background blend */}
         <div className="flex flex-col items-center gap-2">
           <div 
@@ -416,7 +416,7 @@ const PlayerPanel = ({
             width: 'clamp(200px, 22vw, 280px)',
             maxHeight: 'clamp(200px, 28vh, 280px)',
             aspectRatio: '1 / 1',
-            transform: 'translateY(-12px)',
+            transform: 'translateY(0px)',
             backgroundColor: '#e5e7eb',
           }}
         >
@@ -433,10 +433,9 @@ const PlayerPanel = ({
             <img 
               src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
               alt={isOpponent ? '対戦相手' : '中野さん'}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               style={{ 
-                objectPosition: 'center center', 
-                transform: isOpponent ? 'scale(1.15) scaleX(1.25)' : 'scale(1.4) scaleX(1.25)'
+                objectPosition: 'center center'
               }}
             />
           )}
@@ -451,7 +450,7 @@ const PlayerPanel = ({
           />
         )}
         
-        {/* Captured Pieces (Hand/Komadai) - 4 columns, dynamic vertical expansion with internal scroll */}
+        {/* Captured Pieces (Hand/Komadai) - 4 columns, dynamic vertical expansion */}
         <div className="w-full flex flex-col items-center">
           <div 
             className="
@@ -461,10 +460,11 @@ const PlayerPanel = ({
               shadow-xl
             "
             style={{
-              width: 'clamp(280px, 24vw, 380px)',
-              height: 'clamp(140px, 18vh, 180px)',
-              padding: 'clamp(8px, 1.5vmin, 12px)',
-              overflow: 'hidden',
+              width: 'clamp(240px, 24vw, 380px)',
+              minHeight: '120px',
+              height: 'auto',
+              padding: 'clamp(6px, 1.2vmin, 12px)',
+              overflow: 'visible',
             }}
           >
             {/* Fixed 2×4 grid: 2 rows × 4 columns layout */}
@@ -508,7 +508,7 @@ const PlayerPanel = ({
     );
   }
 
-  // Hand-only mode: 2×4 fixed grid komadai with internal scroll
+  // Hand-only mode: 2×4 fixed grid komadai
   if (handOnly) {
     return (
       <div className="w-full max-w-[335px] lg:max-w-[400px]">
@@ -520,9 +520,10 @@ const PlayerPanel = ({
             shadow-lg
           "
           style={{
-            height: 'clamp(140px, 18vh, 180px)',
-            padding: 'clamp(8px, 1.5vmin, 12px)',
-            overflow: 'hidden',
+            minHeight: '120px',
+            height: 'auto',
+            padding: 'clamp(6px, 1.2vmin, 12px)',
+            overflow: 'visible',
           }}
         >
           {/* Fixed 2×4 grid: 2 rows × 4 columns layout */}
@@ -625,8 +626,8 @@ const PlayerPanel = ({
             <img 
               src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
               alt={isOpponent ? '対戦相手' : 'あなた'}
-              className="w-full h-full object-cover"
-              style={{ objectPosition: 'center', transform: 'scale(1.15)' }}
+              className="w-full h-full object-contain"
+              style={{ objectPosition: 'center' }}
             />
           )}
         </div>
@@ -693,13 +694,13 @@ const PlayerPanel = ({
           <img 
             src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
             alt={isOpponent ? '対戦相手' : 'あなた'}
-            className="w-full h-full object-cover"
-            style={{ objectPosition: 'center', transform: 'scale(1.15)' }}
+            className="w-full h-full object-contain"
+            style={{ objectPosition: 'center' }}
           />
         )}
       </div>
 
-      {/* Komadai (Piece Stand) - Fixed 2×4 grid with internal scroll */}
+      {/* Komadai (Piece Stand) - Fixed 2×4 grid */}
       <div className="w-full max-w-[335px] lg:max-w-[400px]">
         <div 
           className="
@@ -709,9 +710,10 @@ const PlayerPanel = ({
             shadow-lg
           "
           style={{
-            height: 'clamp(140px, 18vh, 180px)',
-            padding: 'clamp(8px, 1.5vmin, 12px)',
-            overflow: 'hidden',
+            minHeight: '120px',
+            height: 'auto',
+            padding: 'clamp(6px, 1.2vmin, 12px)',
+            overflow: 'visible',
           }}
         >
           {/* Fixed 2×4 grid: 2 rows × 4 columns layout */}

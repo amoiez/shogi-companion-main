@@ -54,6 +54,11 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
     }
   }, [message]);
   
+  // Debug: Log when component mounts to verify it renders
+  useEffect(() => {
+    console.log('[AI Assistant] Component mounted and visible');
+  }, []);
+  
   return (
     <div 
       ref={containerRef}
@@ -64,8 +69,10 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'flex-end',
-        marginLeft: '-100px',
-        marginTop: '-70px',
+        marginLeft: 'clamp(-150px, -10vw, -50px)',
+        marginTop: 'clamp(-70px, -5vh, -30px)',
+        minWidth: '120px',
+        minHeight: '120px',
       }}
     >
       {/* AI Assistant Avatar - Anchored to bottom with cropped lower portion */}

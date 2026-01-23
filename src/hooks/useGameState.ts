@@ -56,7 +56,7 @@ const createInitialBoard = (): CellData[][] => [
   [
     { piece: '香', isOpponent: true }, { piece: '桂', isOpponent: true }, 
     { piece: '銀', isOpponent: true }, { piece: '金', isOpponent: true }, 
-    { piece: '王', isOpponent: true }, { piece: '金', isOpponent: true }, 
+    { piece: '玉', isOpponent: true }, { piece: '金', isOpponent: true }, 
     { piece: '銀', isOpponent: true }, { piece: '桂', isOpponent: true }, 
     { piece: '香', isOpponent: true }
   ],
@@ -94,7 +94,7 @@ const createInitialBoard = (): CellData[][] => [
   [
     { piece: '香', isOpponent: false }, { piece: '桂', isOpponent: false }, 
     { piece: '銀', isOpponent: false }, { piece: '金', isOpponent: false }, 
-    { piece: '玉', isOpponent: false }, { piece: '金', isOpponent: false }, 
+    { piece: '王', isOpponent: false }, { piece: '金', isOpponent: false }, 
     { piece: '銀', isOpponent: false }, { piece: '桂', isOpponent: false }, 
     { piece: '香', isOpponent: false }
   ],
