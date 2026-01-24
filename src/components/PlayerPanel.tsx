@@ -386,6 +386,8 @@ const PlayerPanel = ({
               isolation: 'isolate', // Prevents blend mode from affecting children
               WebkitBackfaceVisibility: 'hidden', // Fix for iPad Safari
               backfaceVisibility: 'hidden',
+              transform: 'translate3d(0, 0, 0)', // Force GPU acceleration for iOS
+              WebkitTransform: 'translate3d(0, 0, 0)',
             }}
           >
             {/* Centered digital timer with professional segmented display font */}
@@ -587,6 +589,8 @@ const PlayerPanel = ({
             isolation: 'isolate', // Prevents blend mode from affecting children
             WebkitBackfaceVisibility: 'hidden', // Fix for iPad Safari
             backfaceVisibility: 'hidden',
+            transform: 'translate3d(0, 0, 0)', // Force GPU acceleration for iOS
+            WebkitTransform: 'translate3d(0, 0, 0)',
           }}
         >
           {/* Centered digital timer with professional segmented display font */}
@@ -657,6 +661,8 @@ const PlayerPanel = ({
           isolation: 'isolate', // Prevents blend mode from affecting children
           WebkitBackfaceVisibility: 'hidden', // Fix for iPad Safari
           backfaceVisibility: 'hidden',
+          transform: 'translate3d(0, 0, 0)', // Force GPU acceleration for iOS
+          WebkitTransform: 'translate3d(0, 0, 0)',
         }}
       >
         {/* Centered digital timer with professional segmented display font */}
