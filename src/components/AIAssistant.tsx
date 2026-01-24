@@ -69,7 +69,7 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'flex-end',
-        marginLeft: 'clamp(-150px, -10vw, -50px)',
+        transform: 'translate(-260px, 0)',
         marginTop: 'clamp(-70px, -5vh, -30px)',
         minWidth: '120px',
         minHeight: '120px',

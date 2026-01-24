@@ -93,6 +93,9 @@ const ShogiPiece = ({ piece, isOpponent, isDragging, rotateBoard = false }: Shog
           // Piece stays visible when selected (tap-to-select, not drag-and-drop)
           opacity: 1,
           pointerEvents: 'auto',
+          // iPad-specific: Prevent long-press enlargement and preview
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
         }}
       />
     );

@@ -28,12 +28,12 @@ const HAND_PIECE_IMAGE_MAP: Record<string, { sente: string; gote: string }> = {
 };
 
 // Normalize captured King character based on which player captured it
-// Sente's hand (isOpponent=false) displays captured King as '王'
-// Gote's hand (isOpponent=true) displays captured King as '玉'
+// Sente's hand (isOpponent=false) displays captured King as '玉' (captured Gote's King)
+// Gote's hand (isOpponent=true) displays captured King as '王' (captured Sente's King)
 const normalizeKingPiece = (piece: string, isOpponent: boolean): string => {
   // If piece is any King variant, normalize it
   if (piece === '王' || piece === '玉') {
-    return isOpponent ? '玉' : '王'; // Gote's hand → '玉', Sente's hand → '王'
+    return isOpponent ? '王' : '玉'; // Gote's hand → '王', Sente's hand → '玉'
   }
   return piece; // All other pieces remain unchanged
 };
@@ -384,6 +384,8 @@ const PlayerPanel = ({
               backgroundPosition: 'center',
               mixBlendMode: 'multiply', // Makes white background transparent
               isolation: 'isolate', // Prevents blend mode from affecting children
+              WebkitBackfaceVisibility: 'hidden', // Fix for iPad Safari
+              backfaceVisibility: 'hidden',
             }}
           >
             {/* Centered digital timer with professional segmented display font */}
@@ -460,10 +462,11 @@ const PlayerPanel = ({
               shadow-xl
             "
             style={{
-              width: 'clamp(240px, 24vw, 380px)',
-              minHeight: '120px',
-              height: 'auto',
-              padding: 'clamp(6px, 1.2vmin, 12px)',
+              width: 'fit-content',
+              height: 'fit-content',
+              padding: '8px',
+              marginLeft: '10px',
+              marginRight: '10px',
               overflow: 'visible',
             }}
           >
@@ -472,9 +475,9 @@ const PlayerPanel = ({
             <div 
               className="grid w-full"
               style={{
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gridTemplateRows: 'repeat(2, 1fr)',
-                gap: '4px',
+                gridTemplateColumns: 'repeat(4, 48px)',
+                gridTemplateRows: 'repeat(2, 48px)',
+                gap: '6px',
                 height: '100%',
               }}
             >
@@ -520,9 +523,11 @@ const PlayerPanel = ({
             shadow-lg
           "
           style={{
-            minHeight: '120px',
-            height: 'auto',
-            padding: 'clamp(6px, 1.2vmin, 12px)',
+            width: 'fit-content',
+            height: 'fit-content',
+            padding: '8px',
+            marginLeft: '10px',
+            marginRight: '10px',
             overflow: 'visible',
           }}
         >
@@ -531,9 +536,9 @@ const PlayerPanel = ({
           <div 
             className="grid w-full"
             style={{
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gridTemplateRows: 'repeat(2, 1fr)',
-              gap: '4px',
+              gridTemplateColumns: 'repeat(4, 48px)',
+              gridTemplateRows: 'repeat(2, 48px)',
+              gap: '6px',
               height: '100%',
             }}
           >
@@ -580,6 +585,8 @@ const PlayerPanel = ({
             backgroundPosition: 'center',
             mixBlendMode: 'multiply', // Makes white background transparent
             isolation: 'isolate', // Prevents blend mode from affecting children
+            WebkitBackfaceVisibility: 'hidden', // Fix for iPad Safari
+            backfaceVisibility: 'hidden',
           }}
         >
           {/* Centered digital timer with professional segmented display font */}
@@ -648,6 +655,8 @@ const PlayerPanel = ({
           backgroundPosition: 'center',
           mixBlendMode: 'multiply', // Makes white background transparent
           isolation: 'isolate', // Prevents blend mode from affecting children
+          WebkitBackfaceVisibility: 'hidden', // Fix for iPad Safari
+          backfaceVisibility: 'hidden',
         }}
       >
         {/* Centered digital timer with professional segmented display font */}
@@ -710,9 +719,11 @@ const PlayerPanel = ({
             shadow-lg
           "
           style={{
-            minHeight: '120px',
-            height: 'auto',
-            padding: 'clamp(6px, 1.2vmin, 12px)',
+            width: 'fit-content',
+            height: 'fit-content',
+            padding: '8px',
+            marginLeft: '10px',
+            marginRight: '10px',
             overflow: 'visible',
           }}
         >
@@ -721,9 +732,9 @@ const PlayerPanel = ({
           <div 
             className="grid w-full"
             style={{
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gridTemplateRows: 'repeat(2, 1fr)',
-              gap: '4px',
+              gridTemplateColumns: 'repeat(4, 48px)',
+              gridTemplateRows: 'repeat(2, 48px)',
+              gap: '6px',
               height: '100%',
             }}
           >
