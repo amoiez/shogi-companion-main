@@ -28,8 +28,9 @@
 
 @layer base {
   :root {
-    /* Piece size - unified across board and captured pieces */
-    --piece-size: 48px;
+    /* SINGLE SOURCE OF TRUTH: Piece size for BOTH board and captured pieces */
+    /* Board cell ≈ 71px (640px ÷ 9), piece at 88% = 62.5px */
+    --koma-size: 62px;
     
     /* Warm wood-inspired palette */
     --background: 36 47% 88%;
@@ -434,9 +435,11 @@
   .game-grid {
     flex: 1;
     display: grid;
-    grid-template-columns: minmax(240px, 1fr) auto minmax(240px, 1fr);
+    /* Player panels are ~280px wide, need space for full panel not just captured pieces */
+    grid-template-columns: minmax(280px, 1fr) auto minmax(280px, 1fr);
     grid-template-rows: 1fr auto;
-    gap: min(2vmin, 20px);
+    column-gap: clamp(12px, 1.5vw, 24px);
+    row-gap: min(2vmin, 20px);
     padding: min(1.5vmin, 16px);
     align-items: center;
     justify-items: center;
@@ -472,8 +475,8 @@
   }
 
   .board-wrapper {
-    width: min(72vmin, 640px);
-    height: min(72vmin, 640px);
+    width: min(64vmin, 580px);
+    height: min(64vmin, 580px);
     max-width: 100%;
     max-height: 100%;
     aspect-ratio: 1 / 1;
@@ -482,6 +485,7 @@
     justify-content: center;
     transform: scale(1.04);
     transform-origin: center center;
+    flex-shrink: 0; /* CRITICAL: Prevent board from shrinking */
   }
 
   .ai-cell {
@@ -513,13 +517,14 @@
   /* Responsive adjustments for smaller tablets */
   @media (max-width: 1024px) {
     .game-grid {
-      gap: min(1.5vmin, 16px);
+      column-gap: clamp(8px, 1.2vw, 16px);
+      row-gap: min(1.5vmin, 16px);
       padding: min(1vmin, 12px);
     }
 
     .board-wrapper {
-      width: min(66vmin, 560px);
-      height: min(66vmin, 560px);
+      width: min(56vmin, 480px);
+      height: min(56vmin, 480px);
     }
     
     /* Ensure AI assistant stays visible on small tablets */
@@ -536,14 +541,21 @@
   /* iPad 1024×768 specific adjustments */
   @media (max-width: 1024px) and (max-height: 768px) {
     .game-grid {
-      gap: min(1vmin, 12px);
+      column-gap: clamp(4px, 0.8vw, 8px);
+      row-gap: min(1vmin, 12px);
       padding: min(0.8vmin, 10px);
     }
     
     .board-wrapper {
-      width: min(64vmin, 560px);
-      height: min(64vmin, 560px);
+      width: min(52vmin, 440px);
+      height: min(52vmin, 440px);
     }
+    
+    /* Further reduce padding in captured containers for tight space */
+    .player-cell .komadai-wood {
+      padding: 2px !important;
+    }
+  }
     
     /* Compact player panels for small height */
     .player-cell > div {
@@ -568,8 +580,8 @@
   /* iPad Air 2 and similar tablets (1024px-1536px) */
   @media (min-width: 1024px) and (max-width: 1536px) {
     .board-wrapper {
-      width: min(68vmin, 600px);
-      height: min(68vmin, 600px);
+      width: min(58vmin, 540px);
+      height: min(58vmin, 540px);
     }
     
     /* Ensure AI Assistant is visible and properly positioned */
@@ -582,8 +594,12 @@
   /* Specific fix for 1133×744 resolution */
   @media (min-width: 1133px) and (max-width: 1200px) {
     .board-wrapper {
-      width: min(70vmin, 600px);
-      height: min(70vmin, 600px);
+      width: min(58vmin, 520px);
+      height: min(58vmin, 520px);
+    }
+    
+    .game-grid {
+      column-gap: clamp(10px, 1.5vw, 20px);
     }
   }
 
@@ -609,6 +625,7 @@
     width: 100%;
     max-width: min(22vw, 280px);
     gap: min(1.5vmin, 12px);
+    box-sizing: border-box !important;
   }
 
   .player-cell .shogi-timer {
@@ -629,31 +646,44 @@
     object-fit: contain !important;
   }
 
-  /* Fixed 2×4 grid komadai - FULL VISIBILITY */
+  /* Fixed 2×4 grid komadai - CALCULATED DIMENSIONS */
   /* 4 columns × 2 rows fixed layout */
-  /* Allow overflow visible to prevent clipping */
+  /* Container size = grid cells + gaps (no guessing) */
   .player-cell .komadai-wood {
-    width: fit-content !important;
-    min-width: fit-content !important;
-    height: fit-content !important;
-    min-height: fit-content !important;
-    max-height: none !important;
-    padding: 8px !important;
-    margin-left: 10px !important;
-    margin-right: 10px !important;
-    overflow: visible !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, var(--koma-size)) !important;
+    grid-template-rows: repeat(2, var(--koma-size)) !important;
+    gap: 8px !important;
+    
+    /* Calculated: (4 pieces × koma-size) + (3 gaps × 8px) */
+    width: calc(4 * var(--koma-size) + 3 * 8px) !important;
+    /* Calculated: (2 pieces × koma-size) + (1 gap × 8px) */
+    height: calc(2 * var(--koma-size) + 1 * 8px) !important;
+    
+    min-width: calc(4 * var(--koma-size) + 3 * 8px) !important;
+    max-width: calc(4 * var(--koma-size) + 3 * 8px) !important;
+    min-height: calc(2 * var(--koma-size) + 1 * 8px) !important;
+    max-height: calc(2 * var(--koma-size) + 1 * 8px) !important;
+    
+    padding: 4px !important; /* Reduced internal padding for better space utilization */
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    overflow: visible !important; /* Allow pieces to render fully without cropping */
   }
   
-  /* Captured piece grid - use CSS variable for consistent sizing */
+  /* Captured piece grid - inherit from parent */
   .komadai-wood > div {
-    gap: 6px !important;
+    display: contents !important;
   }
   
+  /* Captured pieces - use single CSS variable */
   .komadai-wood .hand-piece {
-    width: var(--piece-size) !important;
-    height: var(--piece-size) !important;
-    max-width: var(--piece-size) !important;
-    max-height: var(--piece-size) !important;
+    width: var(--koma-size) !important;
+    height: var(--koma-size) !important;
+    max-width: var(--koma-size) !important;
+    max-height: var(--koma-size) !important;
+    position: relative !important;
+    overflow: visible !important; /* Allow badge to show but stay within relative positioning */
   }
 
   /* Compact timer sizing */
@@ -694,4 +724,3 @@
       padding: clamp(4px, 0.5vmin, 8px) !important;
     }
   }
-}

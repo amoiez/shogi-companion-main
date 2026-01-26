@@ -129,7 +129,6 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
         height: '100%',
         maxWidth: '100%',
         maxHeight: '100%',
-        padding: '5%',
       }}
       onPointerDown={canDrag ? handlePointerDown : undefined}
       onClick={onPieceClick}
@@ -140,9 +139,9 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
           alt={displayPiece}
           className="w-full h-full object-contain drop-shadow-md"
           style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            aspectRatio: '140/148',
+            width: '88%',
+            height: '88%',
+            objectFit: 'contain',
             transform: isOpponent ? 'rotate(180deg)' : 'rotate(0deg)',
             transformOrigin: 'center center',
           }}
@@ -177,7 +176,7 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
       )}
       {/* Count badge for grouped pieces - CONTAINED within cell boundaries */}
       {count && count > 1 && (
-        <div className="absolute bottom-0 right-0 bg-red-600 text-white text-xs lg:text-sm font-bold rounded-full w-5 h-5 lg:w-6 lg:h-6 flex items-center justify-center shadow-lg z-20 border border-white" style={{ transform: 'translate(10%, 10%)' }}>
+        <div className="absolute bottom-0.5 right-0.5 bg-red-600 text-white text-xs lg:text-sm font-bold rounded-full w-5 h-5 lg:w-6 lg:h-6 flex items-center justify-center shadow-lg z-20 border border-white">
           {count}
         </div>
       )}
@@ -466,22 +465,16 @@ const PlayerPanel = ({
             style={{
               width: 'fit-content',
               height: 'fit-content',
-              padding: '8px',
+              padding: '4px',
               marginLeft: '10px',
               marginRight: '10px',
               overflow: 'visible',
             }}
           >
             {/* Fixed 2×4 grid: 2 rows × 4 columns layout */}
-            {/* Excess pieces scroll internally within fixed container */}
+            {/* Grid dimensions controlled by CSS using --koma-size variable */}
             <div 
               className="grid w-full"
-              style={{
-                gridTemplateColumns: 'repeat(4, 48px)',
-                gridTemplateRows: 'repeat(2, 48px)',
-                gap: '6px',
-                height: '100%',
-              }}
             >
               {/* Render grouped pieces sequentially from top-left */}
               {groupedHandArray.map((group) => {
@@ -534,15 +527,9 @@ const PlayerPanel = ({
           }}
         >
           {/* Fixed 2×4 grid: 2 rows × 4 columns layout */}
-          {/* Excess pieces scroll internally within fixed container */}
+          {/* Grid dimensions controlled by CSS using --koma-size variable */}
           <div 
             className="grid w-full"
-            style={{
-              gridTemplateColumns: 'repeat(4, 48px)',
-              gridTemplateRows: 'repeat(2, 48px)',
-              gap: '6px',
-              height: '100%',
-            }}
           >
             {/* Render grouped pieces sequentially from top-left */}
             {groupedHandArray.map((group) => {
@@ -727,22 +714,16 @@ const PlayerPanel = ({
           style={{
             width: 'fit-content',
             height: 'fit-content',
-            padding: '8px',
+            padding: '4px',
             marginLeft: '10px',
             marginRight: '10px',
             overflow: 'visible',
           }}
         >
           {/* Fixed 2×4 grid: 2 rows × 4 columns layout */}
-          {/* Excess pieces scroll internally within fixed container */}
+          {/* Grid dimensions controlled by CSS using --koma-size variable */}
           <div 
             className="grid w-full"
-            style={{
-              gridTemplateColumns: 'repeat(4, 48px)',
-              gridTemplateRows: 'repeat(2, 48px)',
-              gap: '6px',
-              height: '100%',
-            }}
           >
             {/* Render grouped pieces sequentially from top-left */}
             {groupedHandArray.map((group) => {
