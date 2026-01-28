@@ -1136,3 +1136,10 @@
       overflow: hidden !important;
     }
   }
+  /* iPad-specific: Increase percentage text size to match PC - ALL MODELS */
+  @media (min-width: 768px) and (max-width: 1366px) and (hover: none) and (pointer: coarse) {
+    span.percentage-text {
+      font-size: 26px !important;
+      line-height: 1 !important;
+    }
+  }
