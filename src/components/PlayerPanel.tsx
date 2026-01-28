@@ -394,9 +394,11 @@ const PlayerPanel = ({
               className="shogi-timer font-black tracking-wider"
               style={{ 
                 fontFamily: 'Orbitron, monospace',
-                fontSize: 'clamp(1.5rem, 2.2vw, 2.5rem)', // Responsive digital font sizing
-                color: '#323232', // Updated to requested color
-                letterSpacing: '0.1em',
+                fontSize: 'clamp(1.35rem, 2vw, 2.25rem)',
+                color: '#323232',
+                letterSpacing: '0.05em',
+                lineHeight: '1',
+                padding: '0 8px',
                 mixBlendMode: 'normal',
                 textShadow: '0 2px 4px rgba(0,0,0,0.2)',
               }}
@@ -585,9 +587,11 @@ const PlayerPanel = ({
             className="shogi-timer font-black tracking-wider"
             style={{ 
               fontFamily: 'Orbitron, monospace',
-              fontSize: '1.5rem', // Large digital font
-              color: '#323232', // Updated to requested color
-              letterSpacing: '0.1em',
+              fontSize: '1.35rem',
+              color: '#323232',
+              letterSpacing: '0.05em',
+              lineHeight: '1',
+              padding: '0 8px',
               mixBlendMode: 'normal',
               textShadow: '0 2px 4px rgba(0,0,0,0.2)',
             }}
@@ -657,9 +661,11 @@ const PlayerPanel = ({
           className="shogi-timer font-black tracking-wider"
           style={{ 
             fontFamily: 'Orbitron, monospace',
-            fontSize: '1.5rem', // Large digital font
-            color: '#323232', // Updated to requested color
-            letterSpacing: '0.1em',
+            fontSize: '1.35rem',
+            color: '#323232',
+            letterSpacing: '0.05em',
+            lineHeight: '1',
+            padding: '0 8px',
             mixBlendMode: 'normal',
             textShadow: '0 2px 4px rgba(0,0,0,0.2)',
           }}

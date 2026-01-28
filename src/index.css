@@ -29,8 +29,9 @@
 @layer base {
   :root {
     /* SINGLE SOURCE OF TRUTH: Piece size for BOTH board and captured pieces */
-    /* Board cell ≈ 71px (640px ÷ 9), piece at 88% = 62.5px */
-    --koma-size: 62px;
+    /* Board: 480px ÷ 9 cells = 53.33px per cell, pieces at 88% = 46.9px */
+    /* Captured pieces MUST match board piece size exactly */
+    --koma-size: 53px;
     
     /* Warm wood-inspired palette */
     --background: 36 47% 88%;
@@ -150,6 +151,7 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   body {
@@ -166,11 +168,17 @@
 
   .shogi-timer {
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: clamp(1.1rem, 1.6vw, 2rem);
+    font-size: clamp(1.125rem, 2.2vmin, 1.75rem);
     line-height: 1;
-    padding: 0.4em 0.6em;
+    padding: 0.2em 0.3em;
     box-sizing: border-box;
-    @apply font-bold tracking-wider;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    transform: scale(1.05);
+    transform-origin: center;
+    white-space: nowrap;
+    user-select: none;
+    @apply tracking-wider;
   }
 
   .shogi-piece {
@@ -209,26 +217,60 @@
     border-right: 16px solid hsl(var(--bubble));
   }
 
-  /* Glassmorphism speech bubble for AI Assistant */
+  /* Glassmorphism speech bubble for AI Assistant - anchored to avatar */
   .speech-bubble-glass {
-    @apply relative rounded-2xl px-6 py-4;
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    position: relative;
+    border-radius: clamp(12px, 1.2vw, 20px);
+    padding: clamp(10px, 1vw, 16px) clamp(16px, 1.5vw, 24px);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      0 8px 32px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    max-width: clamp(300px, 40vw, 500px);
+    min-width: clamp(150px, 20vw, 200px);
+    width: fit-content;
   }
 
+  /* Speech bubble tail - points to avatar's mouth area */
   .speech-bubble-glass::before {
     content: '';
-    @apply absolute -left-4 w-0 h-0;
+    position: absolute;
+    left: clamp(-12px, -1.2vw, -16px);
     top: 50%;
     transform: translateY(-50%);
-    border-top: 12px solid transparent;
-    border-bottom: 12px solid transparent;
-    border-right: 16px solid rgba(255, 255, 255, 0.75);
+    width: 0;
+    height: 0;
+    /* CSS triangle pointing left toward avatar */
+    border-top: clamp(10px, 1vw, 14px) solid transparent;
+    border-bottom: clamp(10px, 1vw, 14px) solid transparent;
+    border-right: clamp(12px, 1.2vw, 16px) solid rgba(255, 255, 255, 0.92);
+    z-index: 2;
+  }
+
+  /* Tail shadow for depth effect */
+  .speech-bubble-glass::after {
+    content: '';
+    position: absolute;
+    left: clamp(-15px, -1.5vw, -19px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: clamp(12px, 1.2vw, 16px) solid transparent;
+    border-bottom: clamp(12px, 1.2vw, 16px) solid transparent;
+    border-right: clamp(14px, 1.4vw, 18px) solid rgba(0, 0, 0, 0.06);
+    z-index: 1;
+  }
+
+  /* Speech bubble text styling */
+  .speech-bubble-glass p {
+    font-size: clamp(14px, 1.3vw, 18px);
+    line-height: 1.5;
+    color: hsl(var(--foreground));
+    margin: 0;
   }
 
   /* Glassmorphism base class */
@@ -435,12 +477,12 @@
   .game-grid {
     flex: 1;
     display: grid;
-    /* Player panels are ~280px wide, need space for full panel not just captured pieces */
-    grid-template-columns: minmax(280px, 1fr) auto minmax(280px, 1fr);
+    /* Player panels are responsive to viewport, ensuring fit on all iPads */
+    grid-template-columns: minmax(clamp(200px, 18vw, 280px), 1fr) auto minmax(clamp(200px, 18vw, 280px), 1fr);
     grid-template-rows: 1fr auto;
-    column-gap: clamp(12px, 1.5vw, 24px);
-    row-gap: min(2vmin, 20px);
-    padding: min(1.5vmin, 16px);
+    column-gap: clamp(8px, 1.2vw, 24px);
+    row-gap: clamp(8px, 1.5vmin, 20px);
+    padding: clamp(8px, 1.2vmin, 16px);
     align-items: center;
     justify-items: center;
     overflow: visible;
@@ -475,8 +517,9 @@
   }
 
   .board-wrapper {
-    width: min(64vmin, 580px);
-    height: min(64vmin, 580px);
+    /* Responsive board: 350px on 9.7" → 480px on 12.9" */
+    width: clamp(350px, 45vw, 480px);
+    height: clamp(350px, 45vw, 480px);
     max-width: 100%;
     max-height: 100%;
     aspect-ratio: 1 / 1;
@@ -495,13 +538,40 @@
     justify-content: flex-start;
     align-items: flex-start;
     padding-top: 0;
-    padding-bottom: min(1vmin, 12px);
-    padding-left: clamp(20px, 5vw, 60px);
+    padding-bottom: clamp(8px, 1.2vmin, 16px);
+    padding-left: clamp(15px, 3vw, 60px);
     padding-right: 0;
     min-height: fit-content;
-    max-height: calc(100svh - 75vmin - 60px);
+    max-height: clamp(80px, calc(100svh - 75vmin - 60px), 150px);
     overflow: visible;
     position: relative;
+  }
+
+  /* AI Assistant container - avatar + speech bubble layout */
+  .ai-assistant-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: clamp(12px, 1.2vw, 16px);
+    position: relative;
+    width: fit-content;
+  }
+
+  /* AI Assistant avatar container */
+  .ai-avatar-container {
+    position: relative;
+    flex-shrink: 0;
+    width: clamp(80px, 9vw, 120px);
+    height: clamp(80px, 9vw, 120px);
+  }
+
+  .ai-avatar-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(139, 90, 43, 0.6);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   .game-over-overlay {
@@ -514,7 +584,177 @@
     z-index: 50;
   }
 
-  /* Responsive adjustments for smaller tablets */
+  /* iPad Pro 9.7" and iPad Air 2 - 768px × 1024px (smallest supported) */
+  @media only screen 
+    and (min-width: 768px) 
+    and (max-width: 834px) {
+    
+    .game-grid {
+      grid-template-columns: minmax(clamp(180px, 18vw, 220px), 1fr) auto minmax(clamp(180px, 18vw, 220px), 1fr);
+      column-gap: clamp(6px, 1vw, 12px);
+      row-gap: clamp(6px, 1.2vmin, 12px);
+      padding: clamp(6px, 1vmin, 10px);
+    }
+
+    .board-wrapper {
+      width: clamp(350px, 48vw, 420px);
+      height: clamp(350px, 48vw, 420px);
+      transform: scale(1.02);
+    }
+    
+    .ai-cell {
+      padding-left: clamp(10px, 2vw, 20px);
+      padding-bottom: clamp(6px, 1vmin, 12px);
+      max-height: clamp(70px, calc(100svh - 72vmin - 50px), 120px);
+    }
+    
+    /* Compact player panels for 9.7" */
+    .player-cell > div {
+      max-width: clamp(180px, 18vw, 220px);
+      gap: clamp(6px, 1vh, 10px) !important;
+    }
+    
+    /* Compact timer for 9.7" */
+    .player-cell > div > div:first-child > div {
+      width: clamp(120px, 16vw, 160px) !important;
+      height: clamp(60px, 8vh, 80px) !important;
+      overflow: hidden !important;
+    }
+    
+    .player-cell .shogi-timer {
+      font-size: clamp(1rem, 1.8vmin, 1.5rem);
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      transform: scale(1.05);
+      transform-origin: center;
+      white-space: nowrap;
+    }
+    
+    /* Compact avatar for 9.7" - fill frame with no white space */
+    .player-cell video,
+    .player-cell img[alt*="対戦相手"],
+    .player-cell img[alt*="中野さん"] {
+      width: clamp(140px, 18vw, 180px) !important;
+      max-height: clamp(140px, 22vh, 180px) !important;
+      object-fit: cover !important;
+      object-position: center !important;
+      transform: scale(1.05) !important;
+    }
+    
+    /* Smaller captured pieces container for 9.7" */
+    .player-cell .komadai-wood {
+      width: calc(4 * 48px + 3 * 6px + 12px) !important;
+      height: calc(2 * 48px + 1 * 6px + 12px) !important;
+      gap: 6px !important;
+      padding: 6px !important;
+    }
+    
+    .komadai-wood .hand-piece {
+      width: 48px !important;
+      height: 48px !important;
+      max-width: 48px !important;
+      max-height: 48px !important;
+    }
+    
+    /* Compact AI assistant for 9.7" */
+    .ai-avatar-container {
+      width: clamp(70px, 8vw, 90px);
+      height: clamp(70px, 8vw, 90px);
+    }
+    
+    .speech-bubble-glass {
+      padding: clamp(8px, 0.9vw, 12px) clamp(12px, 1.2vw, 16px);
+      max-width: clamp(250px, 38vw, 350px);
+    }
+    
+    .speech-bubble-glass p {
+      font-size: clamp(12px, 1.2vw, 14px);
+    }
+    
+    /* Speech bubble tail - smaller for 9.7" */
+    .speech-bubble-glass::before {
+      left: -10px !important;
+      border-top: 8px solid transparent !important;
+      border-bottom: 8px solid transparent !important;
+      border-right: 10px solid rgba(255, 255, 255, 0.92) !important;
+    }
+    
+    /* Tail shadow - smaller for 9.7" */
+    .speech-bubble-glass::after {
+      left: -12px !important;
+      border-top: 10px solid transparent !important;
+      border-bottom: 10px solid transparent !important;
+      border-right: 12px solid rgba(0, 0, 0, 0.06) !important;
+    }
+  }
+  
+  /* iPad Air 11" and iPad Pro 11" - 834px × 1194px */
+  @media only screen 
+    and (min-width: 834px) 
+    and (max-width: 1024px) {
+    
+    .game-grid {
+      grid-template-columns: minmax(clamp(220px, 16vw, 260px), 1fr) auto minmax(clamp(220px, 16vw, 260px), 1fr);
+      column-gap: clamp(8px, 1.2vw, 18px);
+      row-gap: clamp(8px, 1.4vmin, 16px);
+      padding: clamp(8px, 1.2vmin, 14px);
+    }
+
+    .board-wrapper {
+      width: clamp(400px, 46vw, 450px);
+      height: clamp(400px, 46vw, 450px);
+      transform: scale(1.03);
+    }
+    
+    .ai-cell {
+      padding-left: clamp(15px, 2.5vw, 30px);
+      padding-bottom: clamp(8px, 1.2vmin, 14px);
+      max-height: clamp(75px, calc(100svh - 74vmin - 55px), 130px);
+    }
+    
+    .player-cell > div {
+      max-width: clamp(220px, 16vw, 260px);
+      gap: clamp(8px, 1.2vh, 12px) !important;
+    }
+    
+    .player-cell > div > div:first-child > div {
+      width: clamp(140px, 17vw, 180px) !important;
+      height: clamp(70px, 9vh, 90px) !important;
+      overflow: hidden !important;
+    }
+    
+    .player-cell .shogi-timer {
+      font-size: clamp(1.25rem, 2.2vmin, 1.75rem);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      transform: scale(1.15);
+      transform-origin: center;
+      white-space: nowrap;
+    }
+    
+    .player-cell video,
+    .player-cell img[alt*="対戦相手"],
+    .player-cell img[alt*="中野さん"] {
+      width: clamp(160px, 20vw, 200px) !important;
+      max-height: clamp(160px, 25vh, 200px) !important;
+      object-fit: cover !important;
+      object-position: center !important;
+      transform: scale(1.05) !important;
+    }
+    
+    /* AI assistant sizing for 11" */
+    .ai-avatar-container {
+      width: clamp(85px, 8.5vw, 105px);
+      height: clamp(85px, 8.5vw, 105px);
+    }
+    
+    .speech-bubble-glass {
+      padding: clamp(10px, 1vw, 14px) clamp(14px, 1.4vw, 18px);
+      max-width: clamp(280px, 39vw, 400px);
+    }
+  }
+
+  /* Responsive adjustments for smaller tablets (legacy support) */
   @media (max-width: 1024px) {
     .game-grid {
       column-gap: clamp(8px, 1.2vw, 16px);
@@ -523,18 +763,41 @@
     }
 
     .board-wrapper {
-      width: min(56vmin, 480px);
-      height: min(56vmin, 480px);
+      width: clamp(380px, 45vw, 450px);
+      height: clamp(380px, 45vw, 450px);
     }
     
     /* Ensure AI assistant stays visible on small tablets */
     .ai-cell {
       padding-left: clamp(10px, 3vw, 40px);
+      padding-bottom: min(2vmin, 20px);
+      max-height: calc(100svh - 75vmin - 100px); /* Extra space to clear captured pieces */
     }
     
     /* Reduce spacing on smaller tablets to fit all content */
     .player-cell > div {
       gap: clamp(8px, 1.2vh, 14px) !important;
+    }
+    
+    /* Adjust avatar size for smaller tablets - fill frame */
+    .player-cell video,
+    .player-cell img[alt*="対戦相手"],
+    .player-cell img[alt*="中野さん"] {
+      width: clamp(160px, 20vw, 240px) !important;
+      max-height: clamp(160px, 24vh, 240px) !important;
+      object-fit: cover !important;
+      object-position: center !important;
+      transform: scale(1.05) !important;
+    }
+    
+    /* Timer must be readable on small tablets */
+    .player-cell .shogi-timer {
+      font-size: clamp(1rem, 1.8vmin, 1.5rem);
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      transform: scale(1.05);
+      transform-origin: center;
+      white-space: nowrap;
     }
   }
   
@@ -547,8 +810,15 @@
     }
     
     .board-wrapper {
-      width: min(52vmin, 440px);
-      height: min(52vmin, 440px);
+      width: 400px;
+      height: 400px;
+    }
+    
+    /* Prevent AI overlap with captured pieces on small height screens */
+    .ai-cell {
+      padding-top: min(0.5vmin, 6px);
+      padding-bottom: min(1vmin, 12px);
+      max-height: calc(100svh - 72vmin - 120px); /* Extra clearance for captured pieces */
     }
     
     /* Further reduce padding in captured containers for tight space */
@@ -564,111 +834,245 @@
     
     /* Compact timer */
     .player-cell > div > div:first-child > div {
-      width: clamp(120px, 14vw, 180px) !important;
-      height: clamp(60px, 8vh, 90px) !important;
+      width: clamp(130px, 16vw, 190px) !important;
+      height: clamp(65px, 9vh, 95px) !important;
+      overflow: hidden !important;
     }
     
-    /* Compact avatar */
+    /* Compact avatar - fill frame */
     .player-cell video,
     .player-cell img[alt*="対戦相手"],
     .player-cell img[alt*="中野さん"] {
-      width: clamp(140px, 18vw, 200px) !important;
-      max-height: clamp(140px, 22vh, 200px) !important;
+      width: clamp(150px, 19vw, 210px) !important;
+      max-height: clamp(150px, 23vh, 210px) !important;
+      object-fit: cover !important;
+      object-position: center !important;
+      transform: scale(1.05) !important;
+    }
+    
+    /* Timer readability on small height screens */
+    .player-cell .shogi-timer {
+      font-size: clamp(1.125rem, 2vmin, 1.5rem);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      transform: scale(1.15);
+      transform-origin: center;
+      white-space: nowrap;
     }
   }
 
-  /* iPad Air 2 and similar tablets (1024px-1536px) */
-  @media (min-width: 1024px) and (max-width: 1536px) {
-    .board-wrapper {
-      width: min(58vmin, 540px);
-      height: min(58vmin, 540px);
+  /* iPad Pro 12.9" and iPad Air 13" - 1024px × 1366px (optimal sizing) */
+  @media only screen 
+    and (min-width: 1024px) 
+    and (max-width: 1366px) {
+    
+    .game-grid {
+      grid-template-columns: minmax(clamp(240px, 15vw, 280px), 1fr) auto minmax(clamp(240px, 15vw, 280px), 1fr);
+      column-gap: clamp(12px, 1.5vw, 24px);
+      row-gap: clamp(10px, 1.5vmin, 20px);
+      padding: clamp(10px, 1.3vmin, 16px);
     }
     
-    /* Ensure AI Assistant is visible and properly positioned */
+    .board-wrapper {
+      width: clamp(440px, 50vw, 560px);
+      height: clamp(440px, 50vw, 560px);
+    }
+    
+    /* Ensure AI Assistant is visible and properly positioned without overlap */
     .ai-cell {
       padding-left: clamp(30px, 4vw, 50px);
-      padding-top: min(1vmin, 8px);
+      padding-top: clamp(0px, 0.8vmin, 8px);
+      padding-bottom: clamp(10px, 1.5vmin, 20px);
+      max-height: clamp(90px, calc(100svh - 76vmin - 70px), 150px);
+    }
+    
+    .player-cell > div {
+      max-width: clamp(240px, 15vw, 280px);
+    }
+    
+    /* Optimal AI assistant sizing for 12.9" */
+    .ai-avatar-container {
+      width: clamp(100px, 9.5vw, 120px);
+      height: clamp(100px, 9.5vw, 120px);
+    }
+    
+    .speech-bubble-glass {
+      padding: clamp(12px, 1.1vw, 16px) clamp(18px, 1.6vw, 24px);
+      max-width: clamp(350px, 42vw, 500px);
+    }
+  }
+  
+  /* iPad Air 2 and similar tablets (1024px-1132px) - legacy support */
+  @media (min-width: 1024px) and (max-width: 1132px) {
+    .board-wrapper {
+      width: clamp(440px, 45vw, 480px) !important;
+      height: clamp(440px, 45vw, 480px) !important;
     }
   }
 
   /* Specific fix for 1133×744 resolution */
-  @media (min-width: 1133px) and (max-width: 1200px) {
+  @media (min-width: 1133px) and (max-width: 1365px) and (max-height: 900px) {
     .board-wrapper {
-      width: min(58vmin, 520px);
-      height: min(58vmin, 520px);
+      width: 480px;
+      height: 480px;
     }
     
     .game-grid {
       column-gap: clamp(10px, 1.5vw, 20px);
     }
+    
+    /* Prevent AI overlap at this resolution */
+    .ai-cell {
+      max-height: calc(100svh - 76vmin - 85px);
+    }
   }
 
-  /* Desktop optimizations (large screens) */
-  @media (min-width: 1366px) {
-    .player-cell {
-      max-width: 380px;
+  /* ============================================================
+     DESKTOP-ONLY LAYOUT OPTIMIZATION (PC/Laptop browsers)
+     pointer: fine = mouse/trackpad (NOT iPad/tablets with touch)
+     ============================================================ */
+  @media (min-width: 1280px) and (pointer: fine) {
+    /* PC: Normalize piece size to match larger board */
+    :root {
+      --koma-size: 78px;
     }
     
     .board-wrapper {
-      width: min(74vmin, 720px);
-      height: min(74vmin, 720px);
+      /* PC: Larger board for desktop screens */
+      width: clamp(580px, 70vw, 800px) !important;
+      height: clamp(580px, 70vw, 800px) !important;
+      transform: scale(1.0) !important;
     }
     
-    /* Better AI positioning on large desktop */
+    .game-grid {
+      grid-template-columns: 280px auto 280px;
+      column-gap: 52px;
+      row-gap: 12px;
+      padding: 12px;
+      max-width: 1440px;
+      margin: 0 auto;
+      justify-items: center;
+    }
+    
+    .player-cell {
+      max-width: 280px;
+      /* PC: Move player avatars DOWN to start below board top */
+      align-self: flex-start;
+      margin-top: 60px;
+    }
+    
+    .player-cell > div {
+      max-width: 280px;
+    }
+    
+    /* PC: Larger avatar container for better face visibility */
+    .player-cell > div > div:nth-child(2) {
+      width: clamp(220px, 24vw, 310px) !important;
+      max-height: clamp(220px, 31vh, 310px) !important;
+    }
+    
+    /* PC: Avatar image scales naturally with container */
+    .player-cell video,
+    .player-cell img[alt*="対戦相手"],
+    .player-cell img[alt*="中野さん"] {
+      width: 100% !important;
+      max-height: 100% !important;
+    }
+    
+    /* PC: Timer text - larger for better readability */
+    .player-cell .shogi-timer {
+      font-size: clamp(1.4rem, 2.2vw, 1.9rem) !important;
+      line-height: 1.2 !important;
+      padding: 0 6px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+    }
+    
+    /* PC: Progress bar percentage text - larger for better readability */
+    .glassmorphism span {
+      font-size: clamp(24px, 3.5vmin, 36px) !important;
+      font-weight: 900 !important;
+    }
+    
     .ai-cell {
-      padding-left: clamp(50px, 6vw, 80px);
+      padding-left: 32px;
+      padding-bottom: 12px;
+      /* PC: Move AI assistant UP for better visual balance */
+      margin-top: -40px;
+    }
+  }
+  
+  /* iPad Pro 12.9" ONLY - larger board (MUST be last to override) */
+  @media only screen 
+    and (min-width: 1366px) 
+    and (max-width: 1366px)
+    and (min-height: 1000px) {
+    
+    .board-wrapper {
+      width: 560px !important;
+      height: 560px !important;
     }
   }
 
-  /* Compact PlayerPanel sizing for grid layout */
+  /* Compact PlayerPanel sizing for grid layout - fully responsive */
   .player-cell > div {
     width: 100%;
-    max-width: min(22vw, 280px);
-    gap: min(1.5vmin, 12px);
+    max-width: clamp(180px, 18vw, 280px);
+    gap: clamp(8px, 1.3vmin, 14px);
     box-sizing: border-box !important;
   }
 
   .player-cell .shogi-timer {
-    font-size: clamp(1.25rem, 2vmin, 2rem);
+    font-size: clamp(1.375rem, 2.5vmin, 2.125rem);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    transform: scale(1.15);
+    transform-origin: center;
+    white-space: nowrap;
   }
 
   .player-cell > div > div:first-child {
     gap: min(1vmin, 8px);
   }
 
-  /* Compact video/avatar sizing - preserve aspect ratio */
+  /* Compact video/avatar sizing - fill circular frame with no white space */
   .player-cell video,
   .player-cell img[alt*="対戦相手"],
   .player-cell img[alt*="中野さん"] {
-    width: clamp(180px, 20vw, 250px) !important;
-    max-height: clamp(180px, 26vh, 250px) !important;
+    width: clamp(140px, 20vw, 280px) !important;
+    max-height: clamp(140px, 28vh, 280px) !important;
     aspect-ratio: 1 / 1;
-    object-fit: contain !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    transform: scale(1.05) !important;
   }
 
-  /* Fixed 2×4 grid komadai - CALCULATED DIMENSIONS */
+  /* Responsive 2×4 grid komadai - scales with viewport */
   /* 4 columns × 2 rows fixed layout */
-  /* Container size = grid cells + gaps (no guessing) */
+  /* Container size = grid cells + gaps + padding (box-sizing: border-box) */
   .player-cell .komadai-wood {
     display: grid !important;
     grid-template-columns: repeat(4, var(--koma-size)) !important;
     grid-template-rows: repeat(2, var(--koma-size)) !important;
-    gap: 8px !important;
+    gap: clamp(6px, 0.8vw, 8px) !important;
     
-    /* Calculated: (4 pieces × koma-size) + (3 gaps × 8px) */
-    width: calc(4 * var(--koma-size) + 3 * 8px) !important;
-    /* Calculated: (2 pieces × koma-size) + (1 gap × 8px) */
-    height: calc(2 * var(--koma-size) + 1 * 8px) !important;
+    /* Calculated: (4 pieces × koma-size) + (3 gaps × responsive) + (padding × 2) */
+    width: calc(4 * var(--koma-size) + 3 * clamp(6px, 0.8vw, 8px) + clamp(12px, 1.2vw, 14px)) !important;
+    /* Calculated: (2 pieces × koma-size) + (1 gap × responsive) + (padding × 2) */
+    height: calc(2 * var(--koma-size) + 1 * clamp(6px, 0.8vw, 8px) + clamp(12px, 1.2vw, 14px)) !important;
     
-    min-width: calc(4 * var(--koma-size) + 3 * 8px) !important;
-    max-width: calc(4 * var(--koma-size) + 3 * 8px) !important;
-    min-height: calc(2 * var(--koma-size) + 1 * 8px) !important;
-    max-height: calc(2 * var(--koma-size) + 1 * 8px) !important;
+    min-width: calc(4 * var(--koma-size) + 3 * clamp(6px, 0.8vw, 8px) + clamp(12px, 1.2vw, 14px)) !important;
+    max-width: calc(4 * var(--koma-size) + 3 * clamp(6px, 0.8vw, 8px) + clamp(12px, 1.2vw, 14px)) !important;
+    min-height: calc(2 * var(--koma-size) + 1 * clamp(6px, 0.8vw, 8px) + clamp(12px, 1.2vw, 14px)) !important;
+    max-height: calc(2 * var(--koma-size) + 1 * clamp(6px, 0.8vw, 8px) + clamp(12px, 1.2vw, 14px)) !important;
     
-    padding: 4px !important; /* Reduced internal padding for better space utilization */
+    padding: clamp(6px, 0.6vw, 7px) !important; /* Internal padding for piece clearance */
     margin-left: 0 !important;
     margin-right: 0 !important;
-    overflow: visible !important; /* Allow pieces to render fully without cropping */
+    overflow: visible !important; /* Allow badges to render fully without clipping */
+    justify-content: center !important; /* Center grid tracks horizontally */
+    align-content: center !important; /* Center grid tracks vertically */
+    box-sizing: border-box !important; /* CRITICAL: padding included in dimensions */
   }
   
   /* Captured piece grid - inherit from parent */
@@ -686,10 +1090,24 @@
     overflow: visible !important; /* Allow badge to show but stay within relative positioning */
   }
 
-  /* Compact timer sizing */
+  /* Compact timer sizing - responsive to viewport, scales from 9.7" to 12.9" */
   .player-cell > div > div:first-child > div:nth-child(2) {
-    width: clamp(140px, 16vw, 200px) !important;
-    height: clamp(70px, 9vh, 100px) !important;
+    width: clamp(120px, 17vw, 220px) !important;
+    height: clamp(60px, 9vh, 110px) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  /* Responsive timer font size - larger and bold with scale */
+  .player-cell .shogi-timer {
+    font-size: clamp(1.25rem, 2.5vmin, 2rem);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    transform: scale(1.15);
+    transform-origin: center;
+    white-space: nowrap;
   }
 
   /* iPad portrait orientation - ensure AI Assistant visibility */
@@ -697,30 +1115,24 @@
     .ai-cell {
       padding-left: max(20px, 3vw);
       padding-top: 10px;
+      padding-bottom: min(2vmin, 20px);
       display: flex;
       justify-content: flex-start;
+      max-height: calc(100svh - 82vmin - 100px); /* Extra clearance in portrait */
     }
     
     .board-wrapper {
-      width: min(74vmin, 640px);
-      height: min(74vmin, 640px);
+      width: 480px;
+      height: 480px;
     }
   }
 
-  /* iPad Air 2 (2048×1536) - Fix clock number overflow */
-  @media only screen 
-    and (min-device-width: 1536px) 
-    and (max-device-width: 2048px) 
-    and (orientation: landscape) {
-    /* Adjust clock font size to prevent overflow */
-    .shogi-timer {
-      font-size: clamp(1.1rem, 1.5vw, 1.9rem) !important;
-      line-height: 1 !important;
-      padding: 0.3em 0.5em !important;
-    }
-    
-    /* Fine-tune clock container padding */
+  /* iPad-specific optimizations for clock container sizing */
+  @media (min-width: 1024px) and (max-width: 1536px) {
+    /* Ensure clock container scales appropriately with overflow protection */
     .player-cell > div > div:first-child > div {
-      padding: clamp(4px, 0.5vmin, 8px) !important;
+      width: clamp(160px, 18vw, 220px) !important;
+      height: clamp(80px, 10vh, 110px) !important;
+      overflow: hidden !important;
     }
   }

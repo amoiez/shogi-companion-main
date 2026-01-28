@@ -28,8 +28,8 @@ interface AIAssistantProps {
 // REPOSITIONED: Shifted left to prevent collision with widened right komadai
 // ============================================================================
 
-const ASSISTANT_SIZE = { min: 112, max: 206, vw: 11.2 }; // Increased ~12% for better visibility
-const BUBBLE_MAX_WIDTH = 495; // Maximum single-line width (increased with avatar size)
+const ASSISTANT_SIZE = { min: 96, max: 176, vw: 9.6 }; // Reduced ~15% to prevent overlap with captured pieces
+const BUBBLE_MAX_WIDTH = 495; // Maximum single-line width (kept unchanged)
 const BUBBLE_MIN_WIDTH = 200; // Minimum width for very short messages
 const BUBBLE_TAIL_SIZE = 16; // Proportionally scaled with avatar
 const BUBBLE_GAP = 16; // Gap between bubble and avatar
@@ -70,7 +70,7 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
         flexDirection: 'row',
         alignItems: 'flex-end',
         transform: 'translate(-260px, 0)',
-        marginTop: 'clamp(-70px, -5vh, -30px)',
+        marginTop: 'clamp(-40px, -3vh, -10px)', // Moved lower (less negative margin)
         minWidth: '120px',
         minHeight: '120px',
       }}

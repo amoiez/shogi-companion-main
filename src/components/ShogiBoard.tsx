@@ -401,17 +401,21 @@ const ShogiBoard = ({
   }, [dragSource, selectedSource, setSelectedSource]);
 
   // Compute legal moves for the currently selected/dragged piece
+  // CRITICAL FIX: Only show board highlights for BOARD pieces
+  // Captured pieces (hand) should NOT trigger board move highlights
   const legalMoves = useMemo(() => {
     const source = dragSource || selectedSource;
     if (!source) return new Set<string>();
 
     let moves: { row: number; col: number }[] = [];
 
+    // ONLY compute legal moves for board pieces
+    // Captured pieces (type === 'hand') do NOT show board highlights
     if (source.type === 'board' && source.row !== undefined && source.col !== undefined) {
       moves = getLegalMoves(board, source.row, source.col, source.piece, source.isOpponent);
-    } else if (source.type === 'hand') {
-      moves = getLegalDrops(board, source.piece, source.isOpponent);
     }
+    // Removed: else if (source.type === 'hand') block
+    // Drop logic still works via handleDrop, but no visual highlights
 
     return new Set(moves.map(m => `${m.row}-${m.col}`));
   }, [board, dragSource, selectedSource]);

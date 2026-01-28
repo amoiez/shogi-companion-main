@@ -25,7 +25,7 @@ const SituationBar = ({ gotePercent, sentePercent, isFlipped = false }: Situatio
           className={`h-full ${leftBg} flex items-center justify-start pl-4 transition-all duration-500`}
           style={{ width: `${leftPercent}%` }}
         >
-          <span className={`text-lg font-bold ${leftTextClass} drop-shadow-sm whitespace-nowrap`} style={{ fontSize: 'clamp(14px, 1.5vmin, 18px)' }}>
+          <span className={`text-xl font-black ${leftTextClass} drop-shadow-sm whitespace-nowrap`} style={{ fontSize: 'clamp(18px, 2.5vmin, 26px)', fontWeight: 900 }}>
             {leftPercent}%
           </span>
         </div>
@@ -35,7 +35,7 @@ const SituationBar = ({ gotePercent, sentePercent, isFlipped = false }: Situatio
           className={`h-full ${rightBg} flex items-center justify-end pr-4 transition-all duration-500`}
           style={{ width: `${rightPercent}%` }}
         >
-          <span className={`text-lg font-bold ${rightTextClass} drop-shadow-sm whitespace-nowrap`} style={{ fontSize: 'clamp(14px, 1.5vmin, 18px)' }}>
+          <span className={`text-xl font-black ${rightTextClass} drop-shadow-sm whitespace-nowrap`} style={{ fontSize: 'clamp(18px, 2.5vmin, 26px)', fontWeight: 900 }}>
             {rightPercent}%
           </span>
         </div>
