@@ -241,3 +241,37 @@ export function getAPIGameState(
     throw new Error("Failed to serialize game state for API");
   }
 }
+
+/**
+ * Downloads a dynamically generated text string as a .txt file
+ * @param content - The text content to download
+ * @param filename - The name of the file (default: 'download.txt')
+ * @example
+ * downloadTextFile('Hello World!', 'greeting.txt');
+ */
+export function downloadTextFile(content: string, filename: string = 'download.txt'): void {
+  // Ensure filename has .txt extension
+  if (!filename.endsWith('.txt')) {
+    filename += '.txt';
+  }
+
+  // Create a Blob with the text content
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  
+  // Create a temporary URL for the blob
+  const url = URL.createObjectURL(blob);
+  
+  // Create a temporary anchor element and trigger download
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.style.display = 'none';
+  
+  // Append to body, click, and remove
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  // Clean up the temporary URL
+  URL.revokeObjectURL(url);
+}
