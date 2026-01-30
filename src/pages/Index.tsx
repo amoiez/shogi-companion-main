@@ -8,6 +8,7 @@ import PromotionDialog from "@/components/PromotionDialog";
 import { useGameState, GameMode } from "@/hooks/useGameState";
 import { useMultiplayer } from "@/hooks/useMultiplayer";
 import { useAudioSystem } from "@/hooks/useAudioSystem";
+import { useTextDownload } from "@/hooks/useTextDownload";
 import { getAPIGameState } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -105,6 +106,9 @@ const Index = () => {
     primeAudioEngine,
     isAudioPrimed,
   } = useAudioSystem();
+  
+  // Text download hook
+  const { downloadWithTimestamp } = useTextDownload();
   
   // AI message override for time warnings
   const [aiWarningMessage, setAiWarningMessage] = useState<string | null>(null);
@@ -235,6 +239,45 @@ const Index = () => {
     setModeSelected(true);
     joinGame(gameId);
   }, [joinGame]);
+
+  // Download game record handler
+  const handleDownloadGameRecord = useCallback(() => {
+    const gameState = getGameState();
+    const gameData = {
+      moveCount: moveCount,
+      currentTurn: gameCurrentTurn,
+      senteTime: senteTimeFormatted,
+      goteTime: goteTimeFormatted,
+      sfen: sfen,
+      usiHistory: usiHistory,
+      isGameOver: isGameOver,
+      gameOverReason: gameOverReason,
+      gameMode: gameMode,
+    };
+    
+    // Create formatted text content
+    const content = `将棋対局記録
+=================
+
+対局情報:
+- 手数: ${moveCount}手
+- 現在の手番: ${gameCurrentTurn === 'sente' ? '先手' : '後手'}
+- 先手持ち時間: ${senteTimeFormatted}
+- 後手持ち時間: ${goteTimeFormatted}
+- 対局モード: ${gameMode === 'solo' ? 'ソロ' : 'オンライン'}
+- 対局状態: ${isGameOver ? '終了 - ' + gameOverReason : '進行中'}
+
+SFEN表記:
+${sfen}
+
+USI棋譜:
+${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありません)'}
+
+エクスポート日時: ${new Date().toLocaleString('ja-JP')}
+`;
+    
+    downloadWithTimestamp(content, 'shogi-game-record');
+  }, [moveCount, gameCurrentTurn, senteTimeFormatted, goteTimeFormatted, sfen, usiHistory, isGameOver, gameOverReason, gameMode, downloadWithTimestamp, getGameState]);
 
   // Register callback for receiving game state updates
   useEffect(() => {
@@ -478,6 +521,15 @@ const Index = () => {
         title={isBgmPlaying ? 'BGMを停止' : 'BGMを再生'}
       >
         {isBgmPlaying ? '🔊' : '🔇'}
+      </button>
+      
+      {/* Download Game Record Button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); handleDownloadGameRecord(); }}
+        className="absolute top-16 right-16 z-30 p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
+        title="棋譜をダウンロード"
+      >
+        📥
       </button>
       
       {/* Connection Panel - Lobby Modal or Status Badge (handles its own positioning) */}
