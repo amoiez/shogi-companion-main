@@ -511,26 +511,15 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
 
   return (
     <div className="game-container" onClick={handleFirstInteraction}>
-      {/* Top Header - Situation Assessment Bar - flipped based on perspective */}
-      <SituationBar gotePercent={gotePercent} sentePercent={sentePercent} isFlipped={shouldFlipLayout} />
-      
-      {/* BGM Toggle Button */}
-      <button
-        onClick={(e) => { e.stopPropagation(); toggleBgm(); }}
-        className="absolute top-16 right-4 z-30 p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
-        title={isBgmPlaying ? 'BGMを停止' : 'BGMを再生'}
-      >
-        {isBgmPlaying ? '🔊' : '🔇'}
-      </button>
-      
-      {/* Download Game Record Button */}
-      <button
-        onClick={(e) => { e.stopPropagation(); handleDownloadGameRecord(); }}
-        className="absolute top-16 right-16 z-30 p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
-        title="棋譜をダウンロード"
-      >
-        📥
-      </button>
+      {/* Top Header - Situation Assessment Bar with control buttons */}
+      <SituationBar 
+        gotePercent={gotePercent} 
+        sentePercent={sentePercent} 
+        isFlipped={shouldFlipLayout}
+        onDownloadClick={handleDownloadGameRecord}
+        onBgmToggle={toggleBgm}
+        isBgmPlaying={isBgmPlaying}
+      />
       
       {/* Connection Panel - Lobby Modal or Status Badge (handles its own positioning) */}
       {/* Show modal until user selects a mode, then only show in online mode */}

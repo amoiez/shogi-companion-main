@@ -2,9 +2,12 @@ interface SituationBarProps {
   gotePercent: number;
   sentePercent: number;
   isFlipped?: boolean; // When Gote's turn, flip the labels
+  onDownloadClick?: () => void;
+  onBgmToggle?: () => void;
+  isBgmPlaying?: boolean;
 }
 
-const SituationBar = ({ gotePercent, sentePercent, isFlipped = false }: SituationBarProps) => {
+const SituationBar = ({ gotePercent, sentePercent, isFlipped = false, onDownloadClick, onBgmToggle, isBgmPlaying }: SituationBarProps) => {
   // When flipped, swap the visual positions
   const leftPercent = isFlipped ? sentePercent : gotePercent;
   const rightPercent = isFlipped ? gotePercent : sentePercent;
@@ -16,7 +19,29 @@ const SituationBar = ({ gotePercent, sentePercent, isFlipped = false }: Situatio
   const rightTextClass = isFlipped ? 'text-secondary-foreground' : 'text-primary-foreground';
 
   return (
-    <div className="w-full px-4 py-2 glassmorphism border-b border-white/20" style={{ padding: 'clamp(6px, 1vh, 12px) 16px' }}>
+    <div className="w-full px-4 py-2 glassmorphism border-b border-white/20 relative" style={{ padding: 'clamp(6px, 1vh, 12px) 16px' }}>
+      {/* Control Buttons - Right aligned inside header */}
+      <div className="absolute right-6 top-1/2 -translate-y-1/2 flex gap-2 z-30">
+        {onDownloadClick && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDownloadClick(); }}
+            className="p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
+            title="棋譜をダウンロード"
+          >
+            📥
+          </button>
+        )}
+        {onBgmToggle && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onBgmToggle(); }}
+            className="p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
+            title={isBgmPlaying ? 'BGMを停止' : 'BGMを再生'}
+          >
+            {isBgmPlaying ? '🔊' : '🔇'}
+          </button>
+        )}
+      </div>
+      
       <div className="max-w-[600px] mx-auto mb-2">
         
         <div className="w-full h-10 rounded-lg overflow-hidden flex" style={{ height: 'clamp(32px, 4vh, 40px)' }}>
