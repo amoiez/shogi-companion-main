@@ -514,6 +514,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
   
   // Technical data for AI engine
   const [usiHistory, setUsiHistory] = useState<string[]>([]);
+  const usiHistoryRef = useRef<string[]>([]); // Ref to track USI history and avoid stale closures
   const [lastMove, setLastMove] = useState<LastMove | null>(null);
   const [sfen, setSfen] = useState<string>('');
   
@@ -768,8 +769,9 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
       isDrop,
     };
     
-    // Update USI history
-    const newUsiHistory = [...usiHistory, usiMove];
+    // Update USI history using ref to avoid stale closure issues
+    const newUsiHistory = [...usiHistoryRef.current, usiMove];
+    usiHistoryRef.current = newUsiHistory; // Update ref immediately
     
     // Generate new SFEN
     const newSfen = generateSFEN(newBoard, newTurn, newSenteHand, newGoteHand, newMoveCount);
@@ -810,7 +812,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     setDragSource(null);
     
     return nextState;
-  }, [board, senteHand, goteHand, moveCount, currentTurn, senteTime, goteTime, senteByoyomi, goteByoyomi, startTimer, usiHistory]);
+  }, [board, senteHand, goteHand, moveCount, currentTurn, senteTime, goteTime, senteByoyomi, goteByoyomi, startTimer]);
 
   const handleDrop = useCallback((targetRow: number, targetCol: number): GameState | null => {
     const source = dragSourceRef || dragSource;
