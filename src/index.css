@@ -514,6 +514,8 @@
     height: 100%;
     align-self: center;
     position: relative;
+    /* Push board down slightly for better vertical balance */
+    padding-top: 30px;
   }
 
   .board-wrapper {
@@ -596,10 +598,17 @@
       padding: clamp(6px, 1vmin, 10px);
     }
 
+    /* 9.7" BOARD - REDUCED SIZE to create space for turn indicator */
     .board-wrapper {
-      width: clamp(350px, 48vw, 420px);
-      height: clamp(350px, 48vw, 420px);
-      transform: scale(1.02);
+      width: clamp(320px, 44vw, 380px);
+      height: clamp(320px, 44vw, 380px);
+      transform: scale(1.0);
+      margin-top: -10px; /* Negative - pull board up for AI assistant visibility */
+    }
+    
+    /* 9.7" BOARD CELL - Minimal vertical offset */
+    .board-cell {
+      padding-top: 0px !important;
     }
     
     .ai-cell {
@@ -700,10 +709,17 @@
       padding: clamp(8px, 1.2vmin, 14px);
     }
 
+    /* 11" BOARD - REDUCED SIZE to create space for turn indicator */
     .board-wrapper {
-      width: clamp(400px, 46vw, 450px);
-      height: clamp(400px, 46vw, 450px);
-      transform: scale(1.03);
+      width: clamp(370px, 44vw, 420px);
+      height: clamp(370px, 44vw, 420px);
+      transform: scale(1.0);
+      margin-top: 10px; /* Minimal - lift board up */
+    }
+    
+    /* 11" BOARD CELL - Minimal vertical offset */
+    .board-cell {
+      padding-top: 15px !important;
     }
     
     .ai-cell {
@@ -873,9 +889,16 @@
       padding: clamp(10px, 1.3vmin, 16px);
     }
     
+    /* 12.9" BOARD - Push down for vertical balance */
     .board-wrapper {
       width: clamp(440px, 50vw, 560px);
       height: clamp(440px, 50vw, 560px);
+      margin-top: 30px; /* Push board down */
+    }
+    
+    /* 12.9" BOARD CELL - Additional vertical offset */
+    .board-cell {
+      padding-top: 40px !important;
     }
     
     /* Ensure AI Assistant is visible and properly positioned without overlap */
@@ -1141,5 +1164,398 @@
     span.percentage-text {
       font-size: 26px !important;
       line-height: 1 !important;
+    }
+  }
+
+  /* ============================================================
+     IPAD HEADER LAYOUT FIX - COLLISION PREVENTION
+     Applies to all iPad models (768px - 1366px)
+     Desktop (>1366px) is NOT affected by these rules
+     ============================================================ */
+
+  /* Base iPad header layout (all iPad sizes) */
+  @media screen and (min-width: 768px) and (max-width: 1366px) {
+    
+    /* ========== SITUATION BAR HEADER CONTAINER ========== */
+    /* Reorganize header: Status LEFT | Percentage CENTER | Buttons RIGHT */
+    .situation-bar-container,
+    .glassmorphism.border-b {
+      position: relative !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      padding: clamp(8px, 1.2vh, 14px) 16px !important;
+      gap: 6px !important;
+      z-index: 100 !important;
+      min-height: 60px !important;
+    }
+    
+    /* Percentage bar container - centered, with space for side elements */
+    .percentage-bar-container,
+    .glassmorphism.border-b > .max-w-\[600px\] {
+      position: relative !important;
+      width: calc(100% - 200px) !important;
+      max-width: 500px !important;
+      margin: 0 auto !important;
+      z-index: 99 !important;
+    }
+    
+    /* Control buttons container - TOP RIGHT, clear of clocks */
+    .header-control-buttons,
+    .glassmorphism.border-b > .absolute.right-6 {
+      position: fixed !important;
+      right: 12px !important;
+      top: 12px !important;
+      left: auto !important;
+      transform: none !important;
+      z-index: 150 !important;
+      display: flex !important;
+      gap: 8px !important;
+    }
+    
+    /* Individual control buttons - consistent sizing */
+    .header-control-buttons button,
+    .control-btn-download,
+    .control-btn-sound,
+    .glassmorphism.border-b > .absolute.right-6 button {
+      width: 40px !important;
+      height: 40px !important;
+      min-width: 40px !important;
+      min-height: 40px !important;
+      padding: 8px !important;
+      border-radius: 50% !important;
+      font-size: 18px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    
+    /* ========== CONNECTION STATUS BADGE ========== */
+    /* Move connected badge to LEFT side of header, not colliding with buttons/clocks */
+    .connection-status-badge,
+    .fixed.top-4.right-4.z-50.bg-green-500 {
+      position: fixed !important;
+      left: 12px !important;
+      right: auto !important;
+      top: 12px !important;
+      z-index: 150 !important;
+      padding: 6px 12px !important;
+      font-size: 13px !important;
+    }
+    
+    /* ========== TURN INDICATOR ========== */
+    /* Position turn indicator BELOW percentage bar, centered */
+    .board-wrapper .turn-indicator-label {
+      position: absolute !important;
+      top: -50px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      z-index: 10 !important;
+      white-space: nowrap !important;
+    }
+    
+    /* ========== CLOCK SPACING ========== */
+    /* Ensure clocks have proper top margin to not collide with header elements */
+    .player-cell > div > div:first-child {
+      margin-top: 8px !important;
+    }
+  }
+
+  /* ========== IPAD 9.7" SPECIFIC (768px - 833px) ========== */
+  @media screen and (min-width: 768px) and (max-width: 833px) {
+    
+    /* Narrower percentage bar for smallest iPad */
+    .percentage-bar-container,
+    .glassmorphism.border-b > .max-w-\[600px\] {
+      width: calc(100% - 180px) !important;
+      max-width: 400px !important;
+    }
+    
+    /* Smaller control buttons */
+    .header-control-buttons button,
+    .control-btn-download,
+    .control-btn-sound,
+    .glassmorphism.border-b > .absolute.right-6 button {
+      width: 36px !important;
+      height: 36px !important;
+      min-width: 36px !important;
+      min-height: 36px !important;
+      font-size: 16px !important;
+    }
+    
+    /* Smaller connection status badge */
+    .connection-status-badge,
+    .fixed.top-4.right-4.z-50.bg-green-500 {
+      padding: 5px 10px !important;
+      font-size: 12px !important;
+    }
+    
+    /* Connection status badge icons */
+    .connection-status-badge svg,
+    .fixed.top-4.right-4.z-50.bg-green-500 svg {
+      width: 14px !important;
+      height: 14px !important;
+    }
+    
+    /* ========== 9.7" BOARD SIZING - REDUCED TO CREATE SPACE ========== */
+    .board-wrapper {
+      width: clamp(320px, 44vw, 380px) !important;
+      height: clamp(320px, 44vw, 380px) !important;
+      transform: scale(1.0) !important;
+      margin-top: -10px !important; /* Negative - pull board up for AI assistant */
+    }
+    
+    /* 9.7" BOARD CELL - Override padding to zero */
+    .board-cell {
+      padding-top: 0px !important;
+    }
+    
+    /* ========== 9.7" TURN INDICATOR - POSITIONED ABOVE BOARD ========== */
+    .board-wrapper .turn-indicator-label {
+      position: absolute !important;
+      top: -32px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      z-index: 10 !important;
+      white-space: nowrap !important;
+      padding: 4px 14px !important;
+      font-size: 11px !important;
+      background: rgba(255, 241, 220, 0.95) !important;
+      border-radius: 12px !important;
+    }
+    
+    /* ========== 9.7" ONLINE STATUS BUTTON - LEFT SIDE ========== */
+    /* Move the "オンライン対戦" dismissed button to left */
+    .online-lobby-button,
+    .fixed.top-4.right-4.z-50:has(button.bg-amber-500) {
+      position: fixed !important;
+      left: 12px !important;
+      right: auto !important;
+      top: 60px !important;
+    }
+    
+    /* Scale down online button for 9.7" */
+    .online-lobby-button button {
+      padding: 5px 12px !important;
+      font-size: 12px !important;
+    }
+    
+    .online-lobby-button svg {
+      width: 14px !important;
+      height: 14px !important;
+    }
+  }
+
+  /* ========== IPAD 9.7" LANDSCAPE - HEIGHT BASED (max-height: 768px) ========== */
+  /* This catches 9.7" iPad in landscape mode where width is 1024px but height is 768px */
+  @media screen and (min-width: 768px) and (max-width: 1366px) and (max-height: 820px) {
+    
+    /* 9.7" LANDSCAPE - Lift board up significantly */
+    .board-wrapper {
+      margin-top: -15px !important;
+    }
+    
+    /* 9.7" LANDSCAPE - Zero padding on board cell */
+    .board-cell {
+      padding-top: 0px !important;
+    }
+    
+    /* 9.7" LANDSCAPE - Compact turn indicator */
+    .board-wrapper .turn-indicator-label {
+      top: -30px !important;
+      padding: 4px 12px !important;
+      font-size: 11px !important;
+    }
+  }
+
+  /* ========== IPAD 11" SPECIFIC (834px - 1023px) ========== */
+  @media screen and (min-width: 834px) and (max-width: 1023px) {
+    
+    /* Medium percentage bar */
+    .percentage-bar-container,
+    .glassmorphism.border-b > .max-w-\[600px\] {
+      width: calc(100% - 200px) !important;
+      max-width: 450px !important;
+    }
+    
+    /* Standard control buttons */
+    .header-control-buttons button,
+    .control-btn-download,
+    .control-btn-sound,
+    .glassmorphism.border-b > .absolute.right-6 button {
+      width: 40px !important;
+      height: 40px !important;
+      font-size: 17px !important;
+    }
+    
+    /* ========== 11" BOARD SIZING - SLIGHTLY REDUCED ========== */
+    .board-wrapper {
+      width: clamp(370px, 44vw, 420px) !important;
+      height: clamp(370px, 44vw, 420px) !important;
+      transform: scale(1.0) !important;
+      margin-top: 10px !important; /* Minimal - lift board up for AI assistant */
+    }
+    
+    /* 11" BOARD CELL - Override padding */
+    .board-cell {
+      padding-top: 15px !important;
+    }
+    
+    /* ========== 11" TURN INDICATOR - POSITIONED ABOVE BOARD ========== */
+    .board-wrapper .turn-indicator-label {
+      position: absolute !important;
+      top: -38px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      z-index: 10 !important;
+      white-space: nowrap !important;
+      padding: 5px 18px !important;
+      font-size: 13px !important;
+      background: rgba(255, 241, 220, 0.95) !important;
+      border-radius: 16px !important;
+    }
+    
+    /* ========== 11" CONNECTION STATUS - ENSURE LEFT POSITION ========== */
+    .connection-status-badge,
+    .fixed.top-4.right-4.z-50.bg-green-500 {
+      left: 12px !important;
+      right: auto !important;
+      top: 12px !important;
+    }
+    
+    /* ========== 11" ONLINE STATUS BUTTON - LEFT SIDE ========== */
+    .online-lobby-button,
+    .fixed.top-4.right-4.z-50:has(button.bg-amber-500) {
+      position: fixed !important;
+      left: 12px !important;
+      right: auto !important;
+      top: 60px !important;
+    }
+  }
+
+  /* ========== IPAD 12.9" & 13" SPECIFIC (1024px - 1366px) ========== */
+  @media screen and (min-width: 1024px) and (max-width: 1366px) {
+    
+    /* Wider percentage bar for larger iPad */
+    .percentage-bar-container,
+    .glassmorphism.border-b > .max-w-\[600px\] {
+      width: calc(100% - 220px) !important;
+      max-width: 520px !important;
+    }
+    
+    /* Larger control buttons */
+    .header-control-buttons button,
+    .control-btn-download,
+    .control-btn-sound,
+    .glassmorphism.border-b > .absolute.right-6 button {
+      width: 44px !important;
+      height: 44px !important;
+      min-width: 44px !important;
+      min-height: 44px !important;
+      font-size: 20px !important;
+    }
+    
+    /* Slightly larger connection badge */
+    .connection-status-badge,
+    .fixed.top-4.right-4.z-50.bg-green-500 {
+      padding: 8px 14px !important;
+      font-size: 14px !important;
+    }
+    
+    /* ========== 12.9" ONLINE BUTTON - KEEP ON RIGHT (ORIGINAL) ========== */
+    .online-lobby-button,
+    .fixed.top-4.right-4.z-50:has(button.bg-amber-500) {
+      position: fixed !important;
+      right: 16px !important;
+      left: auto !important;
+      top: 16px !important;
+    }
+    
+    /* ========== 12.9" BOARD - PUSH DOWN FOR BREATHING ROOM ========== */
+    .board-wrapper {
+      margin-top: 40px !important;
+    }
+    
+    /* ========== 12.9" TURN INDICATOR - POSITIONED ABOVE BOARD ========== */
+    .board-wrapper .turn-indicator-label {
+      position: absolute !important;
+      top: -48px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      z-index: 10 !important;
+      white-space: nowrap !important;
+      padding: 7px 22px !important;
+      font-size: 15px !important;
+      background: rgba(255, 241, 220, 0.95) !important;
+      border-radius: 20px !important;
+    }
+  }
+
+  /* ========== DESKTOP PROTECTION (>1366px) ========== */
+  /* Ensure desktop layout is NOT affected by iPad rules */
+  @media screen and (min-width: 1367px) {
+    
+    /* Reset header to default desktop behavior */
+    .situation-bar-container,
+    .glassmorphism.border-b {
+      position: relative !important;
+      display: block !important;
+      flex-direction: unset !important;
+      padding: clamp(6px, 1vh, 12px) 16px !important;
+      min-height: auto !important;
+    }
+    
+    /* Reset percentage bar container */
+    .percentage-bar-container,
+    .glassmorphism.border-b > .max-w-\[600px\] {
+      width: auto !important;
+      max-width: 600px !important;
+      margin: 0 auto !important;
+    }
+    
+    /* Reset control buttons to original absolute position */
+    .header-control-buttons,
+    .glassmorphism.border-b > .absolute.right-6 {
+      position: absolute !important;
+      right: 24px !important;
+      left: auto !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      z-index: 30 !important;
+    }
+    
+    /* Reset control button sizes */
+    .header-control-buttons button,
+    .control-btn-download,
+    .control-btn-sound,
+    .glassmorphism.border-b > .absolute.right-6 button {
+      width: auto !important;
+      height: auto !important;
+      min-width: auto !important;
+      min-height: auto !important;
+      padding: 8px !important;
+    }
+    
+    /* Reset connection badge to top-right */
+    .connection-status-badge,
+    .fixed.top-4.right-4.z-50.bg-green-500 {
+      position: fixed !important;
+      right: 16px !important;
+      left: auto !important;
+      top: 16px !important;
+    }
+    
+    /* Reset online lobby button to top-right */
+    .online-lobby-button,
+    .fixed.top-4.right-4.z-50:has(button.bg-amber-500) {
+      position: fixed !important;
+      right: 16px !important;
+      left: auto !important;
+      top: 16px !important;
+    }
+    
+    /* Reset clock spacing */
+    .player-cell > div > div:first-child {
+      margin-top: 0 !important;
     }
   }

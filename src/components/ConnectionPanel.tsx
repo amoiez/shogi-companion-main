@@ -44,7 +44,7 @@ const ConnectionPanel = ({
   // ========== CONNECTED STATE: Show small status badge ==========
   if (connectionStatus === 'connected') {
     return (
-      <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold flex items-center gap-2">
+      <div className="connection-status-badge fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold flex items-center gap-2">
         <Wifi className="w-4 h-4" />
         <span>接続中</span>
         <span className="text-green-100 text-xs">
@@ -107,7 +107,7 @@ const ConnectionPanel = ({
   // ========== DISMISSED STATE: Show small "Connect" button ==========
   if (dismissed) {
     return (
-      <div className="fixed top-4 right-4 z-50">
+      <div className="online-lobby-button fixed top-4 right-4 z-50">
         <button
           onClick={() => setDismissed(false)}
           className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-bold flex items-center gap-2 transition-colors"

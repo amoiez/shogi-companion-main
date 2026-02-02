@@ -19,13 +19,14 @@ const SituationBar = ({ gotePercent, sentePercent, isFlipped = false, onDownload
   const rightTextClass = isFlipped ? 'text-secondary-foreground' : 'text-primary-foreground';
 
   return (
-    <div className="w-full px-4 py-2 glassmorphism border-b border-white/20 relative" style={{ padding: 'clamp(6px, 1vh, 12px) 16px' }}>
+    <div className="situation-bar-container w-full px-4 py-2 glassmorphism border-b border-white/20 relative" style={{ padding: 'clamp(6px, 1vh, 12px) 16px' }}>
       {/* Control Buttons - Right aligned inside header */}
-      <div className="absolute right-6 top-1/2 -translate-y-1/2 flex gap-2 z-30">
+      {/* iPad: These buttons move to fixed top-right via CSS */}
+      <div className="header-control-buttons absolute right-6 top-1/2 -translate-y-1/2 flex gap-2 z-30">
         {onDownloadClick && (
           <button
             onClick={(e) => { e.stopPropagation(); onDownloadClick(); }}
-            className="p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
+            className="control-btn-download p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
             title="棋譜をダウンロード"
           >
             📥
@@ -34,7 +35,7 @@ const SituationBar = ({ gotePercent, sentePercent, isFlipped = false, onDownload
         {onBgmToggle && (
           <button
             onClick={(e) => { e.stopPropagation(); onBgmToggle(); }}
-            className="p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
+            className="control-btn-sound p-2 rounded-full bg-amber-800/80 text-white hover:bg-amber-700 transition-colors"
             title={isBgmPlaying ? 'BGMを停止' : 'BGMを再生'}
           >
             {isBgmPlaying ? '🔊' : '🔇'}
@@ -42,7 +43,8 @@ const SituationBar = ({ gotePercent, sentePercent, isFlipped = false, onDownload
         )}
       </div>
       
-      <div className="max-w-[600px] mx-auto mb-2">
+      {/* Percentage bar container - centered */}
+      <div className="percentage-bar-container max-w-[600px] mx-auto mb-2">
         
         <div className="w-full h-10 rounded-lg overflow-hidden flex" style={{ height: 'clamp(32px, 4vh, 40px)' }}>
         {/* Left side - seamless join with right */}

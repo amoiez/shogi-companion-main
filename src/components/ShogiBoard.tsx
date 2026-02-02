@@ -529,6 +529,7 @@ const ShogiBoard = ({
       {/* Turn indicator - positioned absolutely */}
       {!isMyTurn && (
         <div 
+          className="turn-indicator-label px-4 py-2 bg-amber-100/80 rounded-full text-base text-amber-800 font-medium whitespace-nowrap"
           style={{
             position: 'absolute',
             top: '-40px',
@@ -536,7 +537,6 @@ const ShogiBoard = ({
             transform: 'translateX(-50%)',
             zIndex: 10,
           }}
-          className="px-4 py-2 bg-amber-100/80 rounded-full text-base text-amber-800 font-medium whitespace-nowrap"
         >
           相手の番です
         </div>
@@ -553,6 +553,7 @@ const ShogiBoard = ({
           squareHeight: gridHeight/9 = 51.96
       */}
       <div
+        className="shogi-board-container"
         style={{
           position: 'relative',
           width: '100%',
