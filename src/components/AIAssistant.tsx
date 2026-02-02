@@ -70,7 +70,7 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
         flexDirection: 'row',
         alignItems: 'flex-end',
         transform: 'translate(-260px, 0)',
-        marginTop: 'clamp(-40px, -3vh, -10px)', // Moved lower (less negative margin)
+        marginTop: 'clamp(-70px, -5vh, -30px)', // Move UP more (more negative margin for 9.7" iPad)
         minWidth: '120px',
         minHeight: '120px',
       }}

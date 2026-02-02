@@ -527,10 +527,12 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
 
   const formatTime = (seconds: number, inByoyomi: boolean): string => {
     if (inByoyomi) {
-      return `秒読み ${seconds}`;
+      // Fixed format: "MM:SS" even in byoyomi (no locale text)
+      return `00:${seconds.toString().padStart(2, '0')}`;
     }
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
+    // Always HH:MM format - never locale-based
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 

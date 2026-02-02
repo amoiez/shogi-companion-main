@@ -668,6 +668,13 @@ const PlayerPanel = ({
             padding: '0 8px',
             mixBlendMode: 'normal',
             textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            // JITTER FIX: Fixed-width typography and locked container
+            width: '72px', // Fixed width for "88:88" format
+            display: 'inline-block',
+            textAlign: 'center',
+            fontVariantNumeric: 'tabular-nums', // Force fixed-width digits
+            fontFeatureSettings: '"tnum"', // Tabular numbers
+            WebkitFontSmoothing: 'antialiased', // Prevent subpixel shifts
           }}
         >
           {time}

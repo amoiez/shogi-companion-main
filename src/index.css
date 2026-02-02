@@ -586,44 +586,62 @@
     z-index: 50;
   }
 
-  /* iPad Pro 9.7" and iPad Air 2 - 768px × 1024px (smallest supported) */
+  /* ========================================
+     9.7" IPAD ONLY (768px × 1024px)
+     DO NOT MODIFY OTHER BREAKPOINTS
+     ======================================== */
   @media only screen 
     and (min-width: 768px) 
     and (max-width: 834px) {
     
-    .game-grid {
-      grid-template-columns: minmax(clamp(180px, 18vw, 220px), 1fr) auto minmax(clamp(180px, 18vw, 220px), 1fr);
-      column-gap: clamp(6px, 1vw, 12px);
-      row-gap: clamp(6px, 1.2vmin, 12px);
-      padding: clamp(6px, 1vmin, 10px);
+    /* 1. HIDE TURN INDICATOR LABEL - Only for 9.7" */
+    .turn-indicator-label {
+      display: none !important;
     }
-
-    /* 9.7" BOARD - REDUCED SIZE to create space for turn indicator */
+    
+    /* 2. MOVE PLAYERS UP - Reduce top spacing by 25px */
+    .player-cell {
+      margin-top: -25px;
+    }
+    
+    /* 3. MOVE BOARD UP SIGNIFICANTLY - No label space needed */
     .board-wrapper {
       width: clamp(320px, 44vw, 380px);
       height: clamp(320px, 44vw, 380px);
-      transform: scale(1.0);
-      margin-top: -10px; /* Negative - pull board up for AI assistant visibility */
+      transform: scale(1.0) translateY(-40px); /* Combined scale + upward shift */
+      margin-top: -45px; /* Total upward movement: 85px */
     }
     
-    /* 9.7" BOARD CELL - Minimal vertical offset */
+    /* 4. BOARD CELL - Minimal vertical padding */
     .board-cell {
       padding-top: 0px !important;
     }
     
+    /* 5. AI ASSISTANT AT BOTTOM - Fixed positioning */
     .ai-cell {
       padding-left: clamp(10px, 2vw, 20px);
       padding-bottom: clamp(6px, 1vmin, 12px);
       max-height: clamp(70px, calc(100svh - 72vmin - 50px), 120px);
+      position: relative;
+      bottom: 0;
     }
     
-    /* Compact player panels for 9.7" */
+    /* 6. COMPACT GAME GRID SPACING */
+    .game-grid {
+      grid-template-columns: minmax(clamp(180px, 18vw, 220px), 1fr) auto minmax(clamp(180px, 18vw, 220px), 1fr);
+      column-gap: clamp(6px, 1vw, 12px);
+      row-gap: clamp(4px, 1vmin, 8px); /* Reduced from 6-12px to 4-8px */
+      padding: clamp(4px, 0.8vmin, 8px); /* Reduced from 6-10px to 4-8px */
+      padding-top: 15px; /* Reduced top padding for compact layout */
+    }
+    
+    /* 7. COMPACT PLAYER PANELS */
     .player-cell > div {
       max-width: clamp(180px, 18vw, 220px);
       gap: clamp(6px, 1vh, 10px) !important;
     }
     
-    /* Compact timer for 9.7" */
+    /* 8. COMPACT TIMER */
     .player-cell > div > div:first-child > div {
       width: clamp(120px, 16vw, 160px) !important;
       height: clamp(60px, 8vh, 80px) !important;
@@ -639,7 +657,7 @@
       white-space: nowrap;
     }
     
-    /* Compact avatar for 9.7" - fill frame with no white space */
+    /* 9. COMPACT AVATAR - Fill frame */
     .player-cell video,
     .player-cell img[alt*="対戦相手"],
     .player-cell img[alt*="中野さん"] {
@@ -650,7 +668,7 @@
       transform: scale(1.05) !important;
     }
     
-    /* Smaller captured pieces container for 9.7" */
+    /* 10. SMALLER CAPTURED PIECES CONTAINER */
     .player-cell .komadai-wood {
       width: calc(4 * 48px + 3 * 6px + 12px) !important;
       height: calc(2 * 48px + 1 * 6px + 12px) !important;
@@ -665,7 +683,7 @@
       max-height: 48px !important;
     }
     
-    /* Compact AI assistant for 9.7" */
+    /* 11. COMPACT AI ASSISTANT BUBBLE */
     .ai-avatar-container {
       width: clamp(70px, 8vw, 90px);
       height: clamp(70px, 8vw, 90px);
@@ -680,7 +698,7 @@
       font-size: clamp(12px, 1.2vw, 14px);
     }
     
-    /* Speech bubble tail - smaller for 9.7" */
+    /* 12. SMALLER SPEECH BUBBLE TAIL */
     .speech-bubble-glass::before {
       left: -10px !important;
       border-top: 8px solid transparent !important;
@@ -688,14 +706,84 @@
       border-right: 10px solid rgba(255, 255, 255, 0.92) !important;
     }
     
-    /* Tail shadow - smaller for 9.7" */
+    /* TAIL SHADOW - Smaller */
     .speech-bubble-glass::after {
       left: -12px !important;
       border-top: 10px solid transparent !important;
       border-bottom: 10px solid transparent !important;
       border-right: 12px solid rgba(0, 0, 0, 0.06) !important;
     }
+    
+    /* 13. COMPACT GAME MODE MODAL */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl {
+      max-width: 320px !important;
+      width: 75vw !important;
+      padding: 14px !important;
+      margin: auto !important;
+    }
+    
+    /* Modal Header Title */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl > h3 {
+      font-size: 1rem !important;
+      margin-bottom: 12px !important;
+    }
+    
+    /* Section Cards */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl .border.rounded-lg.p-4 {
+      padding: 10px !important;
+      margin-bottom: 0 !important;
+    }
+    
+    /* Section Titles */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl h4 {
+      font-size: 0.85rem !important;
+      margin-bottom: 2px !important;
+    }
+    
+    /* Section Descriptions */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl p {
+      font-size: 0.7rem !important;
+      margin-bottom: 8px !important;
+      line-height: 1.2 !important;
+    }
+    
+    /* Action Buttons */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl button {
+      padding: 8px 12px !important;
+      font-size: 0.8rem !important;
+      min-height: 36px !important;
+    }
+    
+    /* Input Field */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl input {
+      padding: 6px 10px !important;
+      font-size: 0.8rem !important;
+      min-height: 34px !important;
+    }
+    
+    /* "または" (or) Divider */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl .flex.items-center.gap-3 {
+      margin: 6px 0 !important;
+    }
+    
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl .flex.items-center.gap-3 span {
+      font-size: 0.65rem !important;
+    }
+    
+    /* Space-y-4 reduced */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl .space-y-4 {
+      --tw-space-y-reverse: 0;
+      margin-top: calc(6px * calc(1 - var(--tw-space-y-reverse))) !important;
+      margin-bottom: calc(6px * var(--tw-space-y-reverse)) !important;
+    }
+    
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl .space-y-4 > * + * {
+      margin-top: 6px !important;
+    }
   }
+  /* ========================================
+     END OF 9.7" IPAD SECTION
+     ======================================== */
   
   /* iPad Air 11" and iPad Pro 11" - 834px × 1194px */
   @media only screen 
@@ -767,6 +855,67 @@
     .speech-bubble-glass {
       padding: clamp(10px, 1vw, 14px) clamp(14px, 1.4vw, 18px);
       max-width: clamp(280px, 39vw, 400px);
+    }
+    
+    /* COMPACT GAME MODE MODAL for 11" iPad */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl {
+      max-width: 320px !important;
+      width: 65vw !important;
+      padding: 14px !important;
+      margin: auto !important;
+    }
+    
+    /* Modal Header Title */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl > h3 {
+      font-size: 1rem !important;
+      margin-bottom: 12px !important;
+    }
+    
+    /* Section Cards */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl .border.rounded-lg.p-4 {
+      padding: 10px !important;
+      margin-bottom: 0 !important;
+    }
+    
+    /* Section Titles */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl h4 {
+      font-size: 0.85rem !important;
+      margin-bottom: 2px !important;
+    }
+    
+    /* Section Descriptions */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl p {
+      font-size: 0.7rem !important;
+      margin-bottom: 8px !important;
+      line-height: 1.2 !important;
+    }
+    
+    /* Action Buttons */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl button {
+      padding: 8px 12px !important;
+      font-size: 0.8rem !important;
+      min-height: 36px !important;
+    }
+    
+    /* Input Field */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl input {
+      padding: 6px 10px !important;
+      font-size: 0.8rem !important;
+      min-height: 34px !important;
+    }
+    
+    /* "または" (or) Divider */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl .flex.items-center.gap-3 {
+      margin: 6px 0 !important;
+    }
+    
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl .flex.items-center.gap-3 span {
+      font-size: 0.65rem !important;
+    }
+    
+    /* Space-y-4 reduced */
+    .fixed.inset-0.z-50 > .bg-white.rounded-xl .space-y-4 > * + * {
+      margin-top: 6px !important;
     }
   }
 
@@ -933,11 +1082,12 @@
     }
   }
 
-  /* Specific fix for 1133×744 resolution */
+  /* ========== IPAD 11" LANDSCAPE (1133px - 1365px, height < 900px) ========== */
+  /* iPad Air 11" / iPad Pro 11" in landscape: ~1194px × 834px */
   @media (min-width: 1133px) and (max-width: 1365px) and (max-height: 900px) {
     .board-wrapper {
-      width: 480px;
-      height: 480px;
+      width: 540px !important;
+      height: 540px !important;
     }
     
     .game-grid {
@@ -1150,8 +1300,17 @@
     }
   }
 
-  /* iPad-specific optimizations for clock container sizing */
+  /* ========================================
+     12.9" IPAD - Increase Label Size
+     ======================================== */
   @media (min-width: 1024px) and (max-width: 1536px) {
+    /* Match label size to 11" iPad for better readability */
+    .turn-indicator-label {
+      font-size: clamp(13px, 1.4vw, 15px) !important;
+      padding: 6px 16px !important;
+      margin-bottom: 10px !important;
+    }
+    
     /* Ensure clock container scales appropriately with overflow protection */
     .player-cell > div > div:first-child > div {
       width: clamp(160px, 18vw, 220px) !important;
@@ -1302,7 +1461,7 @@
       width: clamp(320px, 44vw, 380px) !important;
       height: clamp(320px, 44vw, 380px) !important;
       transform: scale(1.0) !important;
-      margin-top: -10px !important; /* Negative - pull board up for AI assistant */
+      margin-top: -25px !important; /* Negative - pull board up for AI assistant */
     }
     
     /* 9.7" BOARD CELL - Override padding to zero */
@@ -1313,15 +1472,15 @@
     /* ========== 9.7" TURN INDICATOR - POSITIONED ABOVE BOARD ========== */
     .board-wrapper .turn-indicator-label {
       position: absolute !important;
-      top: -32px !important;
+      top: -26px !important;
       left: 50% !important;
       transform: translateX(-50%) !important;
       z-index: 10 !important;
       white-space: nowrap !important;
-      padding: 4px 14px !important;
-      font-size: 11px !important;
+      padding: 3px 10px !important;
+      font-size: 10px !important;
       background: rgba(255, 241, 220, 0.95) !important;
-      border-radius: 12px !important;
+      border-radius: 10px !important;
     }
     
     /* ========== 9.7" ONLINE STATUS BUTTON - LEFT SIDE ========== */
@@ -1350,26 +1509,66 @@
   /* This catches 9.7" iPad in landscape mode where width is 1024px but height is 768px */
   @media screen and (min-width: 768px) and (max-width: 1366px) and (max-height: 820px) {
     
-    /* 9.7" LANDSCAPE - Lift board up significantly */
-    .board-wrapper {
+    /* 1. SHOW TURN INDICATOR LABEL - Visible for 9.7" landscape */
+    .turn-indicator-label {
+      display: block !important;
+      font-size: clamp(12px, 1.3vw, 14px) !important;
+      padding: 5px 15px !important;
+      margin-bottom: 8px !important;
+      text-align: center !important;
+      background: rgba(255, 248, 240, 0.95) !important;
+      border-radius: 20px !important;
+      color: #5c4033 !important;
+    }
+    
+    /* 2. MOVE PLAYERS UP - Reduce top spacing by 15px */
+    .player-cell {
       margin-top: -15px !important;
     }
     
-    /* 9.7" LANDSCAPE - Zero padding on board cell */
-    .board-cell {
-      padding-top: 0px !important;
+    /* 3. INCREASE BOARD SIZE - Match reference image */
+    .board-wrapper {
+      width: clamp(380px, 50vw, 420px) !important;
+      height: clamp(380px, 50vw, 420px) !important;
+      transform: scale(1.0) translateY(-20px) !important;
+      margin-top: -25px !important;
     }
     
-    /* 9.7" LANDSCAPE - Compact turn indicator */
-    .board-wrapper .turn-indicator-label {
-      top: -30px !important;
-      padding: 4px 12px !important;
-      font-size: 11px !important;
+    /* 4. BOARD CELL - Minimal padding for label */
+    .board-cell {
+      padding-top: 10px !important;
+    }
+    
+    /* 5. COMPACT GAME GRID SPACING */
+    .game-grid {
+      row-gap: clamp(4px, 1vmin, 8px) !important;
+      padding: clamp(4px, 0.8vmin, 8px) !important;
+      padding-top: 10px !important;
+    }
+    
+    /* 6. AI ASSISTANT AT BOTTOM - Moved down */
+    .ai-cell {
+      max-height: clamp(70px, calc(100svh - 72vmin - 50px), 120px) !important;
+      position: relative !important;
+      margin-top: 20px !important;
+      padding-bottom: 10px !important;
     }
   }
 
   /* ========== IPAD 11" SPECIFIC (834px - 1023px) ========== */
   @media screen and (min-width: 834px) and (max-width: 1023px) {
+    
+    /* SHOW TURN INDICATOR LABEL - Visible for 11" */
+    .turn-indicator-label {
+      display: block !important;
+      font-size: clamp(13px, 1.4vw, 15px) !important;
+      padding: 6px 16px !important;
+      margin-bottom: 10px !important;
+      text-align: center !important;
+      background: rgba(255, 248, 240, 0.95) !important;
+      border-radius: 20px !important;
+      color: #5c4033 !important;
+    }
     
     /* Medium percentage bar */
     .percentage-bar-container,
@@ -1388,12 +1587,12 @@
       font-size: 17px !important;
     }
     
-    /* ========== 11" BOARD SIZING - SLIGHTLY REDUCED ========== */
+    /* ========== 11" BOARD SIZING - INCREASED TO MATCH REFERENCE ========== */
     .board-wrapper {
-      width: clamp(370px, 44vw, 420px) !important;
-      height: clamp(370px, 44vw, 420px) !important;
+      width: clamp(480px, 58vw, 540px) !important;
+      height: clamp(480px, 58vw, 540px) !important;
       transform: scale(1.0) !important;
-      margin-top: 10px !important; /* Minimal - lift board up for AI assistant */
+      margin-top: 5px !important;
     }
     
     /* 11" BOARD CELL - Override padding */
