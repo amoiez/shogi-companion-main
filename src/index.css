@@ -1436,6 +1436,12 @@
   /* ========== IPAD 12.9" & 13" SPECIFIC (1024px - 1366px) ========== */
   @media screen and (min-width: 1024px) and (max-width: 1366px) {
     
+    /* ========== 12.9" KOMADAI PIECE SIZE - MATCH BOARD PIECES ========== */
+    /* Board is ~500px / 9 cells = ~55px per cell, so komadai pieces should match */
+    :root {
+      --koma-size: 58px;
+    }
+    
     /* Wider percentage bar for larger iPad */
     .percentage-bar-container,
     .glassmorphism.border-b > .max-w-\[600px\] {

@@ -183,25 +183,14 @@ const Index = () => {
   const handleFirstInteraction = useCallback(async () => {
     if (!hasInteracted) {
       setHasInteracted(true);
-      console.log('AUDIO: First click detected, force-starting audio...');
+      console.log('AUDIO: First click detected, priming audio engine...');
       
-      // FORCE PRIME
+      // Prime audio engine ONCE
       await primeAudioEngine();
       
-      // FORCE PLAY BGM WITH FRESH INSTANCE
-      try {
-        const origin = window.location.origin;
-        const bgm = new Audio(origin + '/sounds/bgm.mp3');
-        bgm.loop = true;
-        bgm.volume = 0.3;
-        await bgm.play();
-        console.log('AUDIO: BGM force-started successfully');
-      } catch (e) {
-        console.error('AUDIO: BGM force-start failed', e);
-      }
-      
-      // Also call the hook's startBgm
+      // Start BGM using singleton
       startBgm();
+      console.log('AUDIO: Audio primed and BGM started');
     }
   }, [hasInteracted, primeAudioEngine, startBgm]);
 

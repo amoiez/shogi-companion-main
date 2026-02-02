@@ -6,10 +6,64 @@ interface AudioSystemOptions {
   voiceEnabled?: boolean;
 }
 
+// ============================================================
+// TRUE MODULE-LEVEL SINGLETON - ONE INSTANCE FOR ENTIRE APP
+// ============================================================
+let bgmInstance: HTMLAudioElement | null = null;
+let bgmInstanceId: string | null = null; // Unique ID for debugging
+let eventListenersAttached = false;
+
+// State tracking to prevent duplicate operations
+let isCurrentlyPlaying = false;
+
+const createBgmInstance = (): HTMLAudioElement => {
+  // Generate unique ID for this instance
+  bgmInstanceId = `bgm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const audio = new Audio();
+  audio.loop = true;
+  audio.volume = 0.3;
+  audio.preload = 'auto';
+  audio.src = origin + '/sounds/bgm.mp3';
+  
+  console.log('🎵 BGM: TRUE SINGLETON CREATED - ID:', bgmInstanceId);
+  
+  return audio;
+};
+
+const getBgmInstance = (): HTMLAudioElement => {
+  if (!bgmInstance) {
+    bgmInstance = createBgmInstance();
+  }
+  console.log('🎵 BGM: getInstance called - ID:', bgmInstanceId, 'paused:', bgmInstance.paused);
+  return bgmInstance;
+};
+
+// HARD STOP - pause and reset to beginning
+const hardStopBgm = (): void => {
+  if (!bgmInstance) {
+    console.log('🎵 BGM: hardStop - no instance exists');
+    return;
+  }
+  
+  console.log('🎵 BGM: HARD STOP - ID:', bgmInstanceId);
+  
+  // 1. Pause playback
+  bgmInstance.pause();
+  
+  // 2. Reset position
+  bgmInstance.currentTime = 0;
+  
+  // 3. Update tracking state
+  isCurrentlyPlaying = false;
+  
+  console.log('🎵 BGM: HARD STOP COMPLETE');
+};
+
 export const useAudioSystem = (options: AudioSystemOptions = {}) => {
   const { bgmEnabled = true, sfxEnabled = true, voiceEnabled = true } = options;
   
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
   const pieceMoveRef = useRef<HTMLAudioElement | null>(null);
   const [isBgmPlaying, setIsBgmPlaying] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -34,46 +88,70 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
     }
   }, [voiceEnabled]);
 
-  // Initialize and preload audio elements with ABSOLUTE ORIGIN PATHS
+  // Initialize audio system - attach event listeners to singleton ONCE
   useEffect(() => {
     if (isInitialized) return;
     
     const origin = window.location.origin;
-    console.log('AUDIO SYSTEM: Using origin', origin);
+    console.log('🎵 AUDIO SYSTEM: Initializing - origin:', origin);
     
-    // BGM - FULL ORIGIN PATH, EXPLICIT LOOP
-    const bgm = new Audio(origin + '/sounds/bgm.mp3');
-    bgm.loop = true;
-    bgm.volume = 0.3;
-    bgm.preload = 'auto';
-    bgm.load();
-    bgmRef.current = bgm;
-    console.log('BGM: Loaded from', bgm.src);
+    // Get BGM singleton and attach event listeners (only once ever)
+    const bgm = getBgmInstance();
     
-    // Piece move sound - FULL ORIGIN PATH
-    const pieceSound = new Audio(origin + '/sounds/piece-move.mp3');
-    pieceSound.volume = 0.6;
-    pieceSound.preload = 'auto';
-    pieceSound.load();
-    pieceMoveRef.current = pieceSound;
-    console.log('PIECE SOUND: Loaded from', pieceSound.src);
+    if (!eventListenersAttached) {
+      eventListenersAttached = true;
+      
+      // Sync React state with actual audio events
+      bgm.addEventListener('play', () => {
+        console.log('🎵 BGM EVENT: play - ID:', bgmInstanceId);
+        isCurrentlyPlaying = true;
+        setIsBgmPlaying(true);
+      });
+      bgm.addEventListener('pause', () => {
+        console.log('🎵 BGM EVENT: pause - ID:', bgmInstanceId);
+        isCurrentlyPlaying = false;
+        setIsBgmPlaying(false);
+      });
+      bgm.addEventListener('ended', () => {
+        console.log('🎵 BGM EVENT: ended - ID:', bgmInstanceId);
+        isCurrentlyPlaying = false;
+        setIsBgmPlaying(false);
+      });
+      bgm.addEventListener('error', (e) => {
+        console.error('🎵 BGM EVENT: error - ID:', bgmInstanceId, e);
+        isCurrentlyPlaying = false;
+        setIsBgmPlaying(false);
+      });
+      
+      console.log('🎵 BGM: Event listeners attached to singleton');
+    }
+    
+    // Sync initial state from actual audio element
+    setIsBgmPlaying(!bgm.paused && bgm.currentTime > 0);
+    
+    // Piece move sound - component-level
+    if (!pieceMoveRef.current) {
+      const pieceSound = new Audio(origin + '/sounds/piece-move.mp3');
+      pieceSound.volume = 0.6;
+      pieceSound.preload = 'auto';
+      pieceMoveRef.current = pieceSound;
+      console.log('🎵 PIECE SOUND: Loaded');
+    }
     
     setIsInitialized(true);
     
+    // Cleanup on unmount - HARD STOP the BGM
     return () => {
-      if (bgmRef.current) {
-        bgmRef.current.pause();
-        bgmRef.current = null;
-      }
-      if (pieceMoveRef.current) {
-        pieceMoveRef.current = null;
-      }
+      console.log('🎵 AUDIO SYSTEM: Component unmounting - stopping BGM');
+      hardStopBgm();
     };
   }, [isInitialized]);
 
   // AGGRESSIVE AUDIO PRIMING - play/pause all audio to unlock browser engine
   const primeAudioEngine = useCallback(async () => {
     if (isAudioPrimed) return;
+    
+    console.log('🎵 AUDIO ENGINE: Priming...');
     
     try {
       // Resume AudioContext
@@ -86,65 +164,84 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
         await ctx.close();
       }
       
-      // Prime BGM
-      if (bgmRef.current) {
-        await bgmRef.current.play();
-        bgmRef.current.pause();
-        bgmRef.current.currentTime = 0;
+      // Prime BGM - play/pause to unlock
+      const bgm = getBgmInstance();
+      try {
+        await bgm.play();
+        bgm.pause();
+        bgm.currentTime = 0;
+      } catch (e) {
+        console.log('🎵 BGM prime failed:', e);
       }
       
       // Prime piece sound
       if (pieceMoveRef.current) {
-        await pieceMoveRef.current.play();
-        pieceMoveRef.current.pause();
-        pieceMoveRef.current.currentTime = 0;
+        try {
+          await pieceMoveRef.current.play();
+          pieceMoveRef.current.pause();
+          pieceMoveRef.current.currentTime = 0;
+        } catch (e) {
+          console.log('🎵 Piece sound prime failed:', e);
+        }
       }
       
       setIsAudioPrimed(true);
-      console.log('AUDIO ENGINE: UNLOCKED AND PRIMED');
+      console.log('🎵 AUDIO ENGINE: UNLOCKED AND PRIMED');
     } catch (e) {
-      console.log('AUDIO ENGINE: Prime failed', e);
+      console.log('🎵 AUDIO ENGINE: Prime failed', e);
     }
   }, [isAudioPrimed]);
 
-  // Start BGM (FORCE PLAY - NO CHECKS)
-  const startBgm = useCallback(async () => {
-    // Prime audio engine first
-    await primeAudioEngine();
+  // Start BGM - PREVENT DUPLICATE PLAYS
+  const startBgm = useCallback(() => {
+    console.log('🎵 BGM: startBgm called - ID:', bgmInstanceId, 'isCurrentlyPlaying:', isCurrentlyPlaying);
     
-    // FORCE CREATE NEW BGM IF NEEDED
-    if (!bgmRef.current) {
-      const origin = window.location.origin;
-      bgmRef.current = new Audio(origin + '/sounds/bgm.mp3');
-      bgmRef.current.loop = true;
-      bgmRef.current.volume = 0.3;
-      console.log('BGM: Created new instance from', bgmRef.current.src);
+    // Get singleton instance
+    const bgm = getBgmInstance();
+    
+    // PREVENT DUPLICATE: Check actual audio state AND tracking flag
+    if (!bgm.paused || isCurrentlyPlaying) {
+      console.log('🎵 BGM: Already playing, skipping duplicate play - paused:', bgm.paused, 'tracking:', isCurrentlyPlaying);
+      return;
     }
     
-    bgmRef.current.play()
+    // Mark as playing BEFORE calling play() to prevent race conditions
+    isCurrentlyPlaying = true;
+    
+    bgm.play()
       .then(() => {
-        setIsBgmPlaying(true);
-        console.log('BGM: Playing successfully');
+        console.log('🎵 BGM: Playing successfully - ID:', bgmInstanceId);
       })
-      .catch(e => console.error('BGM Play Error:', e));
-  }, [primeAudioEngine]);
-
-  // Stop BGM
-  const stopBgm = useCallback(() => {
-    if (!bgmRef.current) return;
-    bgmRef.current.pause();
-    bgmRef.current.currentTime = 0;
-    setIsBgmPlaying(false);
+      .catch(e => {
+        console.error('🎵 BGM Play Error:', e);
+        isCurrentlyPlaying = false;
+      });
   }, []);
 
-  // Toggle BGM
+  // Stop BGM - HARD STOP to fully kill audio
+  const stopBgm = useCallback(() => {
+    console.log('🎵 BGM: stopBgm called - ID:', bgmInstanceId);
+    
+    // Use hard stop to completely kill audio
+    hardStopBgm();
+    
+    console.log('🎵 BGM: Stopped completely');
+  }, []);
+
+  // Toggle BGM - check ACTUAL audio state, not React state
   const toggleBgm = useCallback(() => {
-    if (isBgmPlaying) {
+    const bgm = getBgmInstance();
+    
+    // Check actual DOM audio state AND tracking flag
+    const isActuallyPlaying = !bgm.paused || isCurrentlyPlaying;
+    console.log('🎵 BGM TOGGLE: ID:', bgmInstanceId, 'paused:', bgm.paused, 'tracking:', isCurrentlyPlaying, 'decision:', isActuallyPlaying ? 'STOP' : 'START');
+    
+    if (isActuallyPlaying) {
       stopBgm();
     } else {
       startBgm();
     }
-  }, [isBgmPlaying, startBgm, stopBgm]);
+  }, [startBgm, stopBgm]);
 
   // Play piece move sound - FORCE PLAY WITH NEW INSTANCE EVERY TIME
   const playPieceMove = useCallback(() => {
