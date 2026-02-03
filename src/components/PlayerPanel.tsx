@@ -401,6 +401,8 @@ const PlayerPanel = ({
                 padding: '0 8px',
                 mixBlendMode: 'normal',
                 textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                fontVariantNumeric: 'tabular-nums',  // Monospace digits prevent width changes
+                fontFeatureSettings: '"tnum"',       // Tabular numbers for stable layout
               }}
             >
               {time}

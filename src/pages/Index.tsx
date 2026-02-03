@@ -404,8 +404,9 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
   }, [moveCount, exportAPIGameState]);
 
   // Determine which stream goes where based on role
-  const opponentStream = role === 'host' ? remoteStream : (role === 'guest' ? remoteStream : null);
-  const selfStream = role ? localStream : null;
+  // CRITICAL FIX: Both host and guest show their OWN localStream and opponent's remoteStream
+  const opponentStream = role ? remoteStream : null;  // Opponent always gets remoteStream
+  const selfStream = role ? localStream : null;       // Self always gets localStream
   
   // PERSPECTIVE RULES for layout:
   // - Solo Mode: LOCKED - Gote always on left, Sente always on right (NO SWAPPING)

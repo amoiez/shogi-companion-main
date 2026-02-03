@@ -406,38 +406,40 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         console.log('[HOST] Sent READY message to guest');
         
         // ============================================================
-        // CRITICAL FIX: Host must also call guest to send video
+        // CRITICAL: ONLY HOST INITIATES MEDIA CALL
+        // Guest will only answer, never initiate
+        // This prevents duplicate media streams and race conditions
         // ============================================================
         if (stream && peer) {
+          console.log('[HOST] ========================================');
+          console.log('[HOST] HOST IS SOLE MEDIA CALL INITIATOR');
           console.log('[HOST] Initiating VIDEO call to guest:', conn.peer);
+          console.log('[HOST] ========================================');
+          
           const hostCall = peer.call(conn.peer, stream);
           if (hostCall) {
+            mediaConnectionRef.current = hostCall;
+            
             hostCall.on('stream', (remoteMediaStream) => {
-              console.log('[HOST] Received guest VIDEO stream from outgoing call');
+              console.log('[HOST] ✅ Received guest VIDEO stream');
               setRemoteStream(remoteMediaStream);
             });
+            
             hostCall.on('error', (err) => {
-              console.error('[HOST] Outgoing media call error:', err);
+              console.error('[HOST] ❌ Media call error:', err);
             });
-            // Store the call reference
-            if (!mediaConnectionRef.current) {
-              mediaConnectionRef.current = hostCall;
-            }
           } else {
-            console.warn('[HOST] Failed to create outgoing media call to guest');
+            console.warn('[HOST] ⚠️ Failed to create media call');
           }
         }
       });
     });
     
-    // Listen for incoming MEDIA calls from guest
+    // HOST: DO NOT listen for incoming calls (guest should never initiate)
     peer.on('call', (call) => {
-      console.log('[HOST] Incoming VIDEO call from guest');
-      if (stream) {
-        setupMediaConnection(call, stream);
-      } else {
-        console.warn('[HOST] No local stream to answer with');
-      }
+      console.warn('[HOST] ⚠️ Received unexpected incoming call from guest - rejecting');
+      console.warn('[HOST] ⚠️ Guest should NEVER initiate media calls');
+      // Do not answer - this prevents duplicate media streams
     });
     
     peer.on('error', (err) => {
@@ -592,38 +594,23 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         setErrorMessage('ホストへの接続に失敗しました');
         setConnectionStatus('error');
       });
-      
-      // ============================================================
-      // Connect MEDIA channel to host (separate from data)
-      // ============================================================
-      if (stream) {
-        console.log('[GUEST] Initiating VIDEO call to host...');
-        const call = peer.call(formattedId, stream);
-        if (call) {
-          call.on('stream', (remoteMediaStream) => {
-            console.log('[GUEST] Received host VIDEO stream from outgoing call');
-            setRemoteStream(remoteMediaStream);
-          });
-          call.on('error', (err) => {
-            console.error('[GUEST] Media call error:', err);
-          });
-          mediaConnectionRef.current = call;
-        } else {
-          console.warn('[GUEST] Failed to create media call');
-        }
-      }
     });
     
     // ============================================================
-    // CRITICAL FIX: Guest must also listen for incoming calls from host
+    // CRITICAL: GUEST ONLY ANSWERS MEDIA CALLS (never initiates)
+    // This prevents duplicate streams and race conditions
     // ============================================================
     peer.on('call', (call) => {
-      console.log('[GUEST] Incoming VIDEO call from host');
+      console.log('[GUEST] ========================================');
+      console.log('[GUEST] Received incoming VIDEO call from host');
+      console.log('[GUEST] GUEST WILL ONLY ANSWER (never initiate)');
+      console.log('[GUEST] ========================================');
+      
       if (stream) {
         console.log('[GUEST] Answering host call with local stream');
         setupMediaConnection(call, stream);
       } else {
-        console.warn('[GUEST] No local stream to answer with');
+        console.warn('[GUEST] ⚠️ No local stream to answer with');
       }
     });
     
