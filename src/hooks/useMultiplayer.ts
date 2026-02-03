@@ -509,6 +509,24 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       cleanup();
     }, CONNECTION_TIMEOUT);
     
+    // ============================================================
+    // CRITICAL: Register call listener BEFORE peer opens
+    // This ensures we don't miss the host's media call
+    // ============================================================
+    peer.on('call', (call) => {
+      console.log('[GUEST] ========================================');
+      console.log('[GUEST] Received incoming VIDEO call from host');
+      console.log('[GUEST] GUEST WILL ONLY ANSWER (never initiate)');
+      console.log('[GUEST] ========================================');
+      
+      if (stream) {
+        console.log('[GUEST] Answering host call with local stream');
+        setupMediaConnection(call, stream);
+      } else {
+        console.warn('[GUEST] ⚠️ No local stream to answer with');
+      }
+    });
+    
     peer.on('open', () => {
       console.log('[GUEST] Peer opened, now connecting to host:', formattedId);
       
@@ -594,24 +612,6 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         setErrorMessage('ホストへの接続に失敗しました');
         setConnectionStatus('error');
       });
-    });
-    
-    // ============================================================
-    // CRITICAL: GUEST ONLY ANSWERS MEDIA CALLS (never initiates)
-    // This prevents duplicate streams and race conditions
-    // ============================================================
-    peer.on('call', (call) => {
-      console.log('[GUEST] ========================================');
-      console.log('[GUEST] Received incoming VIDEO call from host');
-      console.log('[GUEST] GUEST WILL ONLY ANSWER (never initiate)');
-      console.log('[GUEST] ========================================');
-      
-      if (stream) {
-        console.log('[GUEST] Answering host call with local stream');
-        setupMediaConnection(call, stream);
-      } else {
-        console.warn('[GUEST] ⚠️ No local stream to answer with');
-      }
     });
     
     peer.on('error', (err) => {
