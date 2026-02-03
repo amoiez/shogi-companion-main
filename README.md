@@ -20,6 +20,7 @@ A professional web-based shogi game companion and analysis tool, optimized for i
 - **[API_SPECIFICATION.md](API_SPECIFICATION.md)** - API format and specifications
 - **[COORDINATE_SYSTEM_FIX.md](COORDINATE_SYSTEM_FIX.md)** - Critical coordinate system documentation
 - **[FIX_SUMMARY_FINAL.md](FIX_SUMMARY_FINAL.md)** - Summary of major bug fixes
+- **[MULTIPLAYER_CONNECTIVITY_FIX.md](MULTIPLAYER_CONNECTIVITY_FIX.md)** - Cross-platform connectivity fix (Feb 3, 2026)
 
 ### Feature Documentation
 - **[TEXT_DOWNLOAD_FEATURE.md](TEXT_DOWNLOAD_FEATURE.md)** - Text file download functionality
@@ -154,13 +155,19 @@ npm run lint -- --fix
    - Never mirror board state for network transmission
    - Both players must maintain the same logical board state
 
-3. **Index.css Corruption** - See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#important-indexcss-corruption-issue)
+3. **Cross-Platform Connectivity Bug** - See [MULTIPLAYER_CONNECTIVITY_FIX.md](MULTIPLAYER_CONNECTIVITY_FIX.md)
+   - Must configure ICE/STUN servers for PC-iPad connectivity
+   - NAT traversal required for different network connections
+   - Added connection timeout and enhanced error handling
+
+4. **Index.css Corruption** - See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#important-indexcss-corruption-issue)
    - If dev server fails with CSS errors, check file integrity
 
 **Before making ANY changes to coordinate logic or multiplayer code, read:**
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Section: "Critical Bugs Fixed"
 - [COORDINATE_SYSTEM_FIX.md](COORDINATE_SYSTEM_FIX.md) - Complete coordinate system analysis
 - [FIX_SUMMARY_FINAL.md](FIX_SUMMARY_FINAL.md) - Executive summary of fixes
+- [MULTIPLAYER_CONNECTIVITY_FIX.md](MULTIPLAYER_CONNECTIVITY_FIX.md) - Cross-platform connectivity
 
 ---
 

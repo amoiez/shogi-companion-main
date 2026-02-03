@@ -1,0 +1,37 @@
+{
+  "name": "Shogi Companion",
+  "short_name": "Shogi",
+  "description": "Multiplayer Shogi Game with AI Commentary",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#5c4033",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/placeholder.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "prefer_related_applications": false,
+  "permissions": [
+    "geolocation",
+    "notifications",
+    "camera",
+    "microphone"
+  ],
+  "protocol_handlers": [],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded"
+  },
+  "shortcuts": [],
+  "screenshots": [],
+  "lang": "ja",
+  "dir": "ltr"
+}

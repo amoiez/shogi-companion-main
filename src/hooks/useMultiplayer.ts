@@ -47,6 +47,31 @@ const generateGameId = (): string => {
   return id;
 };
 
+// ============================================================
+// CRITICAL: Generate TRUE UUID for peer identification
+// This prevents ID collisions when multiple iPads try to connect
+// ============================================================
+const generateUniqueClientId = (): string => {
+  // Use crypto.randomUUID() for guaranteed uniqueness
+  // Falls back to timestamp + random for older browsers
+  if (crypto && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for older browsers
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${Math.random().toString(36).substring(2, 15)}`;
+};
+
+// ============================================================
+// Detect Mobile Safari for special handling
+// ============================================================
+const isMobileSafari = (): boolean => {
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua);
+  const webkit = /WebKit/.test(ua);
+  const notChrome = !/CriOS|Chrome/.test(ua);
+  return iOS && webkit && notChrome;
+};
+
 export type PlayerRole = 'host' | 'guest' | null;
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -90,6 +115,28 @@ export interface UseMultiplayerReturn {
   currentTurn: 'sente' | 'gote';
 }
 
+// ============================================================
+// PEERJS CONFIGURATION FOR CROSS-PLATFORM CONNECTIVITY
+// ============================================================
+// STUN servers enable NAT traversal for cross-network connections
+// while still allowing same-network connections to work
+const PEER_CONFIG = {
+  // Debug level (0-3, 3 = verbose)
+  debug: 2,
+  
+  // ICE servers for NAT traversal - works for both local and remote connections
+  config: {
+    iceServers: [
+      // Google's public STUN servers (used for discovering public IPs)
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ],
+  },
+};
+
+// Connection timeout (30 seconds)
+const CONNECTION_TIMEOUT = 30000;
+
 export const useMultiplayer = (): UseMultiplayerReturn => {
   const [gameId, setGameId] = useState<string | null>(null);
   const [role, setRole] = useState<PlayerRole>(null);
@@ -104,6 +151,11 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
   const mediaConnectionRef = useRef<MediaConnection | null>(null);
   const receiveCallbackRef = useRef<((state: GameState) => void) | null>(null);
   const roleRef = useRef<PlayerRole>(null); // Store role in ref for callbacks
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef<number>(0);
+  const maxRetriesRef = useRef<number>(isMobileSafari() ? 10 : 5); // More retries for Mobile Safari
+  const handshakeReceivedRef = useRef<boolean>(false);
   
   // Keep roleRef in sync with role state
   useEffect(() => {
@@ -113,6 +165,23 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
   // Cleanup function
   const cleanup = useCallback(() => {
     console.log('[Multiplayer] Cleaning up connections...');
+    
+    // Clear connection timeout
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+    
+    // Clear retry interval
+    if (retryIntervalRef.current) {
+      clearInterval(retryIntervalRef.current);
+      retryIntervalRef.current = null;
+    }
+    
+    // Reset retry state
+    retryCountRef.current = 0;
+    handshakeReceivedRef.current = false;
+    
     if (mediaConnectionRef.current) {
       mediaConnectionRef.current.close();
       mediaConnectionRef.current = null;
@@ -198,7 +267,17 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
           receiveCallbackRef.current(syncedState);
         }
       } else if (message.type === 'READY') {
-        console.log('[DATA] Peer is ready');
+        console.log('[DATA] ========================================');
+        console.log('[DATA] Received READY signal from peer');
+        console.log('[DATA] Handshake complete!');
+        console.log('[DATA] ========================================');
+        handshakeReceivedRef.current = true;
+        
+        // Clear retry interval if it exists
+        if (retryIntervalRef.current) {
+          clearInterval(retryIntervalRef.current);
+          retryIntervalRef.current = null;
+        }
       }
     });
     
@@ -255,16 +334,25 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     // Get media first
     const stream = await setupMedia();
     
-    // Create peer with the game ID
-    const peer = new Peer(newGameId, {
-      debug: 2,
-    });
+    // Create peer with the game ID and full configuration
+    console.log('[HOST] Creating peer with config:', PEER_CONFIG);
+    const peer = new Peer(newGameId, PEER_CONFIG);
     peerRef.current = peer;
     
     peer.on('open', (id) => {
+      console.log('[HOST] ========================================');
       console.log('[HOST] Peer opened with ID:', id);
       console.log('[HOST] Waiting for guest to connect...');
+      console.log('[HOST] Connection should work across platforms');
+      console.log('[HOST] ========================================');
       setConnectionStatus('disconnected'); // Waiting for guest
+      
+      // Set connection timeout (guest has 30 seconds to join)
+      connectionTimeoutRef.current = setTimeout(() => {
+        console.log('[HOST] Connection timeout - no guest joined');
+        setErrorMessage('接続タイムアウト：ゲストが接続しませんでした');
+        setConnectionStatus('error');
+      }, CONNECTION_TIMEOUT);
     });
     
     // CRITICAL: Listen for incoming DATA connections from guest
@@ -276,7 +364,17 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       
       // Wait for the connection to open, then set up listener
       conn.on('open', () => {
+        console.log('[HOST] ========================================');
         console.log('[HOST] Data connection is now OPEN');
+        console.log('[HOST] Guest successfully connected!');
+        console.log('[HOST] ========================================');
+        
+        // Clear connection timeout
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
+        
         setupDataListener(conn);
         setConnectionStatus('connected');
         
@@ -320,9 +418,20 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     });
     
     peer.on('error', (err) => {
+      console.error('[HOST] ========================================');
       console.error('[HOST] Peer error:', err);
+      console.error('[HOST] Error type:', err.type);
+      console.error('[HOST] ========================================');
+      
+      // Clear timeout
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+      
+      // Provide error message
       if (err.type === 'unavailable-id') {
-        setErrorMessage('このゲームIDは既に使用されています');
+        setErrorMessage('このゲームIDは既に使用されています。もう一度お試しください');
       } else {
         setErrorMessage(`接続エラー: ${err.type}`);
       }
@@ -351,14 +460,28 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     // Get media first
     const stream = await setupMedia();
     
-    // Create peer with a random ID for the guest
-    const guestId = `${formattedId}-GUEST-${Math.random().toString(36).substring(7)}`;
-    console.log('[GUEST] Creating peer with ID:', guestId);
+    // Create peer with TRUE UUID for guaranteed uniqueness
+    // CRITICAL FIX: This prevents ID collisions between multiple iPads
+    const guestId = `GUEST-${generateUniqueClientId()}`;
+    const isSafari = isMobileSafari();
     
-    const peer = new Peer(guestId, {
-      debug: 2,
-    });
+    console.log('[GUEST] ========================================');
+    console.log('[GUEST] Creating peer with UNIQUE ID:', guestId);
+    console.log('[GUEST] Will connect to host:', formattedId);
+    console.log('[GUEST] Mobile Safari detected:', isSafari);
+    console.log('[GUEST] Using cross-platform config with retry logic');
+    console.log('[GUEST] ========================================');
+    
+    const peer = new Peer(guestId, PEER_CONFIG);
     peerRef.current = peer;
+    
+    // Set connection timeout
+    connectionTimeoutRef.current = setTimeout(() => {
+      console.log('[GUEST] Connection timeout - could not reach host');
+      setErrorMessage('接続タイムアウト：ホストに接続できませんでした');
+      setConnectionStatus('error');
+      cleanup();
+    }, CONNECTION_TIMEOUT);
     
     peer.on('open', () => {
       console.log('[GUEST] Peer opened, now connecting to host:', formattedId);
@@ -375,16 +498,75 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       conn.on('open', () => {
         console.log('[GUEST] ========================================');
         console.log('[GUEST] DATA connection to host is now OPEN!');
+        console.log('[GUEST] Successfully connected across platforms!');
         console.log('[GUEST] ========================================');
+        
+        // Clear connection timeout
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
         
         // Set up the data listener AFTER connection is open
         setupDataListener(conn);
+        
+        // Send READY signal to host
+        const readyMessage: GameMessage = { type: 'READY' };
+        conn.send(readyMessage);
+        console.log('[GUEST] Sent initial READY signal to host');
+        
+        // ============================================================
+        // CRITICAL: Retry-on-Fail Handshake for Mobile Safari
+        // Re-broadcast READY signal every 500ms until acknowledged
+        // ============================================================
+        if (isSafari) {
+          console.log('[GUEST] Mobile Safari: Starting retry handshake mechanism');
+          retryCountRef.current = 0;
+          
+          retryIntervalRef.current = setInterval(() => {
+            if (handshakeReceivedRef.current) {
+              console.log('[GUEST] Handshake confirmed - stopping retries');
+              if (retryIntervalRef.current) {
+                clearInterval(retryIntervalRef.current);
+                retryIntervalRef.current = null;
+              }
+              return;
+            }
+            
+            retryCountRef.current++;
+            
+            if (retryCountRef.current > maxRetriesRef.current) {
+              console.warn('[GUEST] Max retries reached - assuming connection is stable');
+              if (retryIntervalRef.current) {
+                clearInterval(retryIntervalRef.current);
+                retryIntervalRef.current = null;
+              }
+              return;
+            }
+            
+            console.log(`[GUEST] Retry ${retryCountRef.current}/${maxRetriesRef.current}: Re-sending READY signal`);
+            if (conn.open) {
+              conn.send(readyMessage);
+            }
+          }, 500);
+        }
+        
         setConnectionStatus('connected');
       });
       
       conn.on('error', (err) => {
+        console.error('[GUEST] ========================================');
         console.error('[GUEST] Data connection error:', err);
+        console.error('[GUEST] ========================================');
+        
+        // Clear timeout
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
+        
         setErrorMessage('ホストへの接続に失敗しました');
+        setConnectionStatus('error');
       });
       
       // ============================================================
@@ -422,9 +604,22 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     });
     
     peer.on('error', (err) => {
+      console.error('[GUEST] ========================================');
       console.error('[GUEST] Peer error:', err);
+      console.error('[GUEST] Error type:', err.type);
+      console.error('[GUEST] ========================================');
+      
+      // Clear timeout
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+      
+      // Provide error message based on type
       if (err.type === 'peer-unavailable') {
         setErrorMessage('ゲームが見つかりません。IDを確認してください');
+      } else if (err.type === 'unavailable-id') {
+        setErrorMessage('ゲームIDが無効です');
       } else {
         setErrorMessage(`接続エラー: ${err.type}`);
       }
