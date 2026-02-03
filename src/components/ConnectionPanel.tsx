@@ -62,7 +62,8 @@ const ConnectionPanel = ({
   }
 
   // ========== HOSTING STATE: Waiting for guest - show modal with game ID ==========
-  if (role === 'host' && gameId) {
+  // Only show this modal if host is still waiting (not yet connected)
+  if (role === 'host' && gameId && connectionStatus !== 'connected') {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
         <div className="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full mx-4">
