@@ -73,6 +73,7 @@ const isMobileSafari = (): boolean => {
 };
 
 export type PlayerRole = 'host' | 'guest' | null;
+export type GameRole = 'sente' | 'gote' | null;
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
 export interface GameState {
@@ -83,17 +84,27 @@ export interface GameState {
   currentTurn: 'sente' | 'gote';
   senteTime: number;
   goteTime: number;
+  lastMove?: {
+    from: { row: number; col: number } | null;
+    to: { row: number; col: number };
+    piece: string;
+    promoted: boolean;
+    captured: string | null;
+    isDrop: boolean;
+  };
 }
 
 export interface GameMessage {
-  type: 'MOVE' | 'SYNC' | 'READY';
+  type: 'MOVE' | 'SYNC' | 'READY' | 'ROLE_ASSIGN';
   gameState?: GameState;
+  assignedRole?: 'sente' | 'gote';
 }
 
 export interface UseMultiplayerReturn {
   // Connection state
   gameId: string | null;
   role: PlayerRole;
+  gameRole: GameRole;
   connectionStatus: ConnectionStatus;
   errorMessage: string | null;
   
@@ -140,6 +151,7 @@ const CONNECTION_TIMEOUT = 30000;
 export const useMultiplayer = (): UseMultiplayerReturn => {
   const [gameId, setGameId] = useState<string | null>(null);
   const [role, setRole] = useState<PlayerRole>(null);
+  const [gameRole, setGameRole] = useState<GameRole>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -237,7 +249,12 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       
       const message = data as GameMessage;
       
-      if (message.type === 'MOVE' && message.gameState) {
+      if (message.type === 'ROLE_ASSIGN' && message.assignedRole) {
+        console.log('[DATA] ========================================');
+        console.log('[DATA] Received ROLE_ASSIGN:', message.assignedRole);
+        console.log('[DATA] ========================================');
+        setGameRole(message.assignedRole);
+      } else if (message.type === 'MOVE' && message.gameState) {
         console.log('[DATA] Processing MOVE - New turn:', message.gameState.currentTurn);
         console.log('[DATA] Board state received, moveCount:', message.gameState.moveCount);
         
@@ -329,7 +346,8 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     console.log('[HOST] Creating game with ID:', newGameId);
     setGameId(newGameId);
     setRole('host');
-    setCurrentTurn('sente'); // Host is Sente (Black)
+    setGameRole('sente'); // Host plays as Sente
+    setCurrentTurn('sente');
     
     // Get media first
     const stream = await setupMedia();
@@ -377,6 +395,11 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         
         setupDataListener(conn);
         setConnectionStatus('connected');
+        
+        // Send ROLE_ASSIGN message to guest (guest plays as Gote)
+        const roleMessage: GameMessage = { type: 'ROLE_ASSIGN', assignedRole: 'gote' };
+        conn.send(roleMessage);
+        console.log('[HOST] Sent ROLE_ASSIGN (gote) to guest');
         
         // Send a READY message to confirm connection
         conn.send({ type: 'READY' });
@@ -455,7 +478,8 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     console.log('[GUEST] Joining game:', formattedId);
     setGameId(formattedId);
     setRole('guest');
-    setCurrentTurn('sente'); // Game starts with Sente's turn (but guest is Gote)
+    setGameRole(null); // Wait for host to assign role
+    setCurrentTurn('sente'); // Game always starts with Sente's turn
     
     // Get media first
     const stream = await setupMedia();
@@ -639,6 +663,7 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     cleanup();
     setGameId(null);
     setRole(null);
+    setGameRole(null);
     setConnectionStatus('disconnected');
     setErrorMessage(null);
     setCurrentTurn('sente');
@@ -685,11 +710,12 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     receiveCallbackRef.current = callback;
   }, []);
 
-  // Calculate if it's my turn
+  // Calculate if it's my turn based on GAME ROLE (sente/gote), NOT connection role (host/guest)
+  // This ensures turn logic works regardless of device type
   const isMyTurn = 
-    (role === 'host' && currentTurn === 'sente') || 
-    (role === 'guest' && currentTurn === 'gote') ||
-    role === null; // Single player mode - always my turn
+    (gameRole === 'sente' && currentTurn === 'sente') || 
+    (gameRole === 'gote' && currentTurn === 'gote') ||
+    gameRole === null; // Single player mode or role not yet assigned - allow moves
 
   // Cleanup on unmount
   useEffect(() => {
@@ -701,6 +727,7 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
   return {
     gameId,
     role,
+    gameRole,
     connectionStatus,
     errorMessage,
     hostGame,

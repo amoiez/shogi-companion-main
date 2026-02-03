@@ -197,6 +197,7 @@ const Index = () => {
   const {
     gameId,
     role,
+    gameRole,
     connectionStatus,
     errorMessage,
     hostGame,
@@ -279,6 +280,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
         senteTime: state.senteTime,
         goteTime: state.goteTime,
         currentTurn: state.currentTurn,
+        lastMove: state.lastMove || null,
       });
     });
   }, [onReceiveState, setGameState]);

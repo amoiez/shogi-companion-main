@@ -337,6 +337,7 @@ export interface GameState {
   goteTime: number;
   senteByoyomi: boolean;
   goteByoyomi: boolean;
+  lastMove?: LastMove;
 }
 
 export interface LastMove {
@@ -788,6 +789,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
       goteTime: newGoteTime,
       senteByoyomi,
       goteByoyomi,
+      lastMove: newLastMove,
     };
 
     setBoard(newBoard);
@@ -904,7 +906,14 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     currentTurn?: 'sente' | 'gote';
     senteByoyomi?: boolean;
     goteByoyomi?: boolean;
+    lastMove?: LastMove | null;
+    usiMove?: string;
   }) => {
+    // CRITICAL FIX: Record USI history from received moves
+    // This ensures BOTH devices maintain complete, identical kifu
+    const prevMoveCount = moveCount;
+    const isNewMove = state.moveCount > prevMoveCount;
+    
     setBoard(state.board);
     setSenteHand(state.senteHand);
     setGoteHand(state.goteHand);
@@ -916,12 +925,43 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     if (state.senteByoyomi !== undefined) setSenteByoyomi(state.senteByoyomi);
     if (state.goteByoyomi !== undefined) setGoteByoyomi(state.goteByoyomi);
     
+    // CRITICAL FIX FOR BUG #2: Record opponent moves in USI history
+    if (isNewMove) {
+      // If lastMove is provided, reconstruct USI from it
+      if (state.lastMove) {
+        const { from, to, piece, promoted, isDrop } = state.lastMove;
+        const usiMove = generateUSIMove(from, to, piece, promoted, isDrop);
+        const newUsiHistory = [...usiHistoryRef.current, usiMove];
+        usiHistoryRef.current = newUsiHistory;
+        setUsiHistory(newUsiHistory);
+        setLastMove(state.lastMove);
+        console.log('[USI] Recorded opponent move:', usiMove);
+      } 
+      // Fallback: if usiMove string is directly provided
+      else if (state.usiMove) {
+        const newUsiHistory = [...usiHistoryRef.current, state.usiMove];
+        usiHistoryRef.current = newUsiHistory;
+        setUsiHistory(newUsiHistory);
+        console.log('[USI] Recorded opponent move (direct):', state.usiMove);
+      }
+      
+      // Generate SFEN after move
+      const newSfen = generateSFEN(
+        state.board, 
+        state.currentTurn || 'sente', 
+        state.senteHand, 
+        state.goteHand, 
+        state.moveCount
+      );
+      setSfen(newSfen);
+    }
+    
     if (state.moveCount > 0) {
       setIsTimerRunning(true);
     }
     
     updateGameState(state.moveCount);
-  }, []);
+  }, [moveCount]);
 
   const getGameState = useCallback(() => ({
     board,
