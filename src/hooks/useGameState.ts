@@ -526,15 +526,30 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     onPieceMoveRef.current = callback;
   }, []);
 
+  // CRITICAL: Pure numeric formatting - NO LOCALE APIS
+  // This is a game timer counter, NOT a wall-clock time
+  // Format: MM:SS (always 5 characters, zero-padded)
+  // NEVER use Date objects or locale APIs for timer display
+  // 
+  // ANTI-PATTERN-MATCHING: Use zero-width space (U+200B) to break pattern detection
+  // This prevents browsers from recognizing "19:32" as a time and auto-converting to "19時32分"
   const formatTime = (seconds: number, inByoyomi: boolean): string => {
+    const ZWSP = '\u200B'; // Zero-width space - invisible but breaks pattern matching
+    
     if (inByoyomi) {
-      // Fixed format: "MM:SS" even in byoyomi (no locale text)
-      return `00:${seconds.toString().padStart(2, '0')}`;
+      // Byoyomi: "00:SS" format (always 5 chars)
+      const secs = Math.max(0, Math.floor(seconds));
+      const secStr = (secs < 10 ? '0' : '') + secs;
+      // Insert ZWSP after colon to break "00:32" pattern
+      return '00' + ZWSP + ':' + ZWSP + secStr;
     }
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    // Always HH:MM format - never locale-based
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    // Main time: "MM:SS" format (always 5+ chars)
+    const mins = Math.max(0, Math.floor(seconds / 60));
+    const secs = Math.max(0, Math.floor(seconds % 60));
+    const minStr = (mins < 10 ? '0' : '') + mins;
+    const secStr = (secs < 10 ? '0' : '') + secs;
+    // Insert ZWSP before and after colon to break "19:32" pattern
+    return minStr + ZWSP + ':' + ZWSP + secStr;
   };
 
   // Mounted ref to prevent state updates after unmount

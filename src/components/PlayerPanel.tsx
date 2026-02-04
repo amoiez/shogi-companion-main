@@ -416,6 +416,9 @@ const PlayerPanel = ({
             {/* Centered digital timer with professional segmented display font */}
             <span 
               className="shogi-timer font-black tracking-wider"
+              translate="no"
+              lang="en"
+              data-no-translate="true"
               style={{ 
                 fontFamily: 'Orbitron, monospace',
                 fontSize: 'clamp(1.35rem, 2vw, 2.25rem)',
@@ -425,8 +428,14 @@ const PlayerPanel = ({
                 padding: '0 8px',
                 mixBlendMode: 'normal',
                 textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                fontVariantNumeric: 'tabular-nums',  // Monospace digits prevent width changes
-                fontFeatureSettings: '"tnum"',       // Tabular numbers for stable layout
+                // ANTI-JITTER: Fixed-width typography
+                fontVariantNumeric: 'tabular-nums',
+                fontFeatureSettings: '"tnum"',
+                WebkitFontSmoothing: 'antialiased',
+                // ANTI-JITTER: Fixed container width
+                width: '5.5em', // Exact width for "88:88" in this font
+                display: 'inline-block',
+                textAlign: 'center',
               }}
             >
               {time}
@@ -612,6 +621,9 @@ const PlayerPanel = ({
           {/* Centered digital timer with professional segmented display font */}
           <span 
             className="shogi-timer font-black tracking-wider"
+            translate="no"
+            lang="en"
+            data-no-translate="true"
             style={{ 
               fontFamily: 'Orbitron, monospace',
               fontSize: '1.35rem',
@@ -621,6 +633,14 @@ const PlayerPanel = ({
               padding: '0 8px',
               mixBlendMode: 'normal',
               textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              // ANTI-JITTER: Fixed-width typography (was missing!)
+              fontVariantNumeric: 'tabular-nums',
+              fontFeatureSettings: '"tnum"',
+              WebkitFontSmoothing: 'antialiased',
+              // ANTI-JITTER: Fixed container width (was missing!)
+              width: '80px', // Fixed width for "88:88" at 1.35rem
+              display: 'inline-block',
+              textAlign: 'center',
             }}
           >
             {time}
@@ -687,6 +707,9 @@ const PlayerPanel = ({
         {/* Centered digital timer with professional segmented display font */}
         <span 
           className="shogi-timer font-black tracking-wider"
+          translate="no"
+          lang="en"
+          data-no-translate="true"
           style={{ 
             fontFamily: 'Orbitron, monospace',
             fontSize: '1.35rem',
@@ -696,13 +719,13 @@ const PlayerPanel = ({
             padding: '0 8px',
             mixBlendMode: 'normal',
             textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-            // JITTER FIX: Fixed-width typography and locked container
-            width: '72px', // Fixed width for "88:88" format
+            // ANTI-JITTER: Fixed-width typography and locked container
+            fontVariantNumeric: 'tabular-nums',
+            fontFeatureSettings: '"tnum"',
+            WebkitFontSmoothing: 'antialiased',
+            width: '80px', // Fixed width for "88:88" format (consistent with others)
             display: 'inline-block',
             textAlign: 'center',
-            fontVariantNumeric: 'tabular-nums', // Force fixed-width digits
-            fontFeatureSettings: '"tnum"', // Tabular numbers
-            WebkitFontSmoothing: 'antialiased', // Prevent subpixel shifts
           }}
         >
           {time}
