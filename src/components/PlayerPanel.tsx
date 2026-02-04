@@ -284,6 +284,11 @@ const PlayerPanel = ({
 }: PlayerPanelProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // ============================================================
+  // DEBUG: Log props on every render to verify correct values
+  // ============================================================
+  console.log('[PlayerPanel RENDER] label:', label, 'isOpponent:', isOpponent, 'isSelfVideo:', isSelfVideo);
+
   // Set up video stream with explicit play() call
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -294,6 +299,7 @@ const PlayerPanel = ({
       console.log('[PlayerPanel] ========================================');
       console.log('[PlayerPanel]', isSelfVideo ? 'LOCAL STREAM ATTACHED' : 'REMOTE STREAM ATTACHED');
       console.log('[PlayerPanel] panel =', isSelfVideo ? 'self' : 'opponent');
+      console.log('[PlayerPanel] isSelfVideo =', isSelfVideo);
       console.log('[PlayerPanel] Stream ID:', videoStream.id);
       console.log('[PlayerPanel] Video tracks:', videoStream.getVideoTracks().length);
       console.log('[PlayerPanel] Audio tracks:', videoStream.getAudioTracks().length);
@@ -360,7 +366,7 @@ const PlayerPanel = ({
         videoElement.srcObject = null;
       }
     };
-  }, [videoStream, isOpponent]);
+  }, [videoStream, isSelfVideo]); // FIXED: depend on isSelfVideo, not isOpponent
 
   // Handle hand piece click for tap-to-move
   const handleHandPieceClick = (piece: string, index: number) => {
@@ -474,21 +480,25 @@ const PlayerPanel = ({
           }}
         >
           {videoStream ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              webkit-playsinline="true"
-              muted={isSelfVideo}
-              className="w-full h-full object-contain"
-              style={{ 
-                objectPosition: 'center',
-                // CRITICAL MIRRORING RULE:
-                // isSelfVideo=true (local camera) → mirror (scaleX(-1)) so user sees themselves naturally
-                // isSelfVideo=false (remote camera) → NO mirror (opponent appears correct)
-                transform: isSelfVideo ? 'scaleX(-1)' : 'none',
-              }}
-            />
+            <>
+              {/* DEBUG: Log transform on each render */}
+              {console.log('[PlayerPanel VIDEO] isSelfVideo:', isSelfVideo, '→ transform:', isSelfVideo ? 'scaleX(-1)' : 'none')}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                webkit-playsinline="true"
+                muted={isSelfVideo}
+                className="w-full h-full object-contain"
+                style={{ 
+                  objectPosition: 'center',
+                  // CRITICAL MIRRORING RULE:
+                  // isSelfVideo=true (local camera) → mirror (scaleX(-1)) so user sees themselves naturally
+                  // isSelfVideo=false (remote camera) → NO mirror (opponent appears correct)
+                  transform: isSelfVideo ? 'scaleX(-1)' : 'none',
+                }}
+              />
+            </>
           ) : (
             <img 
               src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
