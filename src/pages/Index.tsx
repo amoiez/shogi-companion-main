@@ -555,13 +555,13 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
             <PlayerPanel 
               label="先手" 
               time={senteTimeFormatted}
-              isOpponent={false}
+              isOpponent={true}
               hand={senteHand}
               dragSource={dragSource}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
-              videoStream={selfStream}
+              videoStream={opponentStream}
               isMyTurn={gameCurrentTurn === 'sente'}
               canDrag={gameMode === 'solo' ? !isGameOver : (isMyTurn && role !== 'guest' && !isGameOver)}
               selectedSource={selectedSource}
@@ -634,13 +634,13 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
             <PlayerPanel 
               label="後手" 
               time={goteTimeFormatted}
-              isOpponent={true}
+              isOpponent={false}
               hand={goteHand}
               dragSource={dragSource}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
-              videoStream={opponentStream}
+              videoStream={selfStream}
               isMyTurn={gameCurrentTurn === 'gote'}
               canDrag={
                 gameMode === 'solo' 

@@ -468,7 +468,12 @@ const PlayerPanel = ({
               webkit-playsinline="true"
               muted={!isOpponent}
               className="w-full h-full object-contain"
-              style={{ objectPosition: 'center' }}
+              style={{ 
+                objectPosition: 'center',
+                // Mirror local camera (user's own video) horizontally
+                // Remote camera (opponent) shows normal orientation
+                transform: !isOpponent ? 'scaleX(-1)' : 'none',
+              }}
             />
           ) : (
             <img 
@@ -670,7 +675,11 @@ const PlayerPanel = ({
               webkit-playsinline="true"
               muted={!isOpponent}
               className="w-full h-full object-cover"
-              style={{ objectPosition: 'center' }}
+              style={{ 
+                objectPosition: 'center',
+                // Mirror local camera (user's own video) horizontally
+                transform: !isOpponent ? 'scaleX(-1)' : 'none',
+              }}
             />
           ) : (
             <img 
@@ -755,7 +764,11 @@ const PlayerPanel = ({
             webkit-playsinline="true"
             muted={!isOpponent}
             className="w-full h-full object-cover"
-            style={{ objectPosition: 'center' }}
+            style={{ 
+              objectPosition: 'center',
+              // Mirror local camera (user's own video) horizontally
+              transform: !isOpponent ? 'scaleX(-1)' : 'none',
+            }}
           />
         ) : (
           <img 
