@@ -466,17 +466,18 @@ const PlayerPanel = ({
         <div 
           className={`
             rounded-2xl 
-            border-4 lg:border-6 border-amber-700/40
             shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.25)]
             overflow-hidden
-            flex items-center justify-center
+            relative
           `}
           style={{
             width: 'clamp(200px, 22vw, 280px)',
-            maxHeight: 'clamp(200px, 28vh, 280px)',
-            aspectRatio: '1 / 1',
+            height: 'clamp(200px, 22vw, 280px)',
             transform: 'translateY(0px)',
             backgroundColor: '#e5e7eb',
+            padding: 0,
+            boxSizing: 'border-box',
+            border: '4px solid rgba(180, 83, 9, 0.4)',
           }}
         >
           {videoStream ? (
@@ -489,9 +490,18 @@ const PlayerPanel = ({
                 playsInline
                 webkit-playsinline="true"
                 muted={isSelfVideo}
-                className="w-full h-full object-contain"
                 style={{ 
-                  objectPosition: 'center',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  minWidth: '100%',
+                  minHeight: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                  margin: 0,
+                  padding: 0,
                   // Camera feed is ALREADY mirrored by getUserMedia
                   // isSelfVideo=true → DON'T flip (keep browser's natural mirror)
                   // isSelfVideo=false → flip (un-mirror the remote camera)
@@ -503,9 +513,20 @@ const PlayerPanel = ({
             <img 
               src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
               alt={isOpponent ? '対戦相手' : '中野さん'}
-              className="w-full h-full object-contain"
               style={{ 
-                objectPosition: 'center center'
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                objectPosition: 'center center',
+                display: 'block',
+                margin: 0,
+                padding: 0,
+                boxSizing: 'border-box',
               }}
             />
           )}
@@ -684,11 +705,13 @@ const PlayerPanel = ({
             border-4 border-gray-300
             shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.15)]
             overflow-hidden
-            flex items-center justify-center
+            relative
           `}
           style={{
             width: 'clamp(200px, 20vw, 280px)',
+            height: 'clamp(150px, 15vw, 210px)',
             aspectRatio: '4/3',
+            padding: 0,
           }}
         >
           {videoStream ? (
@@ -698,9 +721,15 @@ const PlayerPanel = ({
               playsInline
               webkit-playsinline="true"
               muted={isSelfVideo}
-              className="w-full h-full object-cover"
               style={{ 
-                objectPosition: 'center',
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+                margin: 0,
+                padding: 0,
                 // Camera feed is ALREADY mirrored by getUserMedia
                 transform: !isSelfVideo ? 'scaleX(-1)' : 'none',
               }}
@@ -709,8 +738,17 @@ const PlayerPanel = ({
             <img 
               src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
               alt={isOpponent ? '対戦相手' : 'あなた'}
-              className="w-full h-full object-contain"
-              style={{ objectPosition: 'center' }}
+              style={{ 
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                objectPosition: 'center',
+                display: 'block',
+                margin: 0,
+                padding: 0,
+              }}
             />
           )}
         </div>
@@ -773,11 +811,13 @@ const PlayerPanel = ({
           border-4 border-gray-300
           shadow-[inset_0_2px_4px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.15)]
           overflow-hidden
-          flex items-center justify-center
+          relative
         `}
         style={{
           width: 'clamp(200px, 20vw, 280px)',
+          height: 'clamp(150px, 15vw, 210px)',
           aspectRatio: '4/3',
+          padding: 0,
         }}
       >
         {videoStream ? (
@@ -787,9 +827,15 @@ const PlayerPanel = ({
             playsInline
             webkit-playsinline="true"
             muted={isSelfVideo}
-            className="w-full h-full object-cover"
             style={{ 
-              objectPosition: 'center',
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              margin: 0,
+              padding: 0,
               // Camera feed is ALREADY mirrored by getUserMedia
               transform: !isSelfVideo ? 'scaleX(-1)' : 'none',
             }}
@@ -798,8 +844,17 @@ const PlayerPanel = ({
           <img 
             src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
             alt={isOpponent ? '対戦相手' : 'あなた'}
-            className="w-full h-full object-contain"
-            style={{ objectPosition: 'center' }}
+            style={{ 
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'center',
+              display: 'block',
+              margin: 0,
+              padding: 0,
+            }}
           />
         )}
       </div>
