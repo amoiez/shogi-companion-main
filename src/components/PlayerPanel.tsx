@@ -492,9 +492,9 @@ const PlayerPanel = ({
                 className="w-full h-full object-contain"
                 style={{ 
                   objectPosition: 'center',
-                  // CRITICAL MIRRORING RULE:
-                  // isSelfVideo=true (local camera) → mirror (scaleX(-1)) so user sees themselves naturally
-                  // isSelfVideo=false (remote camera) → NO mirror (opponent appears correct)
+                  // CORRECT MIRRORING:
+                  // isSelfVideo=true (self/local) → mirror (scaleX(-1)) like a mirror
+                  // isSelfVideo=false (opponent/remote) → NO mirror (true view)
                   transform: isSelfVideo ? 'scaleX(-1)' : 'none',
                 }}
               />
@@ -701,7 +701,7 @@ const PlayerPanel = ({
               className="w-full h-full object-cover"
               style={{ 
                 objectPosition: 'center',
-                // CRITICAL MIRRORING RULE: isSelfVideo controls mirroring
+                // CORRECT: self mirrored, opponent not mirrored
                 transform: isSelfVideo ? 'scaleX(-1)' : 'none',
               }}
             />
@@ -790,7 +790,7 @@ const PlayerPanel = ({
             className="w-full h-full object-cover"
             style={{ 
               objectPosition: 'center',
-              // CRITICAL MIRRORING RULE: isSelfVideo controls mirroring
+              // CORRECT: self mirrored, opponent not mirrored
               transform: isSelfVideo ? 'scaleX(-1)' : 'none',
             }}
           />
