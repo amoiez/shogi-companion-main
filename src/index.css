@@ -665,7 +665,7 @@
       max-height: clamp(140px, 22vh, 180px) !important;
       object-fit: cover !important;
       object-position: center !important;
-      transform: scale(1.05) !important;
+      /* REMOVED: transform: scale(1.05) !important; - breaks video mirroring */
     }
     
     /* 10. SMALLER CAPTURED PIECES CONTAINER */
@@ -843,9 +843,9 @@
       max-height: clamp(160px, 25vh, 200px) !important;
       object-fit: cover !important;
       object-position: center !important;
-      transform: scale(1.05) !important;
+      /* REMOVED: transform: scale(1.05) !important; - breaks video mirroring */
     }
-    
+
     /* AI assistant sizing for 11" */
     .ai-avatar-container {
       width: clamp(85px, 8.5vw, 105px);
@@ -952,7 +952,7 @@
       max-height: clamp(160px, 24vh, 240px) !important;
       object-fit: cover !important;
       object-position: center !important;
-      transform: scale(1.05) !important;
+      /* REMOVED: transform: scale(1.05) !important; - breaks video mirroring */
     }
     
     /* Timer must be readable on small tablets */
@@ -1012,7 +1012,7 @@
       max-height: clamp(150px, 23vh, 210px) !important;
       object-fit: cover !important;
       object-position: center !important;
-      transform: scale(1.05) !important;
+      /* REMOVED: transform: scale(1.05) !important; - breaks video mirroring */
     }
     
     /* Timer readability on small height screens */
@@ -1217,7 +1217,7 @@
     aspect-ratio: 1 / 1;
     object-fit: cover !important;
     object-position: center !important;
-    transform: scale(1.05) !important;
+    /* REMOVED: transform: scale(1.05) !important; - breaks video mirroring */
   }
 
   /* Responsive 2×4 grid komadai - scales with viewport */
