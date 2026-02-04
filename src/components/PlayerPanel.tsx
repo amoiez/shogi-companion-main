@@ -492,10 +492,10 @@ const PlayerPanel = ({
                 className="w-full h-full object-contain"
                 style={{ 
                   objectPosition: 'center',
-                  // CORRECT MIRRORING:
-                  // isSelfVideo=true (self/local) → mirror (scaleX(-1)) like a mirror
-                  // isSelfVideo=false (opponent/remote) → NO mirror (true view)
-                  transform: isSelfVideo ? 'scaleX(-1)' : 'none',
+                  // Camera feed is ALREADY mirrored by getUserMedia
+                  // isSelfVideo=true → DON'T flip (keep browser's natural mirror)
+                  // isSelfVideo=false → flip (un-mirror the remote camera)
+                  transform: !isSelfVideo ? 'scaleX(-1)' : 'none',
                 }}
               />
             </>
@@ -701,8 +701,8 @@ const PlayerPanel = ({
               className="w-full h-full object-cover"
               style={{ 
                 objectPosition: 'center',
-                // CORRECT: self mirrored, opponent not mirrored
-                transform: isSelfVideo ? 'scaleX(-1)' : 'none',
+                // Camera feed is ALREADY mirrored by getUserMedia
+                transform: !isSelfVideo ? 'scaleX(-1)' : 'none',
               }}
             />
           ) : (
@@ -790,8 +790,8 @@ const PlayerPanel = ({
             className="w-full h-full object-cover"
             style={{ 
               objectPosition: 'center',
-              // CORRECT: self mirrored, opponent not mirrored
-              transform: isSelfVideo ? 'scaleX(-1)' : 'none',
+              // Camera feed is ALREADY mirrored by getUserMedia
+              transform: !isSelfVideo ? 'scaleX(-1)' : 'none',
             }}
           />
         ) : (
