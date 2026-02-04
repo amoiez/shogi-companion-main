@@ -543,6 +543,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
               videoStream={opponentStream}
+              localStream={localStream}
               isMyTurn={gameCurrentTurn === 'gote'}
               canDrag={gameMode === 'solo' ? !isGameOver : (isMyTurn && role === 'guest' && !isGameOver)}
               selectedSource={selectedSource}
@@ -562,6 +563,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
               videoStream={opponentStream}
+              localStream={localStream}
               isMyTurn={gameCurrentTurn === 'sente'}
               canDrag={gameMode === 'solo' ? !isGameOver : (isMyTurn && role !== 'guest' && !isGameOver)}
               selectedSource={selectedSource}
@@ -618,6 +620,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
               videoStream={selfStream}
+              localStream={localStream}
               isMyTurn={gameCurrentTurn === 'sente'}
               canDrag={
                 gameMode === 'solo' 
@@ -641,6 +644,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
               videoStream={selfStream}
+              localStream={localStream}
               isMyTurn={gameCurrentTurn === 'gote'}
               canDrag={
                 gameMode === 'solo' 
