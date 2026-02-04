@@ -72,6 +72,9 @@ interface PlayerPanelProps {
   // Player identity (name + rank)
   playerName?: string;
   playerRank?: string;
+  // CRITICAL: Separate flag for video mirroring (true = mirror local camera)
+  // This is independent of isOpponent which controls hand/layout
+  isSelfVideo?: boolean;
 }
 
 interface HandPieceProps {
@@ -277,6 +280,7 @@ const PlayerPanel = ({
   fullColumn = false,
   playerName = '',
   playerRank = '',
+  isSelfVideo = false, // CRITICAL: Controls mirroring - true = local camera (mirror), false = remote (no mirror)
 }: PlayerPanelProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -284,14 +288,23 @@ const PlayerPanel = ({
   useEffect(() => {
     const videoElement = videoRef.current;
     if (videoElement && videoStream) {
-      console.log('[PlayerPanel] Setting up video/audio stream, isOpponent:', isOpponent);
-      console.log('[PlayerPanel] This is:', isOpponent ? 'REMOTE stream' : 'LOCAL stream');
+      // ============================================================
+      // STREAM ATTACHMENT DEBUG - CRITICAL FOR TROUBLESHOOTING
+      // ============================================================
+      console.log('[PlayerPanel] ========================================');
+      console.log('[PlayerPanel]', isSelfVideo ? 'LOCAL STREAM ATTACHED' : 'REMOTE STREAM ATTACHED');
+      console.log('[PlayerPanel] panel =', isSelfVideo ? 'self' : 'opponent');
+      console.log('[PlayerPanel] Stream ID:', videoStream.id);
+      console.log('[PlayerPanel] Video tracks:', videoStream.getVideoTracks().length);
+      console.log('[PlayerPanel] Audio tracks:', videoStream.getAudioTracks().length);
+      console.log('[PlayerPanel] ========================================');
       
-      // CRITICAL FIX: Always mute local stream (prevent echo)
-      // Remote stream should never be muted (to hear opponent)
-      const shouldMute = !isOpponent; // true for local, false for remote
+      // CRITICAL FIX: Mute based on isSelfVideo (not isOpponent)
+      // Local stream (isSelfVideo=true) must be muted to prevent echo
+      // Remote stream (isSelfVideo=false) should NOT be muted to hear opponent
+      const shouldMute = isSelfVideo;
       videoElement.muted = shouldMute;
-      console.log('[PlayerPanel] Video muted:', shouldMute);
+      console.log('[PlayerPanel] Video muted:', shouldMute, '(isSelfVideo:', isSelfVideo, ')');
       
       // Set the stream
       videoElement.srcObject = videoStream;
@@ -466,13 +479,14 @@ const PlayerPanel = ({
               autoPlay
               playsInline
               webkit-playsinline="true"
-              muted={!isOpponent}
+              muted={isSelfVideo}
               className="w-full h-full object-contain"
               style={{ 
                 objectPosition: 'center',
-                // Mirror local camera (user's own video) horizontally
-                // Remote camera (opponent) shows normal orientation
-                transform: !isOpponent ? 'scaleX(-1)' : 'none',
+                // CRITICAL MIRRORING RULE:
+                // isSelfVideo=true (local camera) → mirror (scaleX(-1)) so user sees themselves naturally
+                // isSelfVideo=false (remote camera) → NO mirror (opponent appears correct)
+                transform: isSelfVideo ? 'scaleX(-1)' : 'none',
               }}
             />
           ) : (
@@ -673,12 +687,12 @@ const PlayerPanel = ({
               autoPlay
               playsInline
               webkit-playsinline="true"
-              muted={!isOpponent}
+              muted={isSelfVideo}
               className="w-full h-full object-cover"
               style={{ 
                 objectPosition: 'center',
-                // Mirror local camera (user's own video) horizontally
-                transform: !isOpponent ? 'scaleX(-1)' : 'none',
+                // CRITICAL MIRRORING RULE: isSelfVideo controls mirroring
+                transform: isSelfVideo ? 'scaleX(-1)' : 'none',
               }}
             />
           ) : (
@@ -762,12 +776,12 @@ const PlayerPanel = ({
             autoPlay
             playsInline
             webkit-playsinline="true"
-            muted={!isOpponent}
+            muted={isSelfVideo}
             className="w-full h-full object-cover"
             style={{ 
               objectPosition: 'center',
-              // Mirror local camera (user's own video) horizontally
-              transform: !isOpponent ? 'scaleX(-1)' : 'none',
+              // CRITICAL MIRRORING RULE: isSelfVideo controls mirroring
+              transform: isSelfVideo ? 'scaleX(-1)' : 'none',
             }}
           />
         ) : (

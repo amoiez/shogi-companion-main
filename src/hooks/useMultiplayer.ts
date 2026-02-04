@@ -168,7 +168,14 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
   const retryCountRef = useRef<number>(0);
   const maxRetriesRef = useRef<number>(isMobileSafari() ? 10 : 5); // More retries for Mobile Safari
   const handshakeReceivedRef = useRef<boolean>(false);
-  const mediaCallInitiatedRef = useRef<boolean>(false); // Track if host initiated media call
+  
+  // ============================================================
+  // CRITICAL: Stream ownership tracking
+  // These refs ensure streams are NEVER reassigned during connection
+  // ============================================================
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+  const mediaCallHandledRef = useRef<boolean>(false); // Prevents duplicate call handling
   
   // Keep roleRef in sync with role state
   useEffect(() => {
@@ -191,10 +198,10 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       retryIntervalRef.current = null;
     }
     
-    // Reset retry state
+    // Reset all tracking state
     retryCountRef.current = 0;
     handshakeReceivedRef.current = false;
-    mediaCallInitiatedRef.current = false;
+    mediaCallHandledRef.current = false;
     
     if (mediaConnectionRef.current) {
       mediaConnectionRef.current.close();
@@ -208,26 +215,57 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       peerRef.current.destroy();
       peerRef.current = null;
     }
+    
+    // Stop local stream tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
       setLocalStream(null);
     }
+    
+    // Clear remote stream
+    remoteStreamRef.current = null;
     setRemoteStream(null);
   }, [localStream]);
 
   // Get user media (camera/mic)
+  // CRITICAL: Stream is created ONCE and stored in ref to prevent reassignment
   const setupMedia = useCallback(async (): Promise<MediaStream | null> => {
+    // If we already have a stream, return it (prevent duplicate getUserMedia calls)
+    if (localStreamRef.current) {
+      console.log('[Multiplayer] ========================================');
+      console.log('[Multiplayer] LOCAL STREAM ALREADY EXISTS - reusing');
+      console.log('[Multiplayer] Stream ID:', localStreamRef.current.id);
+      console.log('[Multiplayer] ========================================');
+      return localStreamRef.current;
+    }
+    
     try {
+      console.log('[Multiplayer] ========================================');
       console.log('[Multiplayer] Requesting camera/mic access...');
+      console.log('[Multiplayer] ========================================');
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: true, 
         audio: true 
       });
-      console.log('[Multiplayer] Got local media stream');
+      
+      console.log('[Multiplayer] ========================================');
+      console.log('[Multiplayer] LOCAL STREAM CREATED');
+      console.log('[Multiplayer] Stream ID:', stream.id);
+      console.log('[Multiplayer] Video tracks:', stream.getVideoTracks().length);
+      console.log('[Multiplayer] Audio tracks:', stream.getAudioTracks().length);
+      console.log('[Multiplayer] ========================================');
+      
+      // Store in BOTH ref (for internal use) and state (for React rendering)
+      localStreamRef.current = stream;
       setLocalStream(stream);
       return stream;
     } catch (err) {
-      console.error('[Multiplayer] Failed to get user media:', err);
+      console.error('[Multiplayer] ❌ Failed to get user media:', err);
       setErrorMessage('カメラ/マイクへのアクセスが拒否されました');
       return null;
     }
@@ -408,22 +446,29 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         console.log('[HOST] Sent READY message to guest');
         
         // ============================================================
-        // CRITICAL FIX: Delayed HOST media call initiation
-        // Wait 200ms after data connection to ensure guest is ready
-        // This prevents race conditions and ensures single call path
+        // CRITICAL FIX: HOST-ONLY media call initiation
+        // Only ONE call per connection - host always initiates
+        // Guest NEVER initiates - only answers
         // ============================================================
-        if (stream && peer && !mediaCallInitiatedRef.current) {
+        if (stream && peer && !mediaCallHandledRef.current) {
           console.log('[HOST] ========================================');
-          console.log('[HOST] Scheduling VIDEO call to guest in 200ms');
-          console.log('[HOST] This ensures guest peer is fully ready');
+          console.log('[HOST] Scheduling VIDEO call to guest in 300ms');
+          console.log('[HOST] HOST is the ONLY initiator - no race condition');
           console.log('[HOST] ========================================');
           
-          mediaCallInitiatedRef.current = true; // Prevent duplicate calls
+          mediaCallHandledRef.current = true; // CRITICAL: Prevent ANY duplicate handling
           
           setTimeout(() => {
+            // Double-check we haven't been cleaned up
+            if (!peerRef.current || mediaConnectionRef.current) {
+              console.log('[HOST] ⚠️ Call cancelled - peer destroyed or call exists');
+              return;
+            }
+            
             console.log('[HOST] ========================================');
-            console.log('[HOST] HOST INITIATING MEDIA CALL');
+            console.log('[HOST] HOST INITIATING MEDIA CALL (single path)');
             console.log('[HOST] Target peer:', conn.peer);
+            console.log('[HOST] Call acknowledges ONCE - no duplicates');
             console.log('[HOST] ========================================');
             
             const hostCall = peer.call(conn.peer, stream);
@@ -431,8 +476,20 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
               mediaConnectionRef.current = hostCall;
               
               hostCall.on('stream', (remoteMediaStream) => {
-                console.log('[HOST] ✅ RECEIVED GUEST VIDEO STREAM');
-                console.log('[HOST] Stream tracks:', remoteMediaStream.getTracks().map(t => t.kind));
+                // CRITICAL: Only set remote stream if not already set
+                if (remoteStreamRef.current) {
+                  console.log('[HOST] ⚠️ Remote stream already exists - ignoring duplicate');
+                  return;
+                }
+                
+                console.log('[HOST] ========================================');
+                console.log('[HOST] ✅ REMOTE STREAM ATTACHED');
+                console.log('[HOST] Stream ID:', remoteMediaStream.id);
+                console.log('[HOST] Video tracks:', remoteMediaStream.getVideoTracks().length);
+                console.log('[HOST] Audio tracks:', remoteMediaStream.getAudioTracks().length);
+                console.log('[HOST] ========================================');
+                
+                remoteStreamRef.current = remoteMediaStream;
                 setRemoteStream(remoteMediaStream);
                 
                 // Validate video track
@@ -456,49 +513,52 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
             } else {
               console.error('[HOST] ⚠️ Failed to create media call!');
             }
-          }, 200); // 200ms delay ensures guest is ready
+          }, 300); // 300ms delay ensures guest is ready
         }
       });
     });
     
     // ============================================================
-    // CRITICAL FIX: HOST accepts backup calls from guest
-    // If guest initiates call first (race condition), accept it
-    // This ensures video works regardless of timing
+    // HOST incoming call handler - REJECT if already handled
+    // Since HOST initiates, any incoming call is unexpected
     // ============================================================
     peer.on('call', (call) => {
-      if (mediaCallInitiatedRef.current) {
-        console.warn('[HOST] Already initiated call, ignoring guest call (expected)');
+      if (mediaCallHandledRef.current || mediaConnectionRef.current) {
+        console.log('[HOST] ========================================');
+        console.log('[HOST] ⚠️ IGNORING incoming call - already handled');
+        console.log('[HOST] This is expected - HOST initiated the call');
+        console.log('[HOST] ========================================');
         return;
       }
       
+      // Fallback: If somehow guest initiated first, accept it
       console.log('[HOST] ========================================');
-      console.log('[HOST] Guest initiated call first (race condition)');
-      console.log('[HOST] Accepting backup call from guest');
+      console.log('[HOST] Unexpected incoming call - accepting as fallback');
       console.log('[HOST] ========================================');
       
       if (stream) {
-        mediaCallInitiatedRef.current = true;
+        mediaCallHandledRef.current = true;
         mediaConnectionRef.current = call;
         
         call.answer(stream);
         
         call.on('stream', (remoteMediaStream) => {
-          console.log('[HOST] ✅ RECEIVED GUEST VIDEO (via backup path)');
-          console.log('[HOST] Stream tracks:', remoteMediaStream.getTracks().map(t => t.kind));
-          setRemoteStream(remoteMediaStream);
-          
-          // Validate video track
-          const videoTrack = remoteMediaStream.getVideoTracks()[0];
-          if (videoTrack) {
-            console.log('[HOST] ✅ Video track present:', videoTrack.label);
-          } else {
-            console.error('[HOST] ❌ NO VIDEO TRACK in remote stream!');
+          if (remoteStreamRef.current) {
+            console.log('[HOST] ⚠️ Remote stream exists - ignoring');
+            return;
           }
+          
+          console.log('[HOST] ========================================');
+          console.log('[HOST] ✅ REMOTE STREAM ATTACHED (fallback path)');
+          console.log('[HOST] Stream ID:', remoteMediaStream.id);
+          console.log('[HOST] ========================================');
+          
+          remoteStreamRef.current = remoteMediaStream;
+          setRemoteStream(remoteMediaStream);
         });
         
         call.on('error', (err) => {
-          console.error('[HOST] ❌ Backup call error:', err);
+          console.error('[HOST] ❌ Fallback call error:', err);
         });
       }
     });
@@ -571,13 +631,22 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     }, CONNECTION_TIMEOUT);
     
     // ============================================================
-    // CRITICAL: Register call listener BEFORE peer opens
-    // This ensures we don't miss the host's media call
+    // CRITICAL: GUEST only answers calls - NEVER initiates
+    // Host is the ONLY call initiator in this architecture
+    // Register BEFORE peer opens to not miss the call
     // ============================================================
     peer.on('call', (call) => {
+      // Prevent duplicate call handling
+      if (mediaCallHandledRef.current || mediaConnectionRef.current) {
+        console.log('[GUEST] ========================================');
+        console.log('[GUEST] ⚠️ IGNORING duplicate call - already handled');
+        console.log('[GUEST] ========================================');
+        return;
+      }
+      
       console.log('[GUEST] ========================================');
       console.log('[GUEST] RECEIVED INCOMING VIDEO CALL FROM HOST');
-      console.log('[GUEST] Answering with local stream');
+      console.log('[GUEST] Call acknowledges ONCE - no duplicates');
       console.log('[GUEST] ========================================');
       
       if (!stream) {
@@ -585,13 +654,27 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         return;
       }
       
-      console.log('[GUEST] Answering call with stream');
+      mediaCallHandledRef.current = true; // CRITICAL: Prevent duplicate handling
       mediaConnectionRef.current = call;
+      
+      console.log('[GUEST] Answering call with local stream');
       call.answer(stream);
       
       call.on('stream', (remoteMediaStream) => {
-        console.log('[GUEST] ✅ RECEIVED HOST VIDEO STREAM');
-        console.log('[GUEST] Stream tracks:', remoteMediaStream.getTracks().map(t => t.kind));
+        // CRITICAL: Only set remote stream if not already set
+        if (remoteStreamRef.current) {
+          console.log('[GUEST] ⚠️ Remote stream already exists - ignoring duplicate');
+          return;
+        }
+        
+        console.log('[GUEST] ========================================');
+        console.log('[GUEST] ✅ REMOTE STREAM ATTACHED');
+        console.log('[GUEST] Stream ID:', remoteMediaStream.id);
+        console.log('[GUEST] Video tracks:', remoteMediaStream.getVideoTracks().length);
+        console.log('[GUEST] Audio tracks:', remoteMediaStream.getAudioTracks().length);
+        console.log('[GUEST] ========================================');
+        
+        remoteStreamRef.current = remoteMediaStream;
         setRemoteStream(remoteMediaStream);
         
         // Validate video track
@@ -606,6 +689,7 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       
       call.on('close', () => {
         console.log('[GUEST] Media call closed');
+        remoteStreamRef.current = null;
         setRemoteStream(null);
       });
       
