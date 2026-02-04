@@ -59,7 +59,6 @@ interface PlayerPanelProps {
   onDragEnd: () => void;
   onDrop: (row: number, col: number) => void;
   videoStream?: MediaStream | null;
-  localStream?: MediaStream | null;  // Used to detect local camera for mirroring
   isMyTurn?: boolean;
   canDrag?: boolean;
   // Tap-to-move support
@@ -268,7 +267,6 @@ const PlayerPanel = ({
   onDragStart, 
   onDragEnd,
   videoStream,
-  localStream,
   isMyTurn = true,
   canDrag = true,
   selectedSource,
@@ -472,9 +470,9 @@ const PlayerPanel = ({
               className="w-full h-full object-contain"
               style={{ 
                 objectPosition: 'center',
-                // CRITICAL FIX: Mirror ONLY local camera by comparing MediaStream identity
-                // Never mirror remote camera - opponent sees me unmirrored
-                transform: (videoStream === localStream) ? 'scaleX(-1)' : 'none',
+                // Mirror local camera (user's own video) horizontally
+                // Remote camera (opponent) shows normal orientation
+                transform: !isOpponent ? 'scaleX(-1)' : 'none',
               }}
             />
           ) : (
@@ -679,9 +677,8 @@ const PlayerPanel = ({
               className="w-full h-full object-cover"
               style={{ 
                 objectPosition: 'center',
-                // CRITICAL FIX: Mirror ONLY local camera by comparing MediaStream identity
-                // Never mirror remote camera - opponent sees me unmirrored
-                transform: (videoStream === localStream) ? 'scaleX(-1)' : 'none',
+                // Mirror local camera (user's own video) horizontally
+                transform: !isOpponent ? 'scaleX(-1)' : 'none',
               }}
             />
           ) : (
@@ -769,9 +766,8 @@ const PlayerPanel = ({
             className="w-full h-full object-cover"
             style={{ 
               objectPosition: 'center',
-              // CRITICAL FIX: Mirror ONLY local camera by comparing MediaStream identity
-              // Never mirror remote camera - opponent sees me unmirrored
-              transform: (videoStream === localStream) ? 'scaleX(-1)' : 'none',
+              // Mirror local camera (user's own video) horizontally
+              transform: !isOpponent ? 'scaleX(-1)' : 'none',
             }}
           />
         ) : (
