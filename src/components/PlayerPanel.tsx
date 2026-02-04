@@ -285,9 +285,31 @@ const PlayerPanel = ({
     const videoElement = videoRef.current;
     if (videoElement && videoStream) {
       console.log('[PlayerPanel] Setting up video/audio stream, isOpponent:', isOpponent);
+      console.log('[PlayerPanel] This is:', isOpponent ? 'REMOTE stream' : 'LOCAL stream');
+      
+      // CRITICAL FIX: Always mute local stream (prevent echo)
+      // Remote stream should never be muted (to hear opponent)
+      const shouldMute = !isOpponent; // true for local, false for remote
+      videoElement.muted = shouldMute;
+      console.log('[PlayerPanel] Video muted:', shouldMute);
       
       // Set the stream
       videoElement.srcObject = videoStream;
+      
+      // CRITICAL iPad Safari FIX: Explicit load() call after setting srcObject
+      videoElement.load();
+      
+      // Track video dimensions for debugging
+      const checkDimensions = () => {
+        console.log('[PlayerPanel] Video dimensions - width:', videoElement.videoWidth, 'height:', videoElement.videoHeight);
+        if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+          console.error('[PlayerPanel] ❌ VIDEO HAS NO DIMENSIONS!');
+        } else {
+          console.log('[PlayerPanel] ✅ Video has valid dimensions');
+        }
+      };
+      
+      videoElement.addEventListener('loadedmetadata', checkDimensions);
       
       // Explicitly play to ensure audio works (autoPlay can be blocked)
       const playPromise = videoElement.play();
@@ -295,16 +317,18 @@ const PlayerPanel = ({
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            console.log('[PlayerPanel] Video/audio playback started successfully, isOpponent:', isOpponent);
+            console.log('[PlayerPanel] ✅ Video/audio playback started successfully, isOpponent:', isOpponent);
+            checkDimensions();
           })
           .catch((error) => {
-            console.error('[PlayerPanel] Failed to start video/audio playback:', error);
+            console.error('[PlayerPanel] ❌ Failed to start video/audio playback:', error);
             // On mobile/iPad, playback might require user interaction
             // Try again on next user interaction
             const handleInteraction = () => {
               videoElement.play()
                 .then(() => {
-                  console.log('[PlayerPanel] Video/audio started after user interaction');
+                  console.log('[PlayerPanel] ✅ Video/audio started after user interaction');
+                  checkDimensions();
                   document.removeEventListener('click', handleInteraction);
                   document.removeEventListener('touchstart', handleInteraction);
                 })
@@ -432,6 +456,7 @@ const PlayerPanel = ({
               ref={videoRef}
               autoPlay
               playsInline
+              webkit-playsinline="true"
               muted={!isOpponent}
               className="w-full h-full object-contain"
               style={{ objectPosition: 'center' }}
@@ -622,6 +647,7 @@ const PlayerPanel = ({
               ref={videoRef}
               autoPlay
               playsInline
+              webkit-playsinline="true"
               muted={!isOpponent}
               className="w-full h-full object-cover"
               style={{ objectPosition: 'center' }}
@@ -703,7 +729,8 @@ const PlayerPanel = ({
             ref={videoRef}
             autoPlay
             playsInline
-            muted={!isOpponent} // Mute local stream to avoid echo
+            webkit-playsinline="true"
+            muted={!isOpponent}
             className="w-full h-full object-cover"
             style={{ objectPosition: 'center' }}
           />
