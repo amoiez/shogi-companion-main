@@ -76,9 +76,11 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
       }}
     >
       {/* AI Assistant Avatar - Anchored to bottom with cropped lower portion */}
+      {/* Avatar container is position:relative to anchor the speech bubble */}
       <div 
-        className="relative flex-shrink-0"
+        className="flex-shrink-0"
         style={{
+          position: 'relative', // CRITICAL: Anchor point for the speech bubble
           // Larger responsive sizing for iPad Pro
           width: `clamp(${ASSISTANT_SIZE.min}px, ${ASSISTANT_SIZE.vw}vw, ${ASSISTANT_SIZE.max}px)`,
           height: `clamp(${ASSISTANT_SIZE.min}px, ${ASSISTANT_SIZE.vw}vw, ${ASSISTANT_SIZE.max}px)`,
@@ -97,25 +99,26 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
         </div>
         {/* Ambient glow effect */}
         <div className="absolute inset-0 rounded-full bg-amber-400/40 blur-2xl -z-10" />
-      </div>
-
-      {/* Speech Bubble - SINGLE-LINE HORIZONTAL with dynamic width expansion */}
-      {message && (
-        <div 
-          style={{
-            position: 'absolute',
-            left: '100%',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            marginLeft: `${BUBBLE_GAP}px`,
-            width: 'auto', // Dynamic: expands horizontally with single-line text
-            minWidth: `${BUBBLE_MIN_WIDTH}px`,
-            maxWidth: `${BUBBLE_MAX_WIDTH}px`,
-            // Fade in transition
-            opacity: isVisible ? 1 : 0,
-            transition: 'opacity 0.3s ease-out',
-          }}
-        >
+        
+        {/* Speech Bubble - ANCHORED TO AVATAR CONTAINER */}
+        {/* Position absolute relative to the avatar, not the outer container */}
+        {message && (
+          <div 
+            style={{
+              position: 'absolute',
+              left: '100%', // Starts from right edge of avatar
+              top: '45%', // Positioned near the AI's mouth area
+              transform: 'translateY(-50%)',
+              marginLeft: `${BUBBLE_GAP}px`,
+              width: 'auto', // Dynamic: expands horizontally with single-line text
+              minWidth: `${BUBBLE_MIN_WIDTH}px`,
+              maxWidth: `${BUBBLE_MAX_WIDTH}px`,
+              // Fade in transition
+              opacity: isVisible ? 1 : 0,
+              transition: 'opacity 0.3s ease-out',
+              zIndex: 10, // Ensure bubble is above other elements
+            }}
+          >
           {/* Bubble Container with Glassmorphism Effect - SINGLE-LINE */}
           <div 
             className="relative rounded-2xl"
@@ -178,6 +181,7 @@ const AIAssistant = ({ message, safeZones = [] }: AIAssistantProps) => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
