@@ -552,6 +552,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               playerRank="初段"
               isSelfVideo={false}
               isGoteHand={true}
+              isHostPlayer={false}
             />
           ) : (
             <PlayerPanel 
@@ -573,6 +574,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               playerRank="3級"
               isSelfVideo={false}
               isGoteHand={false}
+              isHostPlayer={true}
             />
           )}
         </div>
@@ -635,6 +637,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               playerRank="3級"
               isSelfVideo={true}
               isGoteHand={false}
+              isHostPlayer={true}
             />
           ) : (
             <PlayerPanel 
@@ -660,6 +663,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               playerRank="初段"
               isSelfVideo={true}
               isGoteHand={true}
+              isHostPlayer={false}
             />
           )}
         </div>

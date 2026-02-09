@@ -88,6 +88,21 @@ interface PlayerPanelProps {
   // ABSOLUTE and consistent regardless of who is viewing.
   // ============================================================
   isGoteHand?: boolean;
+  // ============================================================
+  // CRITICAL: PLAYER ROLE FLAG (ABSOLUTE, NOT RELATIVE)
+  // ============================================================
+  // This determines the piece COLOR ICON based on player ROLE:
+  // - isHostPlayer=true → HOST = BLACK (☗ Sente) - always
+  // - isHostPlayer=false → GUEST = WHITE (☖ Gote) - always
+  // 
+  // NEVER derive color from:
+  // - Panel position (left/right)
+  // - Layout flip (shouldFlipLayout)
+  // - isOpponent (viewer-relative)
+  // 
+  // Color follows ROLE, not position!
+  // ============================================================
+  isHostPlayer?: boolean;
 }
 
 interface HandPieceProps {
@@ -332,6 +347,7 @@ const PlayerPanel = ({
   playerRank = '',
   isSelfVideo = false, // CRITICAL: Controls mirroring - true = local camera (mirror), false = remote (no mirror)
   isGoteHand = false,  // CRITICAL: Piece ownership for rotation (true=Gote pieces, false=Sente pieces)
+  isHostPlayer = true, // CRITICAL: Player role for color (true=Host=BLACK, false=Guest=WHITE)
 }: PlayerPanelProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -584,11 +600,13 @@ const PlayerPanel = ({
         </div>
         
         {/* Player Identity - Name and Rank with Sente/Gote icon */}
+        {/* CRITICAL: isSente derived from isHostPlayer (ROLE), NOT isOpponent (POSITION) */}
+        {/* HOST = BLACK (Sente) always, GUEST = WHITE (Gote) always */}
         {playerName && (
           <PlayerIdentity 
             name={playerName} 
             rank={playerRank} 
-            isSente={!isOpponent} 
+            isSente={isHostPlayer} 
           />
         )}
         
