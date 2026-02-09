@@ -28,24 +28,25 @@ const HAND_PIECE_IMAGE_MAP: Record<string, { sente: string; gote: string }> = {
 };
 
 // Normalize captured King character based on which player captured it
-// Sente's hand (isOpponent=false) displays captured King as '玉' (captured Gote's King)
-// Gote's hand (isOpponent=true) displays captured King as '王' (captured Sente's King)
-const normalizeKingPiece = (piece: string, isOpponent: boolean): string => {
+// Sente's hand (isGoteHand=false) displays captured King as '玉' (captured Gote's King)
+// Gote's hand (isGoteHand=true) displays captured King as '王' (captured Sente's King)
+const normalizeKingPiece = (piece: string, isGoteHand: boolean): string => {
   // If piece is any King variant, normalize it
   if (piece === '王' || piece === '玉') {
-    return isOpponent ? '王' : '玉'; // Gote's hand → '王', Sente's hand → '玉'
+    return isGoteHand ? '王' : '玉'; // Gote's hand → '王', Sente's hand → '玉'
   }
   return piece; // All other pieces remain unchanged
 };
 
 // Get hand piece image path
-const getHandPieceImagePath = (piece: string, isOpponent: boolean): string | null => {
+// CRITICAL: Uses isGoteHand to select correct piece image based on OWNERSHIP
+const getHandPieceImagePath = (piece: string, isGoteHand: boolean): string | null => {
   // Normalize King character based on capturing player
-  const normalizedPiece = normalizeKingPiece(piece, isOpponent);
+  const normalizedPiece = normalizeKingPiece(piece, isGoteHand);
   const mapping = HAND_PIECE_IMAGE_MAP[normalizedPiece];
   if (!mapping) return null;
-  // isOpponent=true means Gote piece, isOpponent=false means Sente piece
-  const filename = isOpponent ? mapping.gote : mapping.sente;
+  // isGoteHand=true means Gote piece, isGoteHand=false means Sente piece
+  const filename = isGoteHand ? mapping.gote : mapping.sente;
   return `/pieces/${filename}`;
 };
 
@@ -75,6 +76,18 @@ interface PlayerPanelProps {
   // CRITICAL: Separate flag for video mirroring (true = mirror local camera)
   // This is independent of isOpponent which controls hand/layout
   isSelfVideo?: boolean;
+  // ============================================================
+  // CRITICAL: PIECE OWNERSHIP FLAG (ABSOLUTE, NOT RELATIVE)
+  // ============================================================
+  // This determines piece ORIENTATION based on actual ownership:
+  // - isGoteHand=true → Gote's hand (pieces face UP, rotate 180°)
+  // - isGoteHand=false → Sente's hand (pieces face DOWN, no rotation)
+  // 
+  // NEVER use isOpponent for piece rotation! isOpponent changes
+  // based on viewer perspective, but piece orientation must be
+  // ABSOLUTE and consistent regardless of who is viewing.
+  // ============================================================
+  isGoteHand?: boolean;
 }
 
 interface HandPieceProps {
@@ -88,15 +101,45 @@ interface HandPieceProps {
   isSelected?: boolean;
   onPieceClick?: () => void;
   count?: number; // For grouped display
+  // ============================================================
+  // CRITICAL: PIECE OWNERSHIP FLAG (ABSOLUTE, NOT RELATIVE)
+  // ============================================================
+  // Determines piece ORIENTATION based on actual ownership:
+  // - isGoteHand=true → pieces face UP (rotate 180°)
+  // - isGoteHand=false → pieces face DOWN (no rotation)
+  // This is INDEPENDENT of isOpponent (which is viewer-relative).
+  // ============================================================
+  isGoteHand?: boolean;
 }
 
-const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd, canDrag = true, isSelected = false, onPieceClick, count }: HandPieceProps) => {
+const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd, canDrag = true, isSelected = false, onPieceClick, count, isGoteHand = false }: HandPieceProps) => {
   const isDragging = dragSource?.type === 'hand' && 
     dragSource?.handIndex === index && 
     dragSource?.isOpponent === isOpponent;
 
+  // ============================================================
+  // PIECE ROTATION - ABSOLUTE OWNERSHIP-BASED (SHOGI RULES)
+  // ============================================================
+  // TEXT FALLBACK ONLY - PNGs are pre-oriented and don't need rotation.
+  // 
+  // Piece orientation is determined ONLY by piece ownership:
+  // - Gote pieces (isGoteHand=true) → face UP toward Sente → no rotation (0°)
+  // - Sente pieces (isGoteHand=false) → face DOWN toward Gote → rotate 180°
+  // 
+  // This matches the board piece text fallback logic in ShogiBoard.tsx:
+  //   const textRotation = isOpponent ? 0 : 180;
+  // 
+  // This is ABSOLUTE and NEVER changes based on:
+  // - Viewer role (host/guest)
+  // - Device type (PC/iPad)
+  // - Layout flip state
+  // - Camera orientation
+  // ============================================================
+  const pieceRotation = isGoteHand ? 0 : 180;
+
   // Normalize King character for display (Sente's hand → '王', Gote's hand → '玉')
-  const displayPiece = normalizeKingPiece(piece, isOpponent);
+  // Use isGoteHand for ownership-based normalization
+  const displayPiece = normalizeKingPiece(piece, isGoteHand);
 
   // Handle pointer down for piece selection (replaces drag start)
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -115,8 +158,8 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
     });
   };
 
-  // Get the piece image path
-  const imagePath = getHandPieceImagePath(piece, isOpponent);
+  // Get the piece image path - use isGoteHand for correct piece selection
+  const imagePath = getHandPieceImagePath(piece, isGoteHand);
 
   return (
     <div
@@ -137,6 +180,14 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
       onClick={onPieceClick}
     >
       {imagePath ? (
+        // ============================================================
+        // PNG RENDERING - NO CSS ROTATION (PRE-ORIENTED IMAGES)
+        // ============================================================
+        // PNG images are already oriented correctly based on ownership:
+        // - sente_*.png → faces DOWN (toward Gote)
+        // - gote_*.png → faces UP (toward Sente)
+        // DO NOT apply CSS rotation to PNG images!
+        // ============================================================
         <img 
           src={imagePath} 
           alt={displayPiece}
@@ -145,17 +196,16 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
             width: '88%',
             height: '88%',
             objectFit: 'contain',
-            transform: isOpponent ? 'rotate(180deg)' : 'rotate(0deg)',
-            transformOrigin: 'center center',
+            // NO rotation - PNG is pre-oriented based on ownership
           }}
           draggable={false}
         />
       ) : (
-        /* Fallback to text rendering with normalized King character */
+        /* Fallback to text rendering - NEEDS rotation since text is not pre-oriented */
         <div 
           className="relative w-full h-full"
           style={{
-            transform: isOpponent ? 'rotate(180deg)' : 'rotate(0deg)',
+            transform: `rotate(${pieceRotation}deg)`,
             transformOrigin: 'center center',
           }}
         >
@@ -281,6 +331,7 @@ const PlayerPanel = ({
   playerName = '',
   playerRank = '',
   isSelfVideo = false, // CRITICAL: Controls mirroring - true = local camera (mirror), false = remote (no mirror)
+  isGoteHand = false,  // CRITICAL: Piece ownership for rotation (true=Gote pieces, false=Sente pieces)
 }: PlayerPanelProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -512,7 +563,7 @@ const PlayerPanel = ({
           ) : (
             <img 
               src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
-              alt={isOpponent ? '対戦相手' : '中野さん'}
+              alt={isOpponent ? '対戦相手' : 'ナカノさん'}
               style={{ 
                 position: 'absolute',
                 top: 0,
@@ -583,6 +634,7 @@ const PlayerPanel = ({
                       isSelected={isThisSelected}
                       onPieceClick={() => handleHandPieceClick(group.piece, group.index)}
                       count={group.count}
+                      isGoteHand={isGoteHand}
                     />
                   </div>
                 );
@@ -638,6 +690,7 @@ const PlayerPanel = ({
                     isSelected={isThisSelected}
                     onPieceClick={() => handleHandPieceClick(group.piece, group.index)}
                     count={group.count}
+                    isGoteHand={isGoteHand}
                   />
                 </div>
               );
@@ -901,6 +954,7 @@ const PlayerPanel = ({
                     isSelected={isThisSelected}
                     onPieceClick={() => handleHandPieceClick(group.piece, group.index)}
                     count={group.count}
+                    isGoteHand={isGoteHand}
                   />
                 </div>
               );

@@ -660,7 +660,7 @@
     /* 9. COMPACT AVATAR - Fill frame */
     .player-cell video,
     .player-cell img[alt*="対戦相手"],
-    .player-cell img[alt*="中野さん"] {
+    .player-cell img[alt*="ナカノさん"] {
       width: clamp(140px, 18vw, 180px) !important;
       max-height: clamp(140px, 22vh, 180px) !important;
       object-fit: cover !important;
@@ -838,7 +838,7 @@
     
     .player-cell video,
     .player-cell img[alt*="対戦相手"],
-    .player-cell img[alt*="中野さん"] {
+    .player-cell img[alt*="ナカノさん"] {
       width: clamp(160px, 20vw, 200px) !important;
       max-height: clamp(160px, 25vh, 200px) !important;
       object-fit: cover !important;
@@ -947,7 +947,7 @@
     /* Adjust avatar size for smaller tablets - fill frame */
     .player-cell video,
     .player-cell img[alt*="対戦相手"],
-    .player-cell img[alt*="中野さん"] {
+    .player-cell img[alt*="ナカノさん"] {
       width: clamp(160px, 20vw, 240px) !important;
       max-height: clamp(160px, 24vh, 240px) !important;
       object-fit: cover !important;
@@ -1007,7 +1007,7 @@
     /* Compact avatar - fill frame */
     .player-cell video,
     .player-cell img[alt*="対戦相手"],
-    .player-cell img[alt*="中野さん"] {
+    .player-cell img[alt*="ナカノさん"] {
       width: clamp(150px, 19vw, 210px) !important;
       max-height: clamp(150px, 23vh, 210px) !important;
       object-fit: cover !important;
@@ -1147,7 +1147,7 @@
     /* PC: Avatar image scales naturally with container */
     .player-cell video,
     .player-cell img[alt*="対戦相手"],
-    .player-cell img[alt*="中野さん"] {
+    .player-cell img[alt*="ナカノさん"] {
       width: 100% !important;
       max-height: 100% !important;
     }
@@ -1211,7 +1211,7 @@
   /* Compact video/avatar sizing - fill circular frame with no white space */
   .player-cell video,
   .player-cell img[alt*="対戦相手"],
-  .player-cell img[alt*="中野さん"] {
+  .player-cell img[alt*="ナカノさん"] {
     width: clamp(140px, 20vw, 280px) !important;
     max-height: clamp(140px, 28vh, 280px) !important;
     aspect-ratio: 1 / 1;
