@@ -578,8 +578,8 @@ const PlayerPanel = ({
             </>
           ) : (
             <img 
-              src={isOpponent ? '/images/elderly-man.png' : '/images/nakano-san.png'}
-              alt={isOpponent ? '対戦相手' : 'ナカノさん'}
+              src={isHostPlayer ? '/images/nakano-san.png' : '/images/elderly-man.png'}
+              alt={isHostPlayer ? 'ナカノさん' : '対戦相手'}
               style={{ 
                 position: 'absolute',
                 top: 0,
@@ -807,8 +807,8 @@ const PlayerPanel = ({
             />
           ) : (
             <img 
-              src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
-              alt={isOpponent ? '対戦相手' : 'あなた'}
+              src={isHostPlayer ? '/images/nakano-san.png' : '/images/elderly-man.png'}
+              alt={isHostPlayer ? 'ナカノさん' : '対戦相手'}
               style={{ 
                 position: 'absolute',
                 inset: 0,
@@ -913,8 +913,8 @@ const PlayerPanel = ({
           />
         ) : (
           <img 
-            src={isOpponent ? '/opponent-placeholder.png' : '/self-placeholder.png'}
-            alt={isOpponent ? '対戦相手' : 'あなた'}
+            src={isHostPlayer ? '/images/nakano-san.png' : '/images/elderly-man.png'}
+            alt={isHostPlayer ? 'ナカノさん' : '対戦相手'}
             style={{ 
               position: 'absolute',
               inset: 0,
