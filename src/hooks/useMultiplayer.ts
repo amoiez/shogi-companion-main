@@ -164,8 +164,8 @@ const fetchTurnCredentials = async (): Promise<RTCIceServer[]> => {
     { urls: 'stun:stun4.l.google.com:19302' },
   ];
 
-  // Use production Lambda URL if set, otherwise use local dev proxy
-  const TURN_API_URL = import.meta.env.VITE_TURN_API_URL || '/api/turn-credentials';
+  // Use production Lambda URL for TURN credentials
+  const TURN_API_URL = import.meta.env.VITE_TURN_API_URL || 'https://jsrpfoj7xv4nhr4sva4tujslki0hgugg.lambda-url.eu-north-1.on.aws/';
 
   try {
     console.log('[ICE] Fetching ephemeral TURN credentials from backend...');
@@ -202,9 +202,9 @@ const fetchTurnCredentials = async (): Promise<RTCIceServer[]> => {
     console.error('[ICE] Endpoint:', TURN_API_URL);
     console.error('[ICE] Falling back to STUN-only (same-network only!)');
     
-    if (TURN_API_URL === '/api/turn-credentials') {
-      console.error('[ICE] Ensure the TURN token server is running:');
-      console.error('[ICE]   npm run turn-server');
+    if (TURN_API_URL === 'https://jsrpfoj7xv4nhr4sva4tujslki0hgugg.lambda-url.eu-north-1.on.aws/') {
+      console.error('[ICE] Check that the Lambda function URL is reachable');
+      console.error('[ICE]   URL:', TURN_API_URL);
     } else {
       console.error('[ICE] Check that VITE_TURN_API_URL is correct');
       console.error('[ICE] Production URL:', TURN_API_URL);
