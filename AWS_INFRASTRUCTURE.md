@@ -49,16 +49,55 @@ The application is a **static single-page application (SPA)** built with React a
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Optional Services (if backend is added in future)
+### Backend API Architecture (TURN Token Server)
 
-- **AWS Lambda**: For serverless API endpoints
-- **Amazon API Gateway**: For REST API management
-- **Amazon DynamoDB**: For game state persistence
-- **Amazon ElastiCache**: For multiplayer session management
+The application requires a backend to generate ephemeral TURN credentials. The recommended architecture uses serverless AWS Lambda + API Gateway:
 
-## Current Configuration Details
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      CloudFront                              │
+│                                                              │
+│  ┌────────────────────┐       ┌──────────────────────┐     │
+│  │  /* → S3 Origin    │       │  /api/* → API Gateway│     │
+│  │  (Static SPA)      │       │  (Lambda Backend)    │     │
+│  └────────────────────┘       └──────────────────────┘     │
+└──────────────────────────────────────────────────────────────┘
+           │                                │
+           ▼                                ▼
+    ┌────────────┐                  ┌──────────────┐
+    │ S3 Bucket  │                  │ API Gateway  │
+    │ (Frontend) │                  │ REST API     │
+    └────────────┘                  └──────┬───────┘
+                                           │
+                                           ▼
+                                   ┌───────────────┐
+                                   │ AWS Lambda    │
+                                   │ (Node.js)     │
+                                   │               │
+                                   │ Env Vars:     │
+                                   │ - TWILIO_SID  │
+                                   │ - TWILIO_AUTH │
+                                   └───────────────┘
+```
 
-### 1. S3 Bucket Configuration
+**Key Points**:
+- CloudFront routes `/api/*` to API Gateway (cache disabled for this path)
+- Lambda function contains `server/turn-server.js` logic
+- Twilio credentials stored in Lambda environment variables (encrypted at rest)
+- Same domain for frontend + backend eliminates CORS issues
+
+## Deployment Guide
+
+### 1. Frontend Deployment (S3 + CloudFront)
+
+#### Build the Application
+```bash
+npm run build
+```
+
+This creates a `dist/` folder with static files.
+
+#### Upload to S3
 
 **Bucket Name**: `nakano-video-shogi-companion` (example - use your actual bucket name)
 
@@ -429,6 +468,264 @@ Use TypeScript to define infrastructure programmatically.
 - Set appropriate cache TTLs to reduce origin requests
 - Enable compression in CloudFront
 - Monitor and delete old S3 versions if not needed
+
+## Backend Deployment (TURN Token Server)
+
+The TURN token server (`server/turn-server.js`) must be deployed to AWS to enable cross-network WebRTC connectivity. **Recommended approach: AWS Lambda + API Gateway (serverless)**.
+
+### Option A: AWS Lambda + API Gateway (Recommended)
+
+This is the most cost-effective and scalable approach for production.
+
+#### Step 1: Prepare Lambda Deployment Package
+
+```bash
+# Create deployment directory
+mkdir -p lambda-deploy
+cd lambda-deploy
+
+# Copy server code
+cp ../server/turn-server.js handler.js
+
+# Modify for Lambda (update the last few lines)
+# Replace app.listen(...) with: module.exports.handler = async (event) => { ... }
+```
+
+Create `lambda-deploy/handler.js` (Lambda-compatible version):
+```javascript
+import 'dotenv/config';
+import twilio from 'twilio';
+
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TURN_TOKEN_TTL = parseInt(process.env.TURN_TOKEN_TTL || '3600', 10);
+
+if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+  throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set');
+}
+
+const twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
+export const handler = async (event) => {
+  // Health check
+  if (event.rawPath === '/api/health') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+      body: JSON.stringify({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString() 
+      }),
+    };
+  }
+
+  // TURN credentials
+  if (event.rawPath === '/api/turn-credentials' && event.requestContext.http.method === 'GET') {
+    try {
+      console.log('[LAMBDA] Generating ephemeral TURN token, TTL:', TURN_TOKEN_TTL);
+
+      const token = await twilioClient.tokens.create({ ttl: TURN_TOKEN_TTL });
+
+      const iceServers = token.iceServers.map((server) => {
+        const entry = {};
+        entry.urls = server.urls || server.url;
+        if (server.username) entry.username = server.username;
+        if (server.credential) entry.credential = server.credential;
+        return entry;
+      });
+
+      console.log('[LAMBDA] Token generated, iceServers:', iceServers.length);
+
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+        body: JSON.stringify({
+          iceServers,
+          ttl: TURN_TOKEN_TTL,
+          generatedAt: new Date().toISOString(),
+        }),
+      };
+    } catch (error) {
+      console.error('[LAMBDA] Failed to generate TURN token:', error.message);
+
+      return {
+        statusCode: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+        body: JSON.stringify({
+          error: 'Failed to generate TURN credentials',
+          message: error.message,
+        }),
+      };
+    }
+  }
+
+  // 404 for unknown paths
+  return {
+    statusCode: 404,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ error: 'Not Found' }),
+  };
+};
+```
+
+```bash
+# Install dependencies for Lambda
+npm install --omit=dev
+
+# Create deployment zip
+zip -r ../turn-lambda.zip .
+cd ..
+```
+
+#### Step 2: Create Lambda Function
+
+```bash
+# Create IAM role for Lambda
+aws iam create-role \
+  --role-name shogi-turn-lambda-role \
+  --assume-role-policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [{
+      "Effect": "Allow",
+      "Principal": { "Service": "lambda.amazonaws.com" },
+      "Action": "sts:AssumeRole"
+    }]
+  }'
+
+# Attach basic execution policy
+aws iam attach-role-policy \
+  --role-name shogi-turn-lambda-role \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+# Create Lambda function
+aws lambda create-function \
+  --function-name shogi-turn-token-server \
+  --runtime nodejs20.x \
+  --role arn:aws:iam::YOUR_ACCOUNT_ID:role/shogi-turn-lambda-role \
+  --handler handler.handler \
+  --zip-file fileb://turn-lambda.zip \
+  --timeout 30 \
+  --memory-size 256 \
+  --environment Variables="{
+    TWILIO_ACCOUNT_SID=YOUR_TWILIO_SID,
+    TWILIO_AUTH_TOKEN=YOUR_TWILIO_TOKEN,
+    TURN_TOKEN_TTL=3600
+  }"
+```
+
+#### Step 3: Create API Gateway
+
+```bash
+# Create HTTP API (v2)
+aws apigatewayv2 create-api \
+  --name shogi-turn-api \
+  --protocol-type HTTP \
+  --target arn:aws:lambda:REGION:ACCOUNT_ID:function:shogi-turn-token-server
+
+# Note the ApiEndpoint from output (e.g., https://abc123.execute-api.us-east-1.amazonaws.com)
+export API_ID="<returned-api-id>"
+export API_ENDPOINT="<returned-endpoint>"
+
+# Grant API Gateway permission to invoke Lambda
+aws lambda add-permission \
+  --function-name shogi-turn-token-server \
+  --statement-id apigateway-invoke \
+  --action lambda:InvokeFunction \
+  --principal apigatewayv2.amazonaws.com \
+  --source-arn "arn:aws:execute-api:REGION:ACCOUNT_ID:${API_ID}/*"
+```
+
+#### Step 4: Update CloudFront Distribution
+
+Add a second origin (API Gateway) and behavior:
+
+**Via AWS Console**:
+1. Go to CloudFront → Distributions → Your Distribution → Edit
+2. **Origins** tab → Create Origin:
+   - **Origin Domain**: `abc123.execute-api.us-east-1.amazonaws.com`
+   - **Protocol**: HTTPS only
+   - **Origin Path**: (leave empty)
+3. **Behaviors** tab → Create Behavior:
+   - **Path Pattern**: `/api/*`
+   - **Origin**: Select the API Gateway origin
+   - **Viewer Protocol Policy**: Redirect HTTP to HTTPS
+   - **Cache Policy**: Create custom policy or use `Managed-CachingDisabled`
+   - **Origin Request Policy**: Create custom or use `Managed-AllViewer`
+   - **Response Headers Policy**: (optional) `Managed-CORS-with-preflight`
+
+**Via AWS CLI**:
+```bash
+# Get current distribution config
+aws cloudfront get-distribution-config \
+  --id YOUR_DISTRIBUTION_ID > cf-config.json
+
+# Edit cf-config.json to add the API Gateway origin and /api/* behavior
+# Then update:
+aws cloudfront update-distribution \
+  --id YOUR_DISTRIBUTION_ID \
+  --if-match <ETag-from-get-command> \
+  --distribution-config file://cf-config-updated.json
+```
+
+#### Final Step: Test
+
+```bash
+# Test via CloudFront (after propagation, ~15 minutes)
+curl https://your-domain.com/api/health
+curl https://your-domain.com/api/turn-credentials
+```
+
+### Option B: AWS Elastic Beanstalk (Alternative)
+
+If you prefer a traditional Node.js server approach:
+
+1. Install EB CLI: `pip install awsebcli`
+2. Initialize: `eb init -p node.js shogi-turn-server`
+3. Create environment: `eb create shogi-turn-prod`
+4. Configure environment variables in EB Console
+5. Deploy: `eb deploy`
+6. Update CloudFront to use EB URL as `/api/*` origin
+
+### Option C: AWS ECS Fargate (Container-based)
+
+Deploy the Express server as a Docker container via Fargate. See AWS ECS documentation for details.
+
+### Environment Variables in Lambda
+
+**Critical**: Set these in Lambda environment variables (encrypted at rest by AWS):
+- `TWILIO_ACCOUNT_SID` - Your Twilio Account SID
+- `TWILIO_AUTH_TOKEN` - Your Twilio Auth Token
+- `TURN_TOKEN_TTL` - Token lifetime (default: 3600)
+
+**Security Note**: Lambda encrypts environment variables at rest. For additional security, use AWS Secrets Manager:
+
+```bash
+# Store in Secrets Manager
+aws secretsmanager create-secret \
+  --name shogi/twilio-credentials \
+  --secret-string '{"sid":"YOUR_SID","token":"YOUR_TOKEN"}'
+
+# Grant Lambda permission to read secret (update IAM role)
+# Then fetch in Lambda code using AWS SDK
+```
+
+### Cost Estimate (Lambda + API Gateway)
+
+- **Lambda**: Free tier includes 1M requests/month + 400,000 GB-seconds
+  - Beyond free tier: $0.20 per 1M requests
+- **API Gateway (HTTP API)**: $1.00 per 1M requests (first 300M)
+- **CloudFront**: Data transfer charges apply
+
+For a low-to-moderate traffic app: **$0-5/month** for backend (within free tier)
 
 ## Monitoring and Alerts
 

@@ -1,0 +1,8 @@
+# Lambda deployment artifacts
+node_modules/
+turn-lambda.zip
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

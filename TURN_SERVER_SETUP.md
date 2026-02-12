@@ -1,159 +1,157 @@
 # TURN Server Setup Guide
 
 ## Overview
+
 For reliable WebRTC connections between PC and iPad across different networks, a TURN server is **REQUIRED**. STUN alone is insufficient for NAT traversal in many network configurations.
 
-## Quick Setup with Twilio (Recommended)
+### Architecture: Ephemeral Token Model
+
+```
+Browser (frontend)                    Backend (server/turn-server.js)
+───────────────────                   ─────────────────────────────────
+                                      Holds master Twilio credentials
+  GET /api/turn-credentials ─────────►  ↓
+                                      twilioClient.tokens.create()
+  ◄─ { iceServers, ttl } ────────────  ↓
+                                      Returns ephemeral ICE servers
+  Uses iceServers in PeerJS config
+  (credentials expire after TTL)
+```
+
+**Security**: Master Twilio Account SID and Auth Token are **never** sent to the browser. The frontend only receives short-lived (1-hour) tokens.
+
+## Quick Start
 
 ### 1. Create a Twilio Account
 - Sign up at https://www.twilio.com/
 - Navigate to your Twilio Console
-- Go to **Network Traversal** section
+- Copy your **Account SID** and **Auth Token**
 
-### 2. Get TURN Credentials
-- Copy your TURN credentials:
-  - Account SID (this becomes your `username`)
-  - Auth Token (this becomes your `credential`)
+### 2. Configure Environment
+Copy `.env.example` to `.env` and fill in your Twilio credentials:
 
-### 3. Update Configuration
-Edit `src/hooks/useMultiplayer.ts` and replace placeholder values:
-
-```typescript
-const PEER_CONFIG = {
-  debug: 2,
-  config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      {
-        urls: 'turn:global.turn.twilio.com:3478?transport=udp',
-        username: 'YOUR_TWILIO_ACCOUNT_SID',      // Replace this
-        credential: 'YOUR_TWILIO_AUTH_TOKEN'      // Replace this
-      },
-      {
-        urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
-        username: 'YOUR_TWILIO_ACCOUNT_SID',      // Replace this
-        credential: 'YOUR_TWILIO_AUTH_TOKEN'      // Replace this
-      },
-      {
-        urls: 'turn:global.turn.twilio.com:443?transport=tcp',
-        username: 'YOUR_TWILIO_ACCOUNT_SID',      // Replace this
-        credential: 'YOUR_TWILIO_AUTH_TOKEN'      // Replace this
-      },
-    ],
-  },
-};
-```
-
-### 4. Test the Connection
-- Host a game on PC
-- Join from iPad on a different network
-- Verify both data and video streams connect
-
-## Alternative: Self-Hosted Coturn on AWS
-
-### 1. Launch EC2 Instance
 ```bash
-# Ubuntu 22.04 LTS, t3.medium or larger
-# Open ports: 3478 (UDP/TCP), 49152-65535 (UDP)
+cp .env.example .env
 ```
 
-### 2. Install Coturn
+Edit `.env`:
+```env
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TURN_TOKEN_TTL=3600
+PORT=3001
+```
+
+### 3. Install Dependencies
 ```bash
-sudo apt update
-sudo apt install coturn
+npm install
 ```
 
-### 3. Configure Coturn
-Edit `/etc/turnserver.conf`:
-```
-listening-port=3478
-fingerprint
-lt-cred-mech
-use-auth-secret
-static-auth-secret=YOUR_SECRET_KEY
-realm=yourdomain.com
-total-quota=100
-bps-capacity=0
-stale-nonce
-no-multicast-peers
-```
-
-### 4. Start Coturn
+### 4. Start Both Servers
 ```bash
-sudo systemctl enable coturn
-sudo systemctl start coturn
+# Option A: Run both simultaneously (recommended)
+npm run dev:full
+
+# Option B: Run separately in two terminals
+npm run turn-server    # Terminal 1: Backend on port 3001
+npm run dev            # Terminal 2: Vite on port 8080
 ```
 
-### 5. Update App Configuration
-```typescript
+### 5. Verify Token Generation
+Open http://localhost:3001/api/turn-credentials in your browser.
+You should see a JSON response with ephemeral ICE servers:
+```json
 {
-  urls: 'turn:your-ec2-ip:3478',
-  username: 'username',
-  credential: 'YOUR_SECRET_KEY'
+  "iceServers": [
+    { "urls": "stun:global.stun.twilio.com:3478" },
+    { "urls": "turn:global.turn.twilio.com:3478?transport=udp", "username": "...", "credential": "..." },
+    { "urls": "turn:global.turn.twilio.com:3478?transport=tcp", "username": "...", "credential": "..." },
+    { "urls": "turn:global.turn.twilio.com:443?transport=tcp", "username": "...", "credential": "..." }
+  ],
+  "ttl": 3600
 }
 ```
 
+### 6. Test the Connection
+- Host a game on PC
+- Join from iPad on a **different** network (e.g., mobile tethering)
+- Verify both data and video streams connect
+
+## How It Works
+
+1. When a player clicks "Host Game" or "Join Game", the frontend calls `GET /api/turn-credentials`
+2. The backend uses `twilio.tokens.create()` to generate temporary ICE credentials
+3. Twilio returns STUN + TURN server URLs with short-lived username/password
+4. The frontend passes these ICE servers to PeerJS's `RTCPeerConnection` config
+5. WebRTC uses TURN relay when direct peer-to-peer fails (different NATs, firewalls)
+6. Credentials expire after TTL (default 1 hour); each new game fetches fresh ones
+
 ## Testing TURN Server
 
-### Browser Console Test
-```javascript
-const pc = new RTCPeerConnection({
-  iceServers: [
-    {
-      urls: 'turn:global.turn.twilio.com:3478',
-      username: 'YOUR_USERNAME',
-      credential: 'YOUR_CREDENTIAL'
-    }
-  ]
-});
+### Browser Console Verification
+After starting a game, open the browser console and look for:
 
-pc.createDataChannel('test');
-pc.createOffer().then(offer => pc.setLocalDescription(offer));
-
-pc.onicecandidate = (event) => {
-  if (event.candidate) {
-    console.log('ICE Candidate:', event.candidate.candidate);
-    // Look for "typ relay" in the output - this confirms TURN is working
-  }
-};
+```
+[ICE] Ephemeral TURN credentials received
+[ICE]   Servers: 4
+[ICE]   TTL: 3600 seconds
 ```
 
-### Expected Output
-You should see candidates with `typ relay` in addition to `typ srflx` and `typ host`:
+When connecting across different networks:
 ```
-candidate:... typ relay raddr ... rport ...
+[ICE][HOST-MEDIA] Candidate: type=relay protocol=udp ...
+[ICE][HOST-MEDIA] ✅ RELAY candidate generated — TURN server is working
 ```
+
+At connection establishment:
+```
+[ICE][HOST-MEDIA] ✅ Connection is RELAYED through TURN server
+```
+
+If you see `⚠️ NO RELAY CANDIDATES`, the TURN server may be misconfigured.
 
 ## Troubleshooting
 
+### "Failed to fetch TURN credentials"
+- Ensure the backend is running: `npm run turn-server`
+- Check http://localhost:3001/api/health returns `{ "status": "ok" }`
+- Verify `.env` has correct `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`
+
 ### Connection Fails on iPad
-- Ensure TURN credentials are correct
+- Ensure TURN credentials are correct (check backend logs)
 - Check iOS Safari allows camera/microphone access
 - Verify network allows outbound connections on ports 3478 and 443
 
 ### High Latency
-- Use regional TURN servers close to users
-- Consider upgrading EC2 instance type
+- Twilio automatically uses the nearest global TURN server
 - Check network bandwidth
 
 ### Cost Optimization
-- Twilio free tier: 750 minutes/month
-- Self-hosted: ~$20-40/month for t3.medium EC2
-- Consider usage-based scaling
+- Twilio free tier includes TURN minutes
+- Ephemeral tokens ensure unused credentials expire automatically
+
+## Production Deployment
+
+In production (e.g., AWS), the backend should be deployed behind the same domain as the frontend:
+
+```
+CloudFront → /api/*    → ALB/Lambda (turn-server.js)
+CloudFront → /*        → S3 (static SPA files)
+```
+
+This eliminates CORS issues and keeps the architecture simple. The `.env` with Twilio credentials lives only on the server, never in the deployed frontend bundle.
 
 ## Security Notes
 
-- **NEVER commit TURN credentials** to version control
-- Use environment variables for production:
-  ```typescript
-  credential: import.meta.env.VITE_TURN_CREDENTIAL
-  ```
-- Rotate credentials regularly
-- Monitor usage for unexpected spikes
+- **NEVER commit `.env` files** with real credentials to version control
+- `.env.example` is safe to commit (contains placeholder values only)
+- Ephemeral tokens expire automatically (default: 1 hour)
+- Each game session gets unique credentials
+- Rotate Twilio Auth Token periodically
+- Monitor Twilio console for unexpected usage spikes
 
 ## References
 
-- [Twilio TURN Documentation](https://www.twilio.com/docs/stun-turn)
-- [Coturn GitHub](https://github.com/coturn/coturn)
+- [Twilio Network Traversal Service](https://www.twilio.com/docs/stun-turn)
+- [Twilio Tokens API (Node.js)](https://www.twilio.com/docs/iam/api/token-resource)
 - [WebRTC ICE Overview](https://webrtcglossary.com/ice/)

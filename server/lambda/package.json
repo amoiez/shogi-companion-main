@@ -1,0 +1,17 @@
+{
+  "name": "shogi-turn-lambda",
+  "version": "1.0.0",
+  "description": "AWS Lambda function for generating ephemeral Twilio TURN credentials",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "package": "npm install --omit=dev && zip -r ../turn-lambda.zip .",
+    "test": "node test-local.mjs"
+  },
+  "dependencies": {
+    "twilio": "^5.3.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
