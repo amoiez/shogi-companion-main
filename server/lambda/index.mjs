@@ -41,9 +41,13 @@ export const handler = async (event) => {
   console.log(`[LAMBDA] ${method} ${path}`);
 
   // CORS headers
+  // NOTE: Do NOT set Access-Control-Allow-Origin here — it is already
+  // handled by the Lambda Function URL CORS configuration. Adding it
+  // again produces duplicate header values which browsers reject.
+  const origin = event.headers?.origin || '*';
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
