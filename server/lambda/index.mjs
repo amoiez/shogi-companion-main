@@ -45,21 +45,11 @@ export const handler = async (event) => {
   // handled by the Lambda Function URL CORS configuration. Adding it
   // again produces duplicate header values which browsers reject.
   const origin = event.headers?.origin || '*';
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-
+const headers = {
+  'Content-Type': 'application/json',
+};
   // Handle preflight OPTIONS requests
-  if (method === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '',
-    };
-  }
+ 
 
   // Health check endpoint
   if (path === '/api/health' && method === 'GET') {
