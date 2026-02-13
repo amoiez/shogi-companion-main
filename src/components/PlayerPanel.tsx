@@ -352,9 +352,21 @@ const PlayerPanel = ({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // ============================================================
+  // ROBUST VIDEO DETECTION
+  // Only show video element if stream exists AND has video tracks
+  // ============================================================
+  const hasVideo = videoStream && videoStream.getVideoTracks().length > 0;
+
+  // ============================================================
   // DEBUG: Log props on every render to verify correct values
   // ============================================================
   console.log('[PlayerPanel RENDER] label:', label, 'isOpponent:', isOpponent, 'isSelfVideo:', isSelfVideo);
+  console.log('[PlayerPanel RENDER] videoStream:', videoStream ? 'EXISTS' : 'NULL');
+  console.log('[PlayerPanel RENDER] hasVideo:', hasVideo);
+  if (videoStream) {
+    console.log('[PlayerPanel RENDER] videoTracks:', videoStream.getVideoTracks().length);
+    console.log('[PlayerPanel RENDER] audioTracks:', videoStream.getAudioTracks().length);
+  }
 
   // Set up video stream with explicit play() call
   useEffect(() => {
@@ -547,7 +559,7 @@ const PlayerPanel = ({
             border: '4px solid rgba(180, 83, 9, 0.4)',
           }}
         >
-          {videoStream ? (
+          {hasVideo ? (
             <>
               {/* DEBUG: Log transform on each render */}
               {console.log('[PlayerPanel VIDEO] isSelfVideo:', isSelfVideo, '→ transform:', isSelfVideo ? 'scaleX(-1)' : 'none')}
@@ -785,7 +797,7 @@ const PlayerPanel = ({
             padding: 0,
           }}
         >
-          {videoStream ? (
+          {hasVideo ? (
             <video
               ref={videoRef}
               autoPlay
@@ -891,7 +903,7 @@ const PlayerPanel = ({
           padding: 0,
         }}
       >
-        {videoStream ? (
+        {hasVideo ? (
           <video
             ref={videoRef}
             autoPlay

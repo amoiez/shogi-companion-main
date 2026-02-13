@@ -667,20 +667,18 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
             console.log('[HOST] Call acknowledges ONCE - no duplicates');
             console.log('[HOST] ========================================');
             
+            console.log('[HOST] Calling with stream:', stream.id);
+            console.log('[HOST] Local stream video tracks:', stream.getVideoTracks().length);
+            console.log('[HOST] Local stream audio tracks:', stream.getAudioTracks().length);
+            
             const hostCall = peer.call(conn.peer, stream);
             if (hostCall) {
               mediaConnectionRef.current = hostCall;
               attachIceMonitoring(hostCall, 'HOST-MEDIA');
               
               hostCall.on('stream', (remoteMediaStream) => {
-                // CRITICAL: Only set remote stream if not already set
-                if (remoteStreamRef.current) {
-                  console.log('[HOST] ⚠️ Remote stream already exists - ignoring duplicate');
-                  return;
-                }
-                
                 console.log('[HOST] ========================================');
-                console.log('[HOST] ✅ REMOTE STREAM ATTACHED');
+                console.log('[HOST] ✅ REMOTE STREAM RECEIVED via PeerJS');
                 console.log('[HOST] Stream ID:', remoteMediaStream.id);
                 console.log('[HOST] Video tracks:', remoteMediaStream.getVideoTracks().length);
                 console.log('[HOST] Audio tracks:', remoteMediaStream.getAudioTracks().length);
@@ -701,12 +699,46 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
               
               hostCall.on('close', () => {
                 console.log('[HOST] Media call closed');
+                remoteStreamRef.current = null;
                 setRemoteStream(null);
               });
               
               hostCall.on('error', (err) => {
                 console.error('[HOST] ❌ Media call error:', err);
               });
+              
+              // ============================================================
+              // FALLBACK: Attach ontrack listener directly on RTCPeerConnection
+              // In case PeerJS's stream event doesn't fire (version-specific)
+              // ============================================================
+              const pc = (hostCall as unknown as { peerConnection: RTCPeerConnection }).peerConnection;
+              if (pc) {
+                console.log('[HOST] ✅ RTCPeerConnection available — attaching ontrack fallback');
+                const existingOntrack = pc.ontrack;
+                pc.ontrack = (event) => {
+                  if (existingOntrack) {
+                    existingOntrack.call(pc, event);
+                  }
+                  
+                  console.log('[HOST] ========================================');
+                  console.log('[HOST] 🔵 RTCPeerConnection.ontrack FIRED (fallback)');
+                  console.log('[HOST] Track kind:', event.track.kind);
+                  console.log('[HOST] Track enabled:', event.track.enabled);
+                  console.log('[HOST] Streams count:', event.streams.length);
+                  console.log('[HOST] ========================================');
+                  
+                  if (event.streams && event.streams[0]) {
+                    const fallbackStream = event.streams[0];
+                    if (!remoteStreamRef.current) {
+                      console.log('[HOST] ✅ Setting remote stream from ontrack fallback');
+                      remoteStreamRef.current = fallbackStream;
+                      setRemoteStream(fallbackStream);
+                    }
+                  }
+                };
+              } else {
+                console.warn('[HOST] ⚠️ RTCPeerConnection not available for ontrack fallback');
+              }
             } else {
               console.error('[HOST] ⚠️ Failed to create media call!');
             }
@@ -738,16 +770,10 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
         mediaConnectionRef.current = call;
         attachIceMonitoring(call, 'HOST-MEDIA-FALLBACK');
         
-        call.answer(stream);
-        
+        // CRITICAL FIX: Register ALL event handlers BEFORE answering
         call.on('stream', (remoteMediaStream) => {
-          if (remoteStreamRef.current) {
-            console.log('[HOST] ⚠️ Remote stream exists - ignoring');
-            return;
-          }
-          
           console.log('[HOST] ========================================');
-          console.log('[HOST] ✅ REMOTE STREAM ATTACHED (fallback path)');
+          console.log('[HOST] ✅ REMOTE STREAM RECEIVED (fallback path)');
           console.log('[HOST] Stream ID:', remoteMediaStream.id);
           console.log('[HOST] ========================================');
           
@@ -755,9 +781,19 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
           setRemoteStream(remoteMediaStream);
         });
         
+        call.on('close', () => {
+          console.log('[HOST] Fallback media call closed');
+          remoteStreamRef.current = null;
+          setRemoteStream(null);
+        });
+        
         call.on('error', (err) => {
           console.error('[HOST] ❌ Fallback call error:', err);
         });
+        
+        // NOW answer after handlers are registered
+        console.log('[HOST] Answering fallback call with stream:', stream.id);
+        call.answer(stream);
       }
     });
     
@@ -860,18 +896,16 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       mediaConnectionRef.current = call;
       attachIceMonitoring(call, 'GUEST-MEDIA');
       
-      console.log('[GUEST] Answering call with local stream');
-      call.answer(stream);
+      // ============================================================
+      // CRITICAL FIX: Register ALL event handlers BEFORE answering
+      // call.answer() internally calls setRemoteDescription() which
+      // can trigger ontrack synchronously in some browsers, causing
+      // the 'stream' event to fire before handlers are attached.
+      // ============================================================
       
       call.on('stream', (remoteMediaStream) => {
-        // CRITICAL: Only set remote stream if not already set
-        if (remoteStreamRef.current) {
-          console.log('[GUEST] ⚠️ Remote stream already exists - ignoring duplicate');
-          return;
-        }
-        
         console.log('[GUEST] ========================================');
-        console.log('[GUEST] ✅ REMOTE STREAM ATTACHED');
+        console.log('[GUEST] ✅ REMOTE STREAM RECEIVED via PeerJS');
         console.log('[GUEST] Stream ID:', remoteMediaStream.id);
         console.log('[GUEST] Video tracks:', remoteMediaStream.getVideoTracks().length);
         console.log('[GUEST] Audio tracks:', remoteMediaStream.getAudioTracks().length);
@@ -899,6 +933,46 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       call.on('error', (err) => {
         console.error('[GUEST] ❌ Media call error:', err);
       });
+      
+      // NOW answer the call (after handlers are registered)
+      console.log('[GUEST] Answering call with local stream:', stream.id);
+      console.log('[GUEST] Local stream video tracks:', stream.getVideoTracks().length);
+      console.log('[GUEST] Local stream audio tracks:', stream.getAudioTracks().length);
+      call.answer(stream);
+      
+      // ============================================================
+      // FALLBACK: Attach ontrack listener directly on RTCPeerConnection
+      // In case PeerJS's stream event doesn't fire (version-specific)
+      // ============================================================
+      const pc = (call as unknown as { peerConnection: RTCPeerConnection }).peerConnection;
+      if (pc) {
+        console.log('[GUEST] ✅ RTCPeerConnection available — attaching ontrack fallback');
+        const existingOntrack = pc.ontrack;
+        pc.ontrack = (event) => {
+          // Call existing handler first (PeerJS internal)
+          if (existingOntrack) {
+            existingOntrack.call(pc, event);
+          }
+          
+          console.log('[GUEST] ========================================');
+          console.log('[GUEST] 🔵 RTCPeerConnection.ontrack FIRED (fallback)');
+          console.log('[GUEST] Track kind:', event.track.kind);
+          console.log('[GUEST] Track enabled:', event.track.enabled);
+          console.log('[GUEST] Streams count:', event.streams.length);
+          console.log('[GUEST] ========================================');
+          
+          if (event.streams && event.streams[0]) {
+            const fallbackStream = event.streams[0];
+            if (!remoteStreamRef.current) {
+              console.log('[GUEST] ✅ Setting remote stream from ontrack fallback');
+              remoteStreamRef.current = fallbackStream;
+              setRemoteStream(fallbackStream);
+            }
+          }
+        };
+      } else {
+        console.warn('[GUEST] ⚠️ RTCPeerConnection not available for ontrack fallback');
+      }
     });
     
     peer.on('open', () => {
