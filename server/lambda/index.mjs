@@ -1,7 +1,7 @@
 import twilio from 'twilio';
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 
-const region = "us-east-2"; // Ensure this matches your Lambda region
+const region = "ap-northeast-1"; // Ensure this matches your Lambda region
 const secretName = "Kitsunagi-Twilio-Auth";
 const client = new SecretsManagerClient({ region });
 

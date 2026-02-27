@@ -165,7 +165,7 @@ const fetchTurnCredentials = async (): Promise<RTCIceServer[]> => {
   ];
 
   // Use production Lambda URL for TURN credentials
-  const TURN_API_URL = import.meta.env.VITE_TURN_API_URL || 'https://jsrpfoj7xv4nhr4sva4tujslki0hgugg.lambda-url.eu-north-1.on.aws/api/turn-credentials';
+  const TURN_API_URL = import.meta.env.VITE_TURN_API_URL || 'https://i2l7ajpbewdypwdaiikqu2wate0oaplj.lambda-url.us-east-2.on.aws/api/turn-credentials';
 
   try {
     console.log('[ICE] Fetching ephemeral TURN credentials from backend...');
@@ -202,7 +202,7 @@ const fetchTurnCredentials = async (): Promise<RTCIceServer[]> => {
     console.error('[ICE] Endpoint:', TURN_API_URL);
     console.error('[ICE] Falling back to STUN-only (same-network only!)');
     
-    if (TURN_API_URL === 'https://jsrpfoj7xv4nhr4sva4tujslki0hgugg.lambda-url.eu-north-1.on.aws/api/turn-credentials') {
+    if (TURN_API_URL === 'https://i2l7ajpbewdypwdaiikqu2wate0oaplj.lambda-url.us-east-2.on.aws/api/turn-credentials') {
       console.error('[ICE] Check that the Lambda function URL is reachable');
       console.error('[ICE]   URL:', TURN_API_URL);
     } else {
