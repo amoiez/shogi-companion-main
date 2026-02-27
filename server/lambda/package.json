@@ -9,6 +9,7 @@
     "test": "node test-local.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.709.0",
     "twilio": "^5.3.5"
   },
   "engines": {
