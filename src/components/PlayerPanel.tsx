@@ -10,6 +10,7 @@ interface SelectedSource {
   handIndex?: number;
   piece: string;
   isOpponent: boolean;
+  isGote?: boolean;
 }
 
 // Mapping from Japanese piece characters to image filenames (captured pieces are always demoted)
@@ -88,6 +89,9 @@ interface PlayerPanelProps {
   // ABSOLUTE and consistent regardless of who is viewing.
   // ============================================================
   isGoteHand?: boolean;
+  // Optional visual override for hand piece facing direction.
+  // true = render as Gote-facing (up), false = render as Sente-facing (down).
+  handFacingUp?: boolean;
   // ============================================================
   // CRITICAL: PLAYER ROLE FLAG (ABSOLUTE, NOT RELATIVE)
   // ============================================================
@@ -125,12 +129,17 @@ interface HandPieceProps {
   // This is INDEPENDENT of isOpponent (which is viewer-relative).
   // ============================================================
   isGoteHand?: boolean;
+  // Optional visual override for piece facing direction.
+  handFacingUp?: boolean;
 }
 
-const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd, canDrag = true, isSelected = false, onPieceClick, count, isGoteHand = false }: HandPieceProps) => {
+const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEnd, canDrag = true, isSelected = false, onPieceClick, count, isGoteHand = false, handFacingUp }: HandPieceProps) => {
+  const handOwnerIsOpponent = isGoteHand;
+  const visualIsGoteHand = handFacingUp ?? isGoteHand;
+
   const isDragging = dragSource?.type === 'hand' && 
     dragSource?.handIndex === index && 
-    dragSource?.isOpponent === isOpponent;
+    dragSource?.isOpponent === handOwnerIsOpponent;
 
   // ============================================================
   // PIECE ROTATION - ABSOLUTE OWNERSHIP-BASED (SHOGI RULES)
@@ -150,11 +159,11 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
   // - Layout flip state
   // - Camera orientation
   // ============================================================
-  const pieceRotation = isGoteHand ? 0 : 180;
+  const pieceRotation = visualIsGoteHand ? 0 : 180;
 
   // Normalize King character for display (Sente's hand → '王', Gote's hand → '玉')
   // Use isGoteHand for ownership-based normalization
-  const displayPiece = normalizeKingPiece(piece, isGoteHand);
+  const displayPiece = normalizeKingPiece(piece, visualIsGoteHand);
 
   // Handle pointer down for piece selection (replaces drag start)
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -169,12 +178,13 @@ const HandPiece = ({ piece, index, isOpponent, dragSource, onDragStart, onDragEn
       type: 'hand',
       handIndex: index,
       piece,
-      isOpponent,
+      isOpponent: handOwnerIsOpponent,
+      isGote: isGoteHand,
     });
   };
 
   // Get the piece image path - use isGoteHand for correct piece selection
-  const imagePath = getHandPieceImagePath(piece, isGoteHand);
+  const imagePath = getHandPieceImagePath(piece, visualIsGoteHand);
 
   return (
     <div
@@ -347,9 +357,12 @@ const PlayerPanel = ({
   playerRank = '',
   isSelfVideo = false, // CRITICAL: Controls mirroring - true = local camera (mirror), false = remote (no mirror)
   isGoteHand = false,  // CRITICAL: Piece ownership for rotation (true=Gote pieces, false=Sente pieces)
+  handFacingUp,
   isHostPlayer = true, // CRITICAL: Player role for color (true=Host=BLACK, false=Guest=WHITE)
 }: PlayerPanelProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const handOwnerIsOpponent = isGoteHand;
+  const visualHandFacingUp = handFacingUp ?? isGoteHand;
 
   // ============================================================
   // ROBUST VIDEO DETECTION
@@ -452,12 +465,12 @@ const PlayerPanel = ({
     // canDrag already accounts for whether it's this player's turn and role
     if (!canDrag) return;
     
-    console.log('[Tap] Hand piece clicked:', { piece, index, isOpponent });
+    console.log('[Tap] Hand piece clicked:', { piece, index, isOpponent: handOwnerIsOpponent });
     
     // Check if this piece is already selected
     const isAlreadySelected = selectedSource?.type === 'hand' && 
       selectedSource?.handIndex === index && 
-      selectedSource?.isOpponent === isOpponent;
+      selectedSource?.isOpponent === handOwnerIsOpponent;
     
     if (isAlreadySelected) {
       // Deselect
@@ -470,7 +483,8 @@ const PlayerPanel = ({
         type: 'hand',
         handIndex: index,
         piece,
-        isOpponent,
+        isOpponent: handOwnerIsOpponent,
+        isGote: isGoteHand,
       });
     }
   };
@@ -649,7 +663,7 @@ const PlayerPanel = ({
               {groupedHandArray.map((group) => {
                 const isThisSelected = selectedSource?.type === 'hand' && 
                   selectedSource?.piece === group.piece && 
-                  selectedSource?.isOpponent === isOpponent;
+                  selectedSource?.isOpponent === handOwnerIsOpponent;
                 
                 return (
                   <div key={`${group.piece}-${group.index}`} className="relative w-full" style={{ aspectRatio: '1/1' }}>
@@ -665,6 +679,7 @@ const PlayerPanel = ({
                       onPieceClick={() => handleHandPieceClick(group.piece, group.index)}
                       count={group.count}
                       isGoteHand={isGoteHand}
+                      handFacingUp={visualHandFacingUp}
                     />
                   </div>
                 );
@@ -705,7 +720,7 @@ const PlayerPanel = ({
             {groupedHandArray.map((group) => {
               const isThisSelected = selectedSource?.type === 'hand' && 
                 selectedSource?.piece === group.piece && 
-                selectedSource?.isOpponent === isOpponent;
+                selectedSource?.isOpponent === handOwnerIsOpponent;
               
               return (
                 <div key={`${group.piece}-${group.index}`} className="relative w-full" style={{ aspectRatio: '1/1' }}>
@@ -721,6 +736,7 @@ const PlayerPanel = ({
                     onPieceClick={() => handleHandPieceClick(group.piece, group.index)}
                     count={group.count}
                     isGoteHand={isGoteHand}
+                    handFacingUp={visualHandFacingUp}
                   />
                 </div>
               );
@@ -969,7 +985,7 @@ const PlayerPanel = ({
             {groupedHandArray.map((group) => {
               const isThisSelected = selectedSource?.type === 'hand' && 
                 selectedSource?.piece === group.piece && 
-                selectedSource?.isOpponent === isOpponent;
+                selectedSource?.isOpponent === handOwnerIsOpponent;
               
               return (
                 <div key={`${group.piece}-${group.index}`} className="relative w-full" style={{ aspectRatio: '1/1' }}>
@@ -985,6 +1001,7 @@ const PlayerPanel = ({
                     onPieceClick={() => handleHandPieceClick(group.piece, group.index)}
                     count={group.count}
                     isGoteHand={isGoteHand}
+                    handFacingUp={visualHandFacingUp}
                   />
                 </div>
               );

@@ -1,167 +1,627 @@
 # Deployment Guide - Nakano Video Shogi Companion
 
 ## Overview
-This guide provides step-by-step instructions for deploying the Nakano Video Shogi Companion application to production and configuring it for iPad use.
+This guide provides comprehensive step-by-step instructions for deploying and administering the Nakano Video Shogi Companion application on AWS infrastructure.
+
+## Architecture Overview
+
+### Current Production Architecture
+- **Frontend Hosting**: AWS Amplify (us-east-2, Ohio)
+- **Backend Service**: AWS Lambda `Kitsunagi-shogi-turn-gen` (us-east-2, Ohio)
+- **Secrets Storage**: AWS Secrets Manager (ap-northeast-1, Tokyo)
+- **TURN/STUN Service**: Twilio (for WebRTC multiplayer)
+
+### Cross-Region Design
+The application uses a cross-region architecture where:
+1. The Lambda function runs in **us-east-2 (Ohio)** for low latency to Amplify
+2. Twilio credentials are stored in **ap-northeast-1 (Tokyo)** in Secrets Manager
+3. The Lambda's IAM execution role has an **inline policy** granting cross-region `secretsmanager:GetSecretValue` access
+
+This design allows centralized secret management in Tokyo while maintaining low-latency compute in Ohio.
 
 ## Prerequisites
 
 Before deployment, ensure you have:
+- ✅ AWS Account with appropriate permissions
+- ✅ AWS CLI configured with administrator credentials
+- ✅ Node.js 18.x+ and npm installed locally
+- ✅ Twilio account with TURN credentials (for production multiplayer)
 - ✅ Completed BUILD_AND_SETUP.md instructions
-- ✅ Built the application successfully (`npm run build`)
-- ✅ AWS infrastructure set up (see AWS_INFRASTRUCTURE.md)
-- ✅ AWS CLI configured with appropriate credentials
-- ✅ Domain name configured (if using custom domain)
+- ✅ Repository access and Git configured
 
-## Deployment Options
+---
 
-### Option 1: AWS S3 + CloudFront (Recommended)
+## Part 1: AWS Secrets Manager Configuration (Tokyo Region)
 
-This is the recommended deployment method for production use. See AWS_INFRASTRUCTURE.md for infrastructure setup.
+### Overview
+Twilio credentials are stored in AWS Secrets Manager in the **ap-northeast-1 (Tokyo)** region. These credentials enable the Lambda function to generate temporary TURN server credentials for WebRTC connectivity.
 
-#### Step 1: Build for Production
+### Step 1: Access AWS Secrets Manager
 
-```bash
-# Clean previous builds
-rm -rf dist
+1. Log in to the AWS Console
+2. Switch to region **ap-northeast-1 (Tokyo)** using the region selector
+3. Navigate to **Secrets Manager**
+4. Locate the secret (e.g., `twilio/credentials` or similar name)
 
-# Build optimized production bundle
-npm run build
+### Step 2: Update Twilio Credentials
 
-# Verify build output
-ls -la dist/
-```
+#### Required Twilio Credentials Format
 
-**Expected Output**:
-- `index.html` - Main entry file
-- `assets/` - JavaScript, CSS, images
-- `public/` files - Static assets (pieces, sounds, images)
-
-#### Step 2: Set Cache Headers
-
-Different cache strategies for different file types:
-
-**For versioned assets** (JavaScript, CSS with hashes):
-- Cache-Control: `max-age=31536000, public, immutable`
-- These files have unique hashes and can be cached forever
-
-**For HTML**:
-- Cache-Control: `no-cache, no-store, must-revalidate`
-- Always fetch fresh HTML to get latest asset references
-
-#### Step 3: Deploy to S3
-
-```bash
-# Set variables
-export BUCKET_NAME="your-bucket-name"
-export DISTRIBUTION_ID="your-cloudfront-distribution-id"
-
-# Upload all files except index.html with long cache
-aws s3 sync dist/ s3://${BUCKET_NAME}/ \
-    --delete \
-    --cache-control "max-age=31536000,public,immutable" \
-    --exclude "index.html" \
-    --exclude "robots.txt"
-
-# Upload index.html with no-cache
-aws s3 cp dist/index.html s3://${BUCKET_NAME}/index.html \
-    --cache-control "no-cache,no-store,must-revalidate" \
-    --content-type "text/html"
-
-# Upload robots.txt with standard cache
-aws s3 cp dist/robots.txt s3://${BUCKET_NAME}/robots.txt \
-    --cache-control "max-age=86400" \
-    --content-type "text/plain"
-
-# Verify upload
-aws s3 ls s3://${BUCKET_NAME}/ --recursive --human-readable
-```
-
-#### Step 4: Invalidate CloudFront Cache
-
-```bash
-# Create invalidation for all files
-aws cloudfront create-invalidation \
-    --distribution-id ${DISTRIBUTION_ID} \
-    --paths "/*"
-
-# Or invalidate specific files
-aws cloudfront create-invalidation \
-    --distribution-id ${DISTRIBUTION_ID} \
-    --paths "/index.html" "/assets/*"
-```
-
-**Note**: CloudFront invalidations are free for the first 1,000 paths per month.
-
-#### Step 5: Verify Deployment
-
-1. Wait for invalidation to complete (usually 30-60 seconds)
-2. Visit your domain: `https://your-domain.com`
-3. Verify the application loads correctly
-4. Test all major features
-5. Check browser console for errors
-
-### Option 2: Alternative Deployment Methods
-
-#### Netlify Deploy
-```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-# Login
-netlify login
-
-# Deploy
-netlify deploy --prod --dir=dist
-```
-
-#### Vercel Deploy
-```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Deploy
-vercel --prod
-```
-
-## Security Headers Configuration
-
-### CloudFront Response Headers Policy
-
-Create a response headers policy in CloudFront with these security headers:
+The secret must contain a JSON object with these exact keys:
 
 ```json
 {
-  "SecurityHeadersPolicy": {
-    "StrictTransportSecurity": {
-      "AccessControlMaxAge": 31536000,
-      "IncludeSubdomains": true,
-      "Override": true
-    },
-    "ContentTypeOptions": {
-      "Override": true
-    },
-    "FrameOptions": {
-      "FrameOption": "DENY",
-      "Override": true
-    },
-    "XSSProtection": {
-      "ModeBlock": true,
-      "Protection": true,
-      "Override": true
-    },
-    "ReferrerPolicy": {
-      "ReferrerPolicy": "strict-origin-when-cross-origin",
-      "Override": true
-    },
-    "ContentSecurityPolicy": {
-      "ContentSecurityPolicy": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:; media-src 'self'; object-src 'none'; frame-ancestors 'none';",
-      "Override": true
-    }
-  }
+  "TWILIO_ACCOUNT_SID": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "TWILIO_AUTH_TOKEN": "your_auth_token_here",
+  "TWILIO_API_KEY_SID": "SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 }
 ```
 
-**Note**: The CSP policy above allows `unsafe-inline` and `unsafe-eval` for compatibility with React and Vite. Adjust as needed for your security requirements.
+#### How to Obtain Twilio Credentials
+
+1. **Log in to Twilio Console**: https://console.twilio.com/
+2. **Get Account SID and Auth Token**:
+   - From the Dashboard, copy your **Account SID** (starts with `AC`)
+   - Copy your **Auth Token** (click "Show" if hidden)
+3. **Create API Key**:
+   - Navigate to **Account** → **API Keys & Tokens**
+   - Click **Create API Key**
+   - Choose "Standard" type
+   - Name it (e.g., "Shogi-Companion-Production")
+   - **IMPORTANT**: Save both the **SID** (starts with `SK`) and **Secret** immediately
+   - The API Key SID goes into `TWILIO_API_KEY_SID`
+   - The API Key Secret goes into `TWILIO_AUTH_TOKEN`
+
+#### Update the Secret
+
+**Option A: Using AWS Console**
+
+1. In Secrets Manager, click on your secret
+2. Click **Retrieve secret value**
+3. Click **Edit**
+4. Replace the JSON with your new credentials
+5. Click **Save**
+
+**Option B: Using AWS CLI**
+
+```bash
+# Set region to Tokyo
+export AWS_REGION=ap-northeast-1
+
+# Update the secret (replace SECRET_NAME with your actual secret name)
+aws secretsmanager put-secret-value \
+    --region ap-northeast-1 \
+    --secret-id twilio/credentials \
+    --secret-string '{
+      "TWILIO_ACCOUNT_SID": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "TWILIO_AUTH_TOKEN": "your_auth_token_here",
+      "TWILIO_API_KEY_SID": "SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }'
+```
+
+### Step 3: Verify Secret Update
+
+```bash
+# Retrieve and verify the secret
+aws secretsmanager get-secret-value \
+    --region ap-northeast-1 \
+    --secret-id twilio/credentials \
+    --query SecretString \
+    --output text | jq .
+```
+
+**Expected output**: Your JSON credentials formatted and readable.
+
+### Security Best Practices
+
+- ✅ **Never commit** Twilio credentials to Git
+- ✅ **Rotate credentials** every 90 days
+- ✅ Use **API Keys** instead of the main Auth Token when possible
+- ✅ Enable **CloudWatch Logs** for secret access auditing
+- ✅ Restrict IAM permissions to **only the Lambda execution role**
+
+---
+
+## Part 2: AWS Lambda Configuration (Ohio Region)
+
+### Overview
+The Lambda function `Kitsunagi-shogi-turn-gen` runs in **us-east-2 (Ohio)** and provides TURN server credentials via a public Function URL.
+
+### Step 1: Access Lambda Function
+
+1. Switch to region **us-east-2 (Ohio)** in AWS Console
+2. Navigate to **Lambda**
+3. Find and open function: `Kitsunagi-shogi-turn-gen`
+
+### Step 2: Configure CORS (Critical for Security)
+
+CORS must be configured to allow **only** your Amplify application origin.
+
+#### Navigate to Function URL Configuration
+
+1. In the Lambda function page, click the **Configuration** tab
+2. Click **Function URL** in the left sidebar
+3. Click **Edit**
+
+#### Set CORS Configuration
+
+Configure the following CORS settings:
+
+```
+Allowed Origins: https://your-amplify-app.amplifyapp.com
+Allowed Methods: GET, POST, OPTIONS
+Allowed Headers: Content-Type, X-Amz-Date, Authorization, X-Api-Key
+Expose Headers: (leave empty or default)
+Max Age: 86400
+Allow Credentials: No
+```
+
+**IMPORTANT**: Replace `your-amplify-app.amplifyapp.com` with your actual Amplify domain.
+
+#### Using AWS CLI
+
+```bash
+# Update CORS configuration
+aws lambda update-function-url-config \
+    --region us-east-2 \
+    --function-name Kitsunagi-shogi-turn-gen \
+    --cors '{
+      "AllowOrigins": ["https://your-amplify-app.amplifyapp.com"],
+      "AllowMethods": ["GET", "POST", "OPTIONS"],
+      "AllowHeaders": ["Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key"],
+      "MaxAge": 86400,
+      "AllowCredentials": false
+    }'
+```
+
+### Step 3: Verify Function URL
+
+1. In the Lambda function **Configuration** → **Function URL**
+2. Copy the **Function URL** (format: `https://xxxxx.lambda-url.us-east-2.on.aws/`)
+3. Verify:
+   - Auth type: **NONE** (public access)
+   - Invoke mode: **BUFFERED**
+   - CORS: **Configured** with your Amplify origin
+
+### Step 4: Test the Lambda Function
+
+From your terminal:
+
+```bash
+# Test the Lambda function
+curl -X POST https://your-lambda-url.lambda-url.us-east-2.on.aws/ \
+  -H "Content-Type: application/json" \
+  -H "Origin: https://your-amplify-app.amplifyapp.com"
+```
+
+**Expected response**: JSON with TURN server credentials:
+```json
+{
+  "iceServers": [
+    {
+      "urls": ["turn:global.turn.twilio.com:3478?transport=udp"],
+      "username": "...",
+      "credential": "..."
+    }
+  ]
+}
+```
+
+---
+
+## Part 3: Cross-Region IAM Permissions
+
+### Architecture Explanation
+
+**Why cross-region?**
+- **Lambda (Ohio)**: Close to Amplify for low latency
+- **Secrets Manager (Tokyo)**: Centralized credential storage
+- **IAM Bridge**: Inline policy allows Ohio Lambda to read Tokyo secrets
+
+### Lambda Execution Role Configuration
+
+#### Step 1: Find the Execution Role
+
+1. In the Lambda function **Configuration** → **Permissions**
+2. Note the **Execution role** name (e.g., `Kitsunagi-shogi-turn-gen-role`)
+3. Click on the role name to open IAM
+
+#### Step 2: Verify Inline Policy
+
+The execution role should have an **inline policy** with cross-region permissions:
+
+**Policy Name**: `CrossRegionSecretsAccess` (or similar)
+
+**Policy Document**:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:ap-northeast-1:YOUR_ACCOUNT_ID:secret:twilio/credentials-XXXXXX"
+    }
+  ]
+}
+```
+
+**Key Points**:
+- `ap-northeast-1`: Tokyo region (where secret is stored)
+- `YOUR_ACCOUNT_ID`: Your AWS account ID
+- The ARN must exactly match your secret's ARN
+
+#### Step 3: Verify the Secret ARN
+
+Get the exact ARN from Secrets Manager:
+
+```bash
+# In Tokyo region
+aws secretsmanager describe-secret \
+    --region ap-northeast-1 \
+    --secret-id twilio/credentials \
+    --query ARN \
+    --output text
+```
+
+Copy this ARN and ensure it matches the IAM policy Resource field.
+
+#### Step 4: Test Cross-Region Access
+
+Test that the Lambda can retrieve the secret:
+
+1. Go to Lambda **Test** tab
+2. Create a test event (any JSON, e.g., `{}`)
+3. Click **Test**
+4. Check **CloudWatch Logs** for:
+   - ✅ Successful secret retrieval from Tokyo
+   - ✅ Twilio credentials loaded
+   - ✅ TURN credentials generated
+
+### Troubleshooting Cross-Region Access
+
+**Error**: `AccessDeniedException`
+- ✅ Verify the IAM policy Resource ARN exactly matches the secret ARN
+- ✅ Check the Lambda execution role has the inline policy attached
+- ✅ Ensure the region in the ARN is `ap-northeast-1`
+
+**Error**: `ResourceNotFoundException`
+- ✅ Verify the secret exists in Tokyo (`ap-northeast-1`)
+- ✅ Check the secret name matches exactly
+
+---
+
+## Part 4: Frontend Deployment (AWS Amplify)
+
+### Overview
+The React frontend is deployed on **AWS Amplify** in **us-east-2 (Ohio)** with automatic CI/CD from your Git repository.
+
+### Step 1: Initial Amplify Setup (One-Time)
+
+1. Navigate to **AWS Amplify** in us-east-2
+2. Click **New app** → **Host web app**
+3. Connect your Git provider (GitHub, GitLab, etc.)
+4. Select your repository and branch (e.g., `main`)
+5. Configure build settings (Amplify will auto-detect Vite)
+
+### Step 2: Configure Build Settings
+
+Amplify should auto-detect, but verify `amplify.yml`:
+
+```yaml
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+```
+
+### Step 3: Set Environment Variables
+
+In Amplify Console → **App settings** → **Environment variables**:
+
+```
+VITE_TURN_LAMBDA_URL = https://your-lambda-url.lambda-url.us-east-2.on.aws/
+```
+
+**IMPORTANT**: After adding, redeploy the app for changes to take effect.
+
+### Step 4: Deploy Application
+
+#### Automatic Deployment
+- Push to your configured branch (e.g., `main`)
+- Amplify will automatically build and deploy
+
+#### Manual Deployment
+1. In Amplify Console, click your app
+2. Click **Run build** or **Redeploy this version**
+3. Monitor the build logs
+
+### Step 5: Update Lambda CORS
+
+After deployment, **update the Lambda CORS** to include your Amplify domain:
+
+1. Get your Amplify URL (e.g., `https://main.d1234abcd.amplifyapp.com`)
+2. Update Lambda CORS (see Part 2, Step 2)
+3. Test multiplayer functionality
+
+### Step 6: Verify Deployment
+
+1. Visit your Amplify URL
+2. Open browser DevTools → Console
+3. Test multiplayer connection:
+   - Click "Start Multiplayer"
+   - Check Network tab for successful TURN credential fetch
+   - Verify no CORS errors
+
+---
+
+## Part 5: Monitoring and Maintenance
+5. Check browser console for errors
+
+---
+
+## Part 5: Monitoring and Maintenance
+
+### CloudWatch Logs
+
+#### Lambda Logs
+Monitor Lambda execution in **us-east-2**:
+
+```bash
+# View recent Lambda logs
+aws logs tail /aws/lambda/Kitsunagi-shogi-turn-gen \
+    --region us-east-2 \
+    --follow
+```
+
+Watch for:
+- TURN credential generation requests
+- Secret retrieval success/failures
+- CORS errors
+- Twilio API errors
+
+#### Amplify Build Logs
+1. Amplify Console → Your App → **Build logs**
+2. Check for build failures, dependency issues, or environment variable problems
+
+### Secret Rotation Schedule
+
+**Recommended**: Rotate Twilio credentials every **90 days**
+
+1. Create new Twilio API Key
+2. Update secret in Tokyo Secrets Manager (Part 1, Step 2)
+3. Lambda will automatically use new credentials (no restart needed)
+4. Delete old Twilio API Key after verification
+
+### Cost Monitoring
+
+Key cost factors:
+- **Amplify**: Build minutes + hosting (usually < $5/month for small apps)
+- **Lambda**: Invocations (100,000 free/month, then $0.20 per 1M)
+- **Secrets Manager**: $0.40/secret/month + $0.05 per 10,000 API calls
+- **Twilio**: TURN usage (pay-as-you-go TURN relay traffic)
+
+### Health Checks
+
+**Weekly checks**:
+```bash
+# 1. Test Lambda endpoint
+curl -X POST https://your-lambda-url.lambda-url.us-east-2.on.aws/
+
+# 2. Verify app loads
+curl -I https://your-amplify-app.amplifyapp.com
+
+# 3. Check secret expiration
+aws secretsmanager describe-secret \
+    --region ap-northeast-1 \
+    --secret-id twilio/credentials
+```
+
+---
+
+## Part 6: Troubleshooting
+
+### Issue: CORS Errors in Browser
+
+**Symptom**: Console shows `CORS policy: No 'Access-Control-Allow-Origin' header`
+
+**Solution**:
+1. Verify Lambda CORS configuration includes exact Amplify origin
+2. Ensure no trailing slash in Allowed Origins
+3. Check browser DevTools → Network → Response headers for `access-control-allow-origin`
+
+### Issue: "Access Denied" When Fetching Secret
+
+**Symptom**: Lambda logs show `AccessDeniedException` for Secrets Manager
+
+**Solution**:
+1. Verify IAM inline policy ARN exactly matches secret ARN (Part 3)
+2. Check the policy is attached to the Lambda execution role
+3. Ensure region in ARN is `ap-northeast-1`
+
+### Issue: Invalid TURN Credentials
+
+**Symptom**: Multiplayer fails, TURN credentials rejected by Twilio
+
+**Solution**:
+1. Verify Twilio credentials in Tokyo secret are correct and current
+2. Check `TWILIO_ACCOUNT_SID` starts with `AC`
+3. Check `TWILIO_API_KEY_SID` starts with `SK`
+4. Ensure API Key is not expired or deleted in Twilio Console
+
+### Issue: Amplify Build Failures
+
+**Symptom**: Amplify deployment fails during build
+
+**Solution**:
+1. Check Build logs for specific error
+2. Verify `package.json` and `package-lock.json` are committed
+3. Ensure environment variables are set correctly
+4. Try clearing cache: Amplify Console → App → Actions → Clear cache and redeploy
+
+### Issue: Lambda Function Not Found
+
+**Symptom**: 404 error when calling Function URL
+
+**Solution**:
+1. Verify Function URL is enabled and copied correctly
+2. Check region is us-east-2
+3. Ensure Function URL auth type is NONE
+
+---
+
+## Part 7: Rollback Procedures
+
+### Rollback Frontend (Amplify)
+
+1. Amplify Console → Your App → **Build history**
+2. Find the last working deployment
+3. Click the **...** menu → **Redeploy this version**
+
+### Rollback Lambda Code
+
+Deploy the previous Lambda version:
+
+```bash
+# List versions
+aws lambda list-versions-by-function \
+    --region us-east-2 \
+    --function-name Kitsunagi-shogi-turn-gen
+
+# Update function to use specific version
+aws lambda update-alias \
+    --region us-east-2 \
+    --function-name Kitsunagi-shogi-turn-gen \
+    --name LIVE \
+    --function-version <previous-version-number>
+```
+
+### Rollback Secrets
+
+1. AWS Secrets Manager → Your secret → **Retrieve secret value**
+2. Click **Previous versions** tab
+3. Find the previous version ID
+4. Click **Set as current**
+
+---
+
+## Part 8: Security Hardening
+
+### Lambda Function URL
+
+✅ **Current**: Auth type NONE (public access)
+✅ **Secured by**: CORS restricting to Amplify origin only
+❌ **Not recommended**: Adding IAM auth (would require SigV4 signing in browser)
+
+### Secrets Manager
+
+- Enable **automatic rotation** for Twilio credentials (optional, advanced)
+- Enable **CloudTrail logging** for secret access audit
+- Set up **CloudWatch alarms** for unauthorized access attempts
+
+### IAM Least Privilege
+
+Ensure Lambda execution role has **only** these permissions:
+1. Basic Lambda execution (CloudWatch Logs)
+2. Secrets Manager GetSecretValue for **one specific secret ARN**
+
+### Network Security
+
+- Lambda runs in **default VPC** (no VPC required for this use case)
+- Secrets Manager access over AWS private network
+- No public IPs or security groups needed
+
+---
+
+## Part 9: Quick Reference Commands
+
+### Update Twilio Secret (Tokyo)
+```bash
+aws secretsmanager put-secret-value \
+    --region ap-northeast-1 \
+    --secret-id twilio/credentials \
+    --secret-string '{...}'
+```
+
+### View Lambda Logs (Ohio)
+```bash
+aws logs tail /aws/lambda/Kitsunagi-shogi-turn-gen \
+    --region us-east-2 \
+    --follow
+```
+
+### Test Lambda Function
+```bash
+curl -X POST https://your-lambda-url.lambda-url.us-east-2.on.aws/ \
+  -H "Origin: https://your-amplify-app.amplifyapp.com"
+```
+
+### Trigger Amplify Deployment
+```bash
+git commit -am "Update app"
+git push origin main
+```
+
+### Get Secret ARN
+```bash
+aws secretsmanager describe-secret \
+    --region ap-northeast-1 \
+    --secret-id twilio/credentials \
+    --query ARN
+```
+
+---
+
+## Summary
+
+### Architecture at a Glance
+```
+Frontend (Amplify, Ohio)
+    ↓ HTTPS Request
+Lambda (Ohio)
+    ↓ Cross-Region IAM Policy
+Secrets Manager (Tokyo)
+    ↓ Returns Twilio Credentials
+Lambda generates TURN credentials
+    ↓ JSON Response
+Frontend establishes WebRTC connection via Twilio TURN servers
+```
+
+### Administrator Checklist
+
+**Initial Setup**:
+- [ ] Twilio account created
+- [ ] Credentials stored in Tokyo Secrets Manager
+- [ ] Lambda deployed in Ohio with Function URL
+- [ ] Cross-region IAM policy configured
+- [ ] CORS configured for Amplify origin
+- [ ] Amplify app deployed and connected to Git
+
+**Ongoing Maintenance**:
+- [ ] Rotate Twilio credentials every 90 days
+- [ ] Monitor CloudWatch Logs weekly
+- [ ] Check Twilio usage and costs monthly
+- [ ] Test multiplayer functionality after each deployment
+- [ ] Review and update CORS origins as needed
+
+**Emergency Contacts**:
+- AWS Support: https://console.aws.amazon.com/support
+- Twilio Support: https://support.twilio.com
+- Application logs: CloudWatch in us-east-2
+
+---
 
 ## iPad Setup and Configuration
 
@@ -176,7 +636,7 @@ Create a response headers policy in CloudFront with these security headers:
 #### Step 1: Initial Access
 
 1. Open Safari on the iPad
-2. Navigate to your deployed application URL: `https://your-domain.com`
+2. Navigate to your Amplify application URL: `https://your-amplify-app.amplifyapp.com`
 3. Wait for the application to fully load
 4. Test touch interactions to ensure everything works
 

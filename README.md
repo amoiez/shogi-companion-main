@@ -36,7 +36,7 @@ A professional web-based shogi game companion and analysis tool, optimized for i
 - npm 9.x or higher
 - Git
 
-### Development Setup
+### Local Development Setup
 ```bash
 # Clone repository
 git clone <YOUR_GIT_URL>
@@ -50,6 +50,15 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:8080`
+
+### Environment Configuration (Optional for Local Development)
+Create a `.env` file in the project root for local testing:
+```bash
+# Optional: Lambda Function URL for TURN credentials
+VITE_TURN_LAMBDA_URL=https://your-lambda-url.lambda-url.us-east-2.on.aws/
+```
+
+**Note**: For local development, the app will work without Twilio TURN servers for multiplayer on the same network.
 
 ### Production Build
 ```bash
@@ -78,13 +87,28 @@ For complete build and deployment instructions, see [BUILD_AND_SETUP.md](BUILD_A
 
 ## 🏗️ Technology Stack
 
-- **Frontend Framework**: React 18.3.1 with TypeScript 5.8.3
+### Frontend
+- **Framework**: React 18.3.1 with TypeScript 5.8.3
 - **Build Tool**: Vite 5.4.19
 - **UI Components**: Radix UI + shadcn-ui
 - **Styling**: Tailwind CSS 3.4.17
 - **State Management**: React Hooks + TanStack Query
-- **Multiplayer**: PeerJS 1.5.5 (WebRTC)
-- **Deployment**: AWS S3 + CloudFront
+- **Hosting**: AWS Amplify (us-east-2, Ohio)
+
+### Backend & Infrastructure
+- **Multiplayer Backend**: AWS Lambda (`Kitsunagi-shogi-turn-gen`) in us-east-2 (Ohio)
+  - Function URL with public access (Auth: NONE)
+  - CORS configured for Amplify origin only
+- **WebRTC**: Twilio TURN/STUN servers for peer-to-peer connections
+- **Secrets Management**: AWS Secrets Manager in ap-northeast-1 (Tokyo)
+  - Cross-region IAM permissions for Ohio Lambda to access Tokyo secrets
+- **Real-time Communication**: PeerJS 1.5.5 (WebRTC)
+
+### Key AWS Services
+- **AWS Amplify**: Frontend hosting and CI/CD
+- **AWS Lambda**: Serverless TURN credential generation
+- **AWS Secrets Manager**: Secure Twilio credential storage
+- **IAM**: Cross-region permissions (Ohio ↔ Tokyo)
 
 For complete technology details, see [BUILD_AND_SETUP.md](BUILD_AND_SETUP.md) and [LICENSES.md](LICENSES.md).
 

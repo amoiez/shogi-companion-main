@@ -20,6 +20,7 @@ export interface DragSource {
   handIndex?: number;
   piece: string;
   isOpponent: boolean;
+  isGote?: boolean;
 }
 
 // Module-level ref to store dragSource synchronously (for tap-to-move support)
@@ -722,6 +723,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     capturedPiece: string | null
   ): GameState => {
     const { type, row: sourceRow, col: sourceCol, handIndex, piece, isOpponent: sourceIsOpponent } = source;
+    const movingIsOpponent = type === 'hand' ? (source.isGote ?? sourceIsOpponent) : sourceIsOpponent;
     
     const newBoard = board.map(row => row.map(cell => ({ ...cell })));
     let newSenteHand = [...senteHand];
@@ -729,7 +731,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
 
     if (capturedPiece) {
       const basePiece = getBasePiece(capturedPiece);
-      if (sourceIsOpponent) {
+      if (movingIsOpponent) {
         newGoteHand = [...newGoteHand, basePiece];
       } else {
         newSenteHand = [...newSenteHand, basePiece];
@@ -739,7 +741,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     if (type === 'board' && sourceRow !== undefined && sourceCol !== undefined) {
       newBoard[sourceRow][sourceCol] = { piece: null, isOpponent: false };
     } else if (type === 'hand' && handIndex !== undefined) {
-      if (sourceIsOpponent) {
+      if (movingIsOpponent) {
         newGoteHand = newGoteHand.filter((_, i) => i !== handIndex);
       } else {
         newSenteHand = newSenteHand.filter((_, i) => i !== handIndex);
@@ -750,7 +752,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     
     newBoard[targetRow][targetCol] = { 
       piece: finalPiece, 
-      isOpponent: sourceIsOpponent 
+      isOpponent: movingIsOpponent 
     };
 
     const newMoveCount = moveCount + 1;
@@ -838,6 +840,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     if (!source) return null;
 
     const { type, row: sourceRow, col: sourceCol, piece, isOpponent: sourceIsOpponent } = source;
+    const movingIsOpponent = type === 'hand' ? (source.isGote ?? sourceIsOpponent) : sourceIsOpponent;
 
     if (type === 'board' && sourceRow === targetRow && sourceCol === targetCol) {
       setDragSource(null);
@@ -855,7 +858,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
         return null;
       }
     } else if (type === 'hand') {
-      const legalDrops = getLegalDrops(board, piece, sourceIsOpponent);
+      const legalDrops = getLegalDrops(board, piece, movingIsOpponent);
       const isLegal = legalDrops.some(d => d.row === targetRow && d.col === targetCol);
       if (!isLegal) {
         console.log('[Drop] Illegal drop rejected');
