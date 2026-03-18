@@ -42,21 +42,21 @@ const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('online');
   // Track if user has made initial mode selection
   const [modeSelected, setModeSelected] = useState(false);
-  
+
   // Tap-to-move selected state (shared between board and komadai)
   const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(null);
   // Track if user has interacted (for BGM autoplay)
   const [hasInteracted, setHasInteracted] = useState(false);
-  
+
   // Safe zone refs for collision detection
   const boardRef = useRef<HTMLDivElement>(null);
   const leftColumnRef = useRef<HTMLDivElement>(null);
   const rightColumnRef = useRef<HTMLDivElement>(null);
   const [safeZones, setSafeZones] = useState<SafeZone[]>([]);
-  
+
   // Toast for API errors
   const { toast } = useToast();
-  
+
   const {
     board,
     senteHand,
@@ -92,7 +92,7 @@ const Index = () => {
     setOnMainTimeExpired,
     setOnByoyomiTimeUp,
   } = useGameState(gameMode);
-  
+
   // Audio system
   const {
     startBgm,
@@ -106,22 +106,22 @@ const Index = () => {
     primeAudioEngine,
     isAudioPrimed,
   } = useAudioSystem();
-  
+
   // Text download hook
   const { downloadWithTimestamp } = useTextDownload();
-  
+
   // AI message override for time warnings
   const [aiWarningMessage, setAiWarningMessage] = useState<string | null>(null);
-  
+
   // Track previous byoyomi times for voice countdown
   const prevSenteTimeRef = useRef(senteTime);
   const prevGoteTimeRef = useRef(goteTime);
-  
+
   // Register piece move sound callback
   useEffect(() => {
     setOnPieceMove(playPieceMove);
   }, [setOnPieceMove, playPieceMove]);
-  
+
   // Register main time expired callback
   useEffect(() => {
     setOnMainTimeExpired((player) => {
@@ -132,17 +132,17 @@ const Index = () => {
       setTimeout(() => setAiWarningMessage(null), 5000);
     });
   }, [setOnMainTimeExpired, speakMainTimeExpired]);
-  
+
   // Register byoyomi time up (game over) callback  
   useEffect(() => {
     setOnByoyomiTimeUp((player) => {
       playTimeUp();
-      setAiWarningMessage(player === 'sente' 
-        ? '先手の時間切れです。後手の勝ちです。' 
+      setAiWarningMessage(player === 'sente'
+        ? '先手の時間切れです。後手の勝ちです。'
         : '後手の時間切れです。先手の勝ちです。');
     });
   }, [setOnByoyomiTimeUp, playTimeUp]);
-  
+
   // Byoyomi voice warnings - only for the current player
   useEffect(() => {
     if (senteByoyomi && gameCurrentTurn === 'sente' && !isGameOver) {
@@ -161,7 +161,7 @@ const Index = () => {
     }
     prevSenteTimeRef.current = senteTime;
   }, [senteTime, senteByoyomi, gameCurrentTurn, speakByoyomiWarning, isGameOver]);
-  
+
   useEffect(() => {
     if (goteByoyomi && gameCurrentTurn === 'gote' && !isGameOver) {
       if (prevGoteTimeRef.current !== goteTime) {
@@ -178,16 +178,16 @@ const Index = () => {
     }
     prevGoteTimeRef.current = goteTime;
   }, [goteTime, goteByoyomi, gameCurrentTurn, speakByoyomiWarning, isGameOver]);
-  
+
   // GLOBAL AUDIO PRIME - FORCE PLAY ON FIRST CLICK ANYWHERE
   const handleFirstInteraction = useCallback(async () => {
     if (!hasInteracted) {
       setHasInteracted(true);
       console.log('AUDIO: First click detected, priming audio engine...');
-      
+
       // Prime audio engine ONCE
       await primeAudioEngine();
-      
+
       // Start BGM using singleton
       startBgm();
       console.log('AUDIO: Audio primed and BGM started');
@@ -244,7 +244,7 @@ const Index = () => {
       gameOverReason: gameOverReason,
       gameMode: gameMode,
     };
-    
+
     // Create formatted text content
     const content = `将棋対局記録
 =================
@@ -265,7 +265,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
 
 エクスポート日時: ${new Date().toLocaleString('ja-JP')}
 `;
-    
+
     downloadWithTimestamp(content, 'shogi-game-record');
   }, [moveCount, gameCurrentTurn, senteTimeFormatted, goteTimeFormatted, sfen, usiHistory, isGameOver, gameOverReason, gameMode, downloadWithTimestamp, getGameState]);
 
@@ -301,7 +301,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
       setSelectedSource(null);
       return;
     }
-    
+
     // ============================================================
     // MULTIPLAYER MODE: Strict turn enforcement (RESTORED)
     // ============================================================
@@ -310,28 +310,28 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
       console.log('[Sync] Not your turn!');
       return;
     }
-    
+
     console.log('[Sync] handleDropWithSync called with LOGICAL coords:', { row, col, role, isGotePlayer: role === 'guest' });
-    
+
     // handleDrop now returns the calculated new state synchronously
     // NOTE: row, col are already in LOGICAL coordinates (mirrored by ShogiBoard if needed)
     const nextState = handleDrop(row, col);
-    
+
     // If no state returned, the drop was invalid or waiting for promotion
     if (!nextState) {
       console.log('[Sync] Drop cancelled, invalid, or waiting for promotion');
       return;
     }
-    
+
     // CRITICAL FIX: Clear selected source to remove highlights after successful move
     setSelectedSource(null);
-    
+
     console.log('[Sync] ========================================');
     console.log('[Sync] Move executed locally');
     console.log('[Sync] Next state - moveCount:', nextState.moveCount);
     console.log('[Sync] Next state - currentTurn:', nextState.currentTurn);
     console.log('[Sync] ========================================');
-    
+
     // Send the calculated next state IMMEDIATELY (no waiting for React)
     if (connectionStatus === 'connected') {
       console.log('[Sync] Sending nextState to peer...');
@@ -342,10 +342,10 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
   // Handle promotion choice with sync
   const handlePromotionWithSync = useCallback((shouldPromote: boolean) => {
     const nextState = handlePromotionChoice(shouldPromote);
-    
+
     // CRITICAL FIX: Clear selected source after promotion decision
     setSelectedSource(null);
-    
+
     if (nextState && connectionStatus === 'connected') {
       sendMove(nextState);
     }
@@ -372,19 +372,19 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
         goteHand,
         usiHistory // Pass USI history for API Rev 0.3
       );
-      
+
       console.log('[API Export] Game state prepared:', apiState);
       return apiState;
     } catch (error) {
       console.error('[API Export] Failed to export game state:', error);
-      
+
       // Show error toast to user
       toast({
         title: "Sync Error",
         description: "Failed to prepare game state for AI analysis",
         variant: "destructive",
       });
-      
+
       return null;
     }
   }, [board, lastMove, senteTime, goteTime, senteByoyomi, goteByoyomi, moveCount, gameCurrentTurn, senteHand, goteHand, usiHistory, toast]);
@@ -395,7 +395,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
       // Automatically prepare API state after moves
       // This ensures data is ready for external AI to fetch
       const apiState = exportAPIGameState();
-      
+
       // Store in window for external access (if needed by integration partner)
       if (apiState) {
         (window as any).__shogiAPIState = apiState;
@@ -407,22 +407,22 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
   // CRITICAL FIX: Both host and guest show their OWN localStream and opponent's remoteStream
   const opponentStream = role ? remoteStream : null;  // Opponent always gets remoteStream
   const selfStream = role ? localStream : null;       // Self always gets localStream
-  
+
   // PERSPECTIVE RULES for layout:
   // - Solo Mode: LOCKED - Gote always on left, Sente always on right (NO SWAPPING)
   // - Host (Sente): Static view, Gote on left, Sente on right (their pieces at board bottom)
   // - Guest (Gote): Static view, Sente on left, Gote on right (board rotated, their pieces at bottom)
   // - Spectator: Auto-flip based on current turn
-  const shouldFlipLayout = 
+  const shouldFlipLayout =
     gameMode === 'solo' ? false :          // SOLO MODE FIX: Lock layout - NEVER flip portraits
-    role === 'host' ? false :              // Host always sees Gote left, Sente right
-    role === 'guest' ? true :              // Guest always sees Sente left, Gote right (with rotated board)
-    gameCurrentTurn === 'gote';            // Spectators follow active player
-  
+      role === 'host' ? false :              // Host always sees Gote left, Sente right
+        role === 'guest' ? true :              // Guest always sees Sente left, Gote right (with rotated board)
+          gameCurrentTurn === 'gote';            // Spectators follow active player
+
   // Calculate safe zones for AI assistant collision detection
   const updateSafeZones = useCallback(() => {
     const zones: SafeZone[] = [];
-    
+
     // Board safe zone (highest priority)
     if (boardRef.current) {
       const rect = boardRef.current.getBoundingClientRect();
@@ -439,7 +439,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
         priority: 1,
       });
     }
-    
+
     // Left player frame safe zone
     if (leftColumnRef.current) {
       const rect = leftColumnRef.current.getBoundingClientRect();
@@ -456,7 +456,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
         priority: 2,
       });
     }
-    
+
     // Right player frame safe zone
     if (rightColumnRef.current) {
       const rect = rightColumnRef.current.getBoundingClientRect();
@@ -473,27 +473,27 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
         priority: 2,
       });
     }
-    
+
     setSafeZones(zones);
   }, []);
-  
+
   // Update safe zones on mount and resize
   useEffect(() => {
     updateSafeZones();
-    
+
     let timeoutId: ReturnType<typeof setTimeout>;
     const handleResize = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(updateSafeZones, 100);
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
       clearTimeout(timeoutId);
     };
   }, [updateSafeZones]);
-  
+
   // Recalculate safe zones when layout changes
   useEffect(() => {
     // Small delay to allow DOM to update after layout change
@@ -504,15 +504,15 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
   return (
     <div className="game-container" onClick={handleFirstInteraction}>
       {/* Top Header - Situation Assessment Bar with control buttons */}
-      <SituationBar 
-        gotePercent={gotePercent} 
-        sentePercent={sentePercent} 
+      <SituationBar
+        gotePercent={gotePercent}
+        sentePercent={sentePercent}
         isFlipped={shouldFlipLayout}
         onDownloadClick={handleDownloadGameRecord}
         onBgmToggle={toggleBgm}
         isBgmPlaying={isBgmPlaying}
       />
-      
+
       {/* Connection Panel - Lobby Modal or Status Badge (handles its own positioning) */}
       {/* Show modal until user selects a mode, then only show in online mode */}
       {(!modeSelected || gameMode === 'online') && (
@@ -527,14 +527,14 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
           onSoloMode={handleSoloMode}
         />
       )}
-      
+
       {/* Main Game Grid - 2 Rows × 3 Columns */}
       <div className="game-grid">
         {/* Row 1, Col 1: Left Player Panel */}
         <div ref={leftColumnRef} className="grid-cell player-cell">
           {!shouldFlipLayout ? (
-            <PlayerPanel 
-              label="後手" 
+            <PlayerPanel
+              label="後手"
               time={goteTimeFormatted}
               isOpponent={true}
               hand={goteHand}
@@ -555,8 +555,8 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               isHostPlayer={false}
             />
           ) : (
-            <PlayerPanel 
-              label="先手" 
+            <PlayerPanel
+              label="先手"
               time={senteTimeFormatted}
               isOpponent={true}
               hand={senteHand}
@@ -578,44 +578,44 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
             />
           )}
         </div>
-        
+
         {/* Row 1, Col 2: Shogi Board (Center) */}
         <div className="grid-cell board-cell">
           <div ref={boardRef} className="board-wrapper">
-            <ShogiBoard 
+            <ShogiBoard
               board={board}
               dragSource={dragSource}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onDrop={handleDropWithSync}
               isMyTurn={
-                gameMode === 'solo' 
-                  ? true 
+                gameMode === 'solo'
+                  ? true
                   : (isMyTurn && !isGameOver)
               }
               isGotePlayer={
-                gameMode === 'solo' 
-                  ? false 
+                gameMode === 'solo'
+                  ? false
                   : (role === 'guest')
               }
               selectedSource={selectedSource}
               onSelectSource={setSelectedSource}
               rotateBoard={
                 gameMode === 'solo' ? false :
-                role === 'host' ? false :
-                role === 'guest' ? true :
-                gameCurrentTurn === 'gote'
+                  role === 'host' ? false :
+                    role === 'guest' ? true :
+                      gameCurrentTurn === 'gote'
               }
               gameMode={gameMode}
             />
           </div>
         </div>
-        
+
         {/* Row 1, Col 3: Right Player Panel */}
         <div ref={rightColumnRef} className="grid-cell player-cell">
           {!shouldFlipLayout ? (
-            <PlayerPanel 
-              label="先手" 
+            <PlayerPanel
+              label="先手"
               time={senteTimeFormatted}
               isOpponent={false}
               hand={senteHand}
@@ -626,8 +626,8 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               videoStream={selfStream}
               isMyTurn={gameCurrentTurn === 'sente'}
               canDrag={
-                gameMode === 'solo' 
-                  ? !isGameOver 
+                gameMode === 'solo'
+                  ? !isGameOver
                   : (isMyTurn && role !== 'guest' && !isGameOver)
               }
               selectedSource={selectedSource}
@@ -640,8 +640,8 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               isHostPlayer={true}
             />
           ) : (
-            <PlayerPanel 
-              label="後手" 
+            <PlayerPanel
+              label="後手"
               time={goteTimeFormatted}
               isOpponent={false}
               hand={goteHand}
@@ -652,8 +652,8 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
               videoStream={selfStream}
               isMyTurn={gameCurrentTurn === 'gote'}
               canDrag={
-                gameMode === 'solo' 
-                  ? !isGameOver 
+                gameMode === 'solo'
+                  ? !isGameOver
                   : (isMyTurn && role === 'guest' && !isGameOver)
               }
               selectedSource={selectedSource}
@@ -667,22 +667,22 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
             />
           )}
         </div>
-        
+
         {/* Row 2, Col 2: AI Assistant (below the board) */}
         <div className="grid-cell ai-cell">
-          <AIAssistant 
-            message={aiWarningMessage || aiMessage} 
+          <AIAssistant
+            message={aiWarningMessage || aiMessage}
             safeZones={safeZones}
           />
         </div>
-        
+
         {/* Game Over Overlay */}
         {isGameOver && (
           <div className="game-over-overlay">
             <div className="bg-amber-100 rounded-2xl p-8 shadow-2xl text-center">
               <h2 className="text-3xl font-bold text-amber-900 mb-4">対局終了</h2>
               <p className="text-xl text-amber-800 mb-6">{gameOverReason}</p>
-              <button 
+              <button
                 onClick={() => window.location.reload()}
                 className="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
               >
@@ -692,7 +692,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
           </div>
         )}
       </div>
-      
+
       {/* Promotion Dialog */}
       {pendingPromotion && (
         <PromotionDialog
@@ -703,7 +703,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
           onDecline={() => handlePromotionWithSync(false)}
         />
       )}
-      
+
       {/* Toast notifications for API errors */}
       <Toaster />
     </div>
