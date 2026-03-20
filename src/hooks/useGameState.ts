@@ -656,7 +656,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     return DEMOTION_MAP[piece] || piece;
   };
 
-  const speakText = (text: string) => {
+  const speakText = useCallback((text: string) => {
     try {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -669,9 +669,9 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     } catch (e) {
       console.log('Speech synthesis not available');
     }
-  };
+  }, []);
 
-  const updateGameState = (newMoveCount: number) => {
+  const updateGameState = useCallback((newMoveCount: number) => {
     playClickSound();
     
     const scriptEntry = (demoScript as ScriptEntry[]).find(entry => entry.move === newMoveCount);
@@ -702,7 +702,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
         speakText(message);
       }
     }
-  };
+  }, [speakText]);
 
   const handleDragStart = useCallback((source: DragSource) => {
     dragSourceRef = source;
@@ -833,7 +833,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     setDragSource(null);
     
     return nextState;
-  }, [board, senteHand, goteHand, moveCount, currentTurn, senteTime, goteTime, senteByoyomi, goteByoyomi, startTimer]);
+  }, [board, senteHand, goteHand, moveCount, currentTurn, senteTime, goteTime, senteByoyomi, goteByoyomi, startTimer, updateGameState]);
 
   const handleDrop = useCallback((targetRow: number, targetCol: number): GameState | null => {
     const source = dragSourceRef || dragSource;
@@ -979,7 +979,7 @@ export const useGameState = (gameMode: GameMode = 'solo') => {
     }
     
     updateGameState(state.moveCount);
-  }, [moveCount]);
+  }, [moveCount, updateGameState]);
 
   const getGameState = useCallback(() => ({
     board,

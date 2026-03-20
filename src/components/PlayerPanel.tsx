@@ -458,7 +458,7 @@ const PlayerPanel = ({
         videoElement.srcObject = null;
       }
     };
-  }, [videoStream, isSelfVideo]); // FIXED: depend on isSelfVideo, not isOpponent
+  }, [videoStream, isSelfVideo, isOpponent]); // Include logged prop to avoid stale closure warnings
 
   // Handle hand piece click for tap-to-move
   const handleHandPieceClick = (piece: string, index: number) => {

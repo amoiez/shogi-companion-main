@@ -407,20 +407,17 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
       peerRef.current = null;
     }
     
-    // Stop local stream tracks
+    // Stop local stream tracks using the ref as the single source of truth.
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
       localStreamRef.current = null;
     }
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-      setLocalStream(null);
-    }
+    setLocalStream(null);
     
     // Clear remote stream
     remoteStreamRef.current = null;
     setRemoteStream(null);
-  }, [localStream]);
+  }, []);
 
   // Get user media (camera/mic)
   // CRITICAL: Stream is created ONCE and stored in ref to prevent reassignment
@@ -821,7 +818,7 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     peer.on('disconnected', () => {
       console.log('[HOST] Peer disconnected from server');
     });
-  }, [cleanup, setupMedia, setupDataListener, setupMediaConnection]);
+  }, [cleanup, setupMedia, setupDataListener]);
 
   // ============================================================
   // GUEST: Join an existing game
@@ -1158,7 +1155,7 @@ export const useMultiplayer = (): UseMultiplayerReturn => {
     return () => {
       cleanup();
     };
-  }, []);
+  }, [cleanup]);
 
   return {
     gameId,
