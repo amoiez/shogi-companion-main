@@ -13,6 +13,14 @@ import { getAPIGameState } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 
+type ShogiAPIState = ReturnType<typeof getAPIGameState>;
+
+declare global {
+  interface Window {
+    __shogiAPIState?: ShogiAPIState;
+  }
+}
+
 // Selected source interface for tap-to-move
 interface SelectedSource {
   type: 'board' | 'hand';
@@ -399,7 +407,7 @@ ${usiHistory.length > 0 ? usiHistory.join(' ') : '(まだ指し手がありま�
       
       // Store in window for external access (if needed by integration partner)
       if (apiState) {
-        (window as any).__shogiAPIState = apiState;
+        window.__shogiAPIState = apiState;
       }
     }
   }, [moveCount, exportAPIGameState]);

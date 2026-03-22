@@ -34,7 +34,7 @@ export const useTextDownload = () => {
   /**
    * Download JSON data as formatted text file
    */
-  const downloadJSON = useCallback((data: any, filename: string = 'data.txt') => {
+  const downloadJSON = useCallback((data: unknown, filename: string = 'data.txt') => {
     const content = JSON.stringify(data, null, 2);
     downloadTextFile(content, filename);
   }, []);

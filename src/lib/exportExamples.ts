@@ -158,7 +158,7 @@ White Captures: ${captures.white.join(', ') || 'None'}
 // Example 6: Auto-save Feature
 // ============================================================================
 export function setupAutoSave(
-  getGameState: () => any,
+  getGameState: () => unknown,
   intervalMinutes: number = 5
 ) {
   const interval = setInterval(() => {

@@ -16,6 +16,12 @@ let eventListenersAttached = false;
 // State tracking to prevent duplicate operations
 let isCurrentlyPlaying = false;
 
+type AudioContextConstructor = typeof AudioContext;
+
+const getAudioContextConstructor = (): AudioContextConstructor | undefined => {
+  return window.AudioContext ?? (window as Window & { webkitAudioContext?: AudioContextConstructor }).webkitAudioContext;
+};
+
 const createBgmInstance = (): HTMLAudioElement => {
   // Generate unique ID for this instance
   bgmInstanceId = `bgm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -155,7 +161,7 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
     
     try {
       // Resume AudioContext
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContext = getAudioContextConstructor();
       if (AudioContext) {
         const ctx = new AudioContext();
         if (ctx.state === 'suspended') {
@@ -255,7 +261,11 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
           console.error('PIECE SOUND: Play failed', e);
           // Fallback beep
           try {
-            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const AudioContext = getAudioContextConstructor();
+            if (!AudioContext) {
+              throw new Error('AudioContext not available');
+            }
+            const ctx = new AudioContext();
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain);
@@ -279,7 +289,11 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
     if (!sfxEnabled) return;
     
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContext = getAudioContextConstructor();
+      if (!AudioContext) {
+        throw new Error('AudioContext not available');
+      }
+      const audioContext = new AudioContext();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -304,7 +318,11 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
     if (!sfxEnabled) return;
     
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContext = getAudioContextConstructor();
+      if (!AudioContext) {
+        throw new Error('AudioContext not available');
+      }
+      const audioContext = new AudioContext();
       
       const playBeep = (startTime: number) => {
         const oscillator = audioContext.createOscillator();
@@ -336,7 +354,11 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
     if (!sfxEnabled) return;
     
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContext = getAudioContextConstructor();
+      if (!AudioContext) {
+        throw new Error('AudioContext not available');
+      }
+      const audioContext = new AudioContext();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -387,7 +409,11 @@ export const useAudioSystem = (options: AudioSystemOptions = {}) => {
     } else if (seconds <= 10 && seconds >= 1) {
       // FALLBACK BEEP - always play regardless of voice (every second in final countdown)
       try {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioContext = getAudioContextConstructor();
+        if (!AudioContext) {
+          throw new Error('AudioContext not available');
+        }
+        const ctx = new AudioContext();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);

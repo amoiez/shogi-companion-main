@@ -26,6 +26,12 @@ export interface DragSource {
 // Module-level ref to store dragSource synchronously (for tap-to-move support)
 let dragSourceRef: DragSource | null = null;
 
+type AudioContextConstructor = typeof AudioContext;
+
+const getAudioContextConstructor = (): AudioContextConstructor | undefined => {
+  return window.AudioContext ?? (window as Window & { webkitAudioContext?: AudioContextConstructor }).webkitAudioContext;
+};
+
 interface ScriptEntry {
   move: number;
   text: string | null;
@@ -104,7 +110,11 @@ const createInitialBoard = (): CellData[][] => [
 // Click sound using Web Audio API
 const playClickSound = () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContext = getAudioContextConstructor();
+    if (!AudioContext) {
+      throw new Error('AudioContext not available');
+    }
+    const audioContext = new AudioContext();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
